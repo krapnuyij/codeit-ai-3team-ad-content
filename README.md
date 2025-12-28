@@ -15,11 +15,12 @@
 ---
 
 ## 3. 팀 구성 및 역할
-김명환:
-김민혁:
-박지윤:
-이건희:
-이솔형:
+
+- 김명환: 추가 예정
+- 김민혁: 추가 예정
+- 박지윤: 추가 예정
+- 이건희: 추가 예정
+- 이솔형: 추가 예정
 
 ---
 
@@ -35,11 +36,11 @@
 ---
 
 ## 6. 기술 스택
-Frontend: 미정
-Backend: 미정
-Model: HuggingFace ...
-Infra: GCP VM (L4 GPU)
-Collaboration: GitHub, Notion
+- Frontend: 미정
+- Backend: 미정
+- Model: HuggingFace ...
+- Infra: GCP VM (L4 GPU)
+- Collaboration: (임의 작성)GitHub, Discord, Notion
 
 ---
 
