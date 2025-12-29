@@ -23,5 +23,7 @@ jobs:
         run: |
           git config --global user.name "c0z0c"
           git config --global user.email "c0z0c@hotmail.com"
-          git remote add mirror https://x-access-token:$MIRROR_TOKEN@github.com/c0z0c/codeit-ai-3team-ad-content.git
-          git push --mirror mirror
+          git remote add mirror https://$MIRROR_TOKEN@github.com/c0z0c/codeit-ai-3team-ad-content.git
+          git fetch origin
+          git push mirror --all --force
+          git push mirror --tags --force
