@@ -1,0 +1,27 @@
+name: Mirror Repository
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+      - alpha
+
+jobs:
+  mirror_repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.MIRROR_TOKEN }}
+
+      - name: Mirror to Target Repository
+        env:
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
+        run: |
+          git config --global user.name "c0z0c"
+          git config --global user.email "c0z0c@hotmail.com"
+          git remote add mirror https://x-access-token:$MIRROR_TOKEN@github.com/c0z0c/codeit-ai-3team-ad-content.git
+          git push --mirror mirror

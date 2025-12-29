@@ -36,13 +36,13 @@
 ### 📝 협업일지
 
 팀원별 개발 과정 및 학습 내용을 기록한 협업일지입니다.
-- [김명환 협업일지 (Project Manager)](https://krapnuyij.github.io/codeit-ai-3team-ad-content/협업일지/김명환/)
-- [김민혁 협업일지 (Project Manager)](https://krapnuyij.github.io/codeit-ai-3team-ad-content/협업일지/김민혁/)
-- [박지윤 협업일지 (Project Manager)](https://krapnuyij.github.io/codeit-ai-3team-ad-content/협업일지/박지윤/)
-- [이건희 협업일지 (Project Manager)](https://krapnuyij.github.io/codeit-ai-3team-ad-content/협업일지/이건희/)
-- [이슬형 협업일지 (Project Manager)](https://krapnuyij.github.io/codeit-ai-3team-ad-content/협업일지/이슬형/)
+- [김명환 협업일지 (Project Manager)]({{- site.baseurl -}}/협업일지/김명환/)
+- [김민혁 협업일지 (Project Manager)]({{- site.baseurl -}}/협업일지/김민혁/)
+- [박지윤 협업일지 (Project Manager)]({{- site.baseurl -}}/협업일지/박지윤/)
+- [이건희 협업일지 (Project Manager)]({{- site.baseurl -}}/협업일지/이건희/)
+- [이슬형 협업일지 (Project Manager)]({{- site.baseurl -}}/협업일지/이슬형/)
 
-- [팀 회의록](https://krapnuyij.github.io/codeit-ai-3team-ad-content/회의록/)
+- [팀 회의록]({{- site.baseurl -}}/회의록/)
 
 
 ---
