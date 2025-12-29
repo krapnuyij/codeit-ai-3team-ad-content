@@ -19,7 +19,7 @@ jobs:
 
       - name: Mirror to Target Repository
         env:
-          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN_c0z0c_codeit-ai-3team-ad-content }}
+          MIRROR_TOKEN: ${{ secrets.MIRROR_TOKEN }}
         run: |
           git config --global user.name "c0z0c"
           git config --global user.email "c0z0c@hotmail.com"
