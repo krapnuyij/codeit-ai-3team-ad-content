@@ -121,7 +121,7 @@ function getFileInfo(extname) {
   <a href="{{- site.baseurl -}}/" class="nav-button home">
     <span class="nav-icon">🏠</span> 홈으로
   </a>
-  <a href="https://github.com/krapnuyij/codeit_ai_codeit-ai-3team-ad-content" target="_blank">
+  <a href="https://github.com/krapnuyij/codeit-ai-3team-ad-content" target="_blank">
     <span class="link-icon">📱</span> GitHub 저장소
   </a>
 </div>
