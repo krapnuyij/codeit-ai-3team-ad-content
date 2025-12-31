@@ -24,7 +24,17 @@ def run_api_tests(test_image_path, log_func):
         resp = client.get("/fonts")
         assert resp.status_code == 200
         fonts = resp.json()['fonts']
+        assert len(fonts) > 0, "No fonts found"
         log_func("6. API /fonts", "Success", None, f"Found {len(fonts)} fonts")
+        
+        # Test font file access
+        first_font = fonts[0]
+        font_resp = client.get(f"/fonts/{first_font}")
+        assert font_resp.status_code == 200, f"Cannot access font file: {first_font}"
+        assert font_resp.headers['content-type'] in ['font/ttf', 'font/otf', 'application/octet-stream'], \
+            f"Invalid font content-type: {font_resp.headers.get('content-type')}"
+        log_func("6.1. API Font File Access", "Success", None, f"Font file accessible: {first_font}")
+        
     except Exception as e:
         log_func("6. API /fonts", "Error", None, str(e))
 
@@ -85,3 +95,54 @@ def run_api_tests(test_image_path, log_func):
             log_func("9. API Final Result", "Success", api_img, "API generation complete")
         else:
              log_func("9. API Final Result", "Missing", None, "No final result returned")
+
+
+def test_fonts_endpoint():
+    """Test GET /fonts endpoint"""
+    client = TestClient(app)
+    resp = client.get("/fonts")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert 'fonts' in data
+    assert len(data['fonts']) > 0
+    print(f"✓ Font list API: Found {len(data['fonts'])} fonts")
+
+
+def test_font_file_access():
+    """Test font file static access via /fonts/{path}"""
+    client = TestClient(app)
+    
+    # Get font list first
+    resp = client.get("/fonts")
+    assert resp.status_code == 200
+    fonts = resp.json()['fonts']
+    assert len(fonts) > 0
+    
+    # Test accessing first font file
+    first_font = fonts[0]
+    font_resp = client.get(f"/fonts/{first_font}")
+    assert font_resp.status_code == 200, f"Cannot access font: {first_font}"
+    assert len(font_resp.content) > 0, "Font file is empty"
+    print(f"✓ Font file access: {first_font} ({len(font_resp.content)} bytes)")
+
+
+def test_dashboard_endpoint():
+    """Test GET /test endpoint returns HTML"""
+    client = TestClient(app)
+    resp = client.get("/test")
+    assert resp.status_code == 200
+    assert 'text/html' in resp.headers.get('content-type', '')
+    assert 'test_dashboard' in resp.text or 'AI 광고 생성' in resp.text
+    print("✓ Dashboard endpoint accessible")
+
+
+def test_generate_endpoint_validation():
+    """Test POST /generate endpoint accepts request (validation happens in worker)"""
+    client = TestClient(app)
+    
+    # Test with minimal valid payload (will fail in worker but API accepts it)
+    resp = client.post("/generate", json={"test_mode": True})
+    assert resp.status_code == 200  # API accepts, validation in worker
+    assert 'job_id' in resp.json()
+    print("✓ Generate endpoint accepts requests")
+
