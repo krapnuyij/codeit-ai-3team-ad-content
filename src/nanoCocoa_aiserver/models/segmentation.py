@@ -1,10 +1,16 @@
 
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(project_root))
+
 import torch
 from PIL import Image
 from torchvision import transforms
 from transformers import AutoModelForImageSegmentation
-from ..config import MODEL_IDS, DEVICE
-from ..utils import flush_gpu
+from config import MODEL_IDS, DEVICE, logger
+from utils import flush_gpu
 
 class SegmentationModel:
     """
@@ -23,7 +29,7 @@ class SegmentationModel:
         Returns:
             tuple[Image.Image, Image.Image]: (배경 제거된 이미지, 마스크)
         """
-        print("[Engine] Loading BiRefNet... (BiRefNet 모델 로딩 중)")
+        logger.debug("[Engine] Loading BiRefNet... (BiRefNet 모델 로딩 중)")
         flush_gpu()
         
         model = AutoModelForImageSegmentation.from_pretrained(

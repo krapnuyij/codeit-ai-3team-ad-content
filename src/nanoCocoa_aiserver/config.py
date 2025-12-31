@@ -2,7 +2,8 @@
 import os
 import logging
 import torch
-
+import logging
+from helper_dev_utils import get_auto_logger
 # ==========================================
 # ⚙️ 설정 & 상수 (Configuration)
 # ==========================================
@@ -28,5 +29,5 @@ ESTIMATED_TIMES = {
 TOTAL_ESTIMATED_TIME = sum(ESTIMATED_TIMES.values())
 
 # 로깅 설정
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("AI-Server")
+logger = get_auto_logger()
+

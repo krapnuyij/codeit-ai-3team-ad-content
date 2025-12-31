@@ -1,6 +1,8 @@
 
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
+from config import logger
+
 
 class GenerateRequest(BaseModel):
     """
@@ -58,6 +60,12 @@ class GenerateRequest(BaseModel):
         title="배경 생성 프롬프트 (Background Prompt)",
         description="상품 뒤에 생성될 배경 이미지에 대한 영문 묘사 텍스트입니다.",
         json_schema_extra={"example": "Luxury marble podium on a beach, sunset lighting, realistic, 8k"}
+    )
+    bg_negative_prompt: str = Field(
+        "blurry, low quality, distorted, ugly, bad lighting, overexposed, underexposed",
+        title="배경 부정 프롬프트 (Background Negative Prompt)",
+        description="배경 생성 시 배제하고 싶은 요소들에 대한 키워드입니다.",
+        json_schema_extra={"example": "blur, noise, artifacts, low resolution"}
     )
 
     # Step 2 (텍스트 에셋) 입력
@@ -132,6 +140,36 @@ class GenerateRequest(BaseModel):
         description="True일 경우 AI 모델을 구동하지 않고 더미 데이터를 반환합니다. 빠른 API 테스트용입니다.",
         json_schema_extra={"example": False}
     )
+
+class GPUMetric(BaseModel):
+    """GPU 메트릭 정보"""
+    index: int = Field(..., title="GPU 인덱스")
+    name: str = Field(..., title="GPU 이름")
+    memory_total: float = Field(..., title="전체 메모리 (MB)")
+    memory_used: float = Field(..., title="사용 중인 메모리 (MB)")
+    gpu_util: int = Field(..., title="GPU 사용률 (%)")
+
+class SystemMetrics(BaseModel):
+    """시스템 메트릭 정보"""
+    cpu_percent: float = Field(..., title="CPU 사용률 (%)")
+    ram_percent: float = Field(..., title="RAM 사용률 (%)")
+    ram_total_gb: float = Field(..., title="전체 RAM (GB)")
+    gpu_info: list[GPUMetric] = Field(default_factory=list, title="GPU 정보 목록")
+
+class StatusResponse(BaseModel):
+    """작업 상태 응답 스키마"""
+    job_id: str = Field(..., title="작업 ID")
+    status: str = Field(..., title="작업 상태")
+    progress_percent: int = Field(..., title="진행률 (%)")
+    current_step: str = Field(..., title="현재 단계")
+    sub_step: Optional[str] = Field(None, title="현재 서브 단계")
+    message: str = Field(..., title="상태 메시지")
+    elapsed_sec: float = Field(..., title="경과 시간 (초)")
+    system_metrics: Optional[SystemMetrics] = Field(None, title="시스템 메트릭")
+    parameters: dict = Field(default_factory=dict, title="입력 파라미터")
+    step1_result: Optional[str] = Field(None, title="Step 1 결과 (Base64)")
+    step2_result: Optional[str] = Field(None, title="Step 2 결과 (Base64)")
+    final_result: Optional[str] = Field(None, title="최종 결과 (Base64)")
 
 class ResumeRequest(BaseModel):
     """

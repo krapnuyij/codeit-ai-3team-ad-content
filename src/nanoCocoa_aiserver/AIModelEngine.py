@@ -1,21 +1,24 @@
 
 from PIL import Image
-from .models.segmentation import SegmentationModel
-from .models.flux_generator import FluxGenerator
-from .models.sdxl_text import SDXLTextGenerator
-from .config import logger
+from models.segmentation import SegmentationModel
+from models.flux_generator import FluxGenerator
+from models.sdxl_text import SDXLTextGenerator
+from config import logger
+
 
 class AIModelEngine:
     """
     AI 모델의 실행을 관리하는 오케스트레이터 클래스입니다.
     각 작업 단계별로 적절한 하위 모델 클래스(Segmentation, Flux, SDXL)를 호출하여 작업을 수행합니다.
     """
-    def __init__(self, dummy_mode: bool = False):
+    def __init__(self, dummy_mode: bool = False, progress_callback=None):
         """
         Args:
             dummy_mode (bool): True일 경우 실제 모델을 로드하지 않고 더미 데이터를 반환합니다.
+            progress_callback (callable, optional): 진행률 업데이트 콜백 함수 callback(step, total_steps, sub_step_name)
         """
         self.dummy_mode = dummy_mode
+        self.progress_callback = progress_callback
         
         if not self.dummy_mode:
             # 하위 모델 인스턴스 생성 (실제 모델 로딩은 각 클래스의 메서드 실행 시점에 발생)
@@ -45,12 +48,13 @@ class AIModelEngine:
             
         return self.segmenter.run(image)
 
-    def run_flux_bg_gen(self, prompt: str, guidance_scale: float = 3.5, seed: int = None) -> Image.Image:
+    def run_flux_bg_gen(self, prompt: str, negative_prompt: str = None, guidance_scale: float = 3.5, seed: int = None) -> Image.Image:
         """
         Flux 모델을 로드하여 배경 이미지를 생성하고 즉시 언로드합니다.
         
         Args:
             prompt (str): 배경 생성을 위한 텍스트 프롬프트
+            negative_prompt (str, optional): 배제할 요소들에 대한 부정 프롬프트
             guidance_scale (float): 프롬프트 준수 강도 (기본 3.5)
             seed (int, optional): 난수 시드
             
@@ -61,7 +65,7 @@ class AIModelEngine:
             logger.info(f"[DUMMY] Generating BG with prompt: {prompt}")
             return self._create_dummy_image(1024, 1024, "lightblue")
             
-        return self.flux_gen.generate_background(prompt, guidance_scale, seed)
+        return self.flux_gen.generate_background(prompt, negative_prompt, guidance_scale, seed, self.progress_callback)
 
     def run_flux_refinement(self, draft_image: Image.Image, prompt: str = None, strength: float = 0.6, guidance_scale: float = 3.5, seed: int = None) -> Image.Image:
         """
@@ -81,7 +85,7 @@ class AIModelEngine:
             logger.info(f"[DUMMY] Refining image with strength: {strength}")
             return draft_image.copy() # 단순 복사
             
-        return self.flux_gen.refine_image(draft_image, prompt, strength, guidance_scale, seed)
+        return self.flux_gen.refine_image(draft_image, prompt, strength, guidance_scale, seed, self.progress_callback)
 
     def run_sdxl_text_gen(self, canny_map: Image.Image, prompt: str, negative_prompt: str) -> Image.Image:
         """
@@ -96,7 +100,7 @@ class AIModelEngine:
             Image.Image: 생성된 3D 텍스트 이미지
         """
         if self.dummy_mode:
-            logger.info(f"[DUMMY] Generating Text with prompt: {prompt}")
+            logger.info(f"[DUMMY] Generating 3D Text with prompt: {prompt}")
             return self._create_dummy_image(1024, 1024, "yellow")
             
-        return self.sdxl_gen.generate_text_effect(canny_map, prompt, negative_prompt)
+        return self.sdxl_gen.generate_text_effect(canny_map, prompt, negative_prompt, self.progress_callback)

@@ -11,7 +11,7 @@ except ImportError:
 from io import BytesIO
 from typing import List
 from PIL import Image, ImageFilter
-from .config import logger
+from config import logger
 
 def pil_to_base64(image: Image.Image) -> str:
     """PIL 이미지를 Base64 문자열로 변환합니다."""
@@ -43,21 +43,26 @@ def get_system_metrics():
     ram_info = psutil.virtual_memory()
     
     gpu_metrics = []
+    gpu_metrics = []
     try:
-        pynvml.nvmlInit()
-        device_count = pynvml.nvmlDeviceGetCount()
-        for i in range(device_count):
-            handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-            mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
-            util = pynvml.nvmlDeviceGetUtilizationRates(handle)
-            gpu_metrics.append({
-                "index": i,
-                "name": pynvml.nvmlDeviceGetName(handle),
-                "memory_total": mem_info.total / 1024**2,
-                "memory_used": mem_info.used / 1024**2,
-                "gpu_util": util.gpu
-            })
-        pynvml.nvmlShutdown()
+        if pynvml:
+            pynvml.nvmlInit()
+            device_count = pynvml.nvmlDeviceGetCount()
+            for i in range(device_count):
+                handle = pynvml.nvmlDeviceGetHandleByIndex(i)
+                mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                gpu_metrics.append({
+                    "index": i,
+                    "name": pynvml.nvmlDeviceGetName(handle),
+                    "memory_total": mem_info.total / 1024**2,
+                    "memory_used": mem_info.used / 1024**2,
+                    "gpu_util": util.gpu
+                })
+            pynvml.nvmlShutdown()
+        else:
+            # pynvml not installed or failed to import
+            pass
     except Exception as e:
         logger.error(f"GPU Monitor Error (GPU 모니터링 오류): {e}")
 

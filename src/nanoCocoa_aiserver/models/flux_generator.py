@@ -1,4 +1,10 @@
 
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(project_root))
+
 import torch
 from PIL import Image
 from diffusers import (
@@ -7,21 +13,23 @@ from diffusers import (
     FluxTransformer2DModel
 )
 from transformers import BitsAndBytesConfig
-from ..config import MODEL_IDS, TORCH_DTYPE
-from ..utils import flush_gpu
+from config import MODEL_IDS, TORCH_DTYPE, logger
+from utils import flush_gpu
 
 class FluxGenerator:
     """
     FLUX 모델을 사용하여 배경 생성 및 이미지 리파인을 수행하는 클래스입니다.
     """
-    def generate_background(self, prompt: str, guidance_scale: float = 3.5, seed: int = None) -> Image.Image:
+    def generate_background(self, prompt: str, negative_prompt: str = None, guidance_scale: float = 3.5, seed: int = None, progress_callback=None) -> Image.Image:
         """
         텍스트 프롬프트를 기반으로 배경 이미지를 생성합니다.
         
         Args:
             prompt (str): 배경 생성 프롬프트
+            negative_prompt (str, optional): 배제할 요소들에 대한 부정 프롬프트
             guidance_scale (float): 프롬프트 준수 강도
             seed (int, optional): 난수 시드
+            progress_callback (callable, optional): 진행률 콜백 함수
             
         Returns:
             Image.Image: 생성된 이미지
@@ -44,9 +52,18 @@ class FluxGenerator:
         else:
              generator = torch.Generator("cpu").manual_seed(42) # Default seed for consistency if not specified
 
+        num_steps = 25
+        
+        def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
+            if progress_callback:
+                progress_callback(step_index + 1, num_steps, "flux_bg_generation")
+            return callback_kwargs
+        
         image = pipe(
-            prompt, height=1024, width=1024, num_inference_steps=25, guidance_scale=guidance_scale,
-            generator=generator
+            prompt, negative_prompt=negative_prompt, height=1024, width=1024, 
+            num_inference_steps=num_steps, guidance_scale=guidance_scale,
+            generator=generator,
+            callback_on_step_end=callback_fn if progress_callback else None
         ).images[0]
         
         del pipe, transformer
@@ -92,9 +109,17 @@ class FluxGenerator:
         else:
              generator = torch.Generator("cpu").manual_seed(42)
 
+        num_steps = 30
+        
+        def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
+            if progress_callback:
+                progress_callback(step_index + 1, num_steps, "flux_refinement")
+            return callback_kwargs
+
         refined_image = pipe(
-            use_prompt, image=draft_image, strength=strength, num_inference_steps=30, guidance_scale=guidance_scale,
-            generator=generator
+            use_prompt, image=draft_image, strength=strength, num_inference_steps=num_steps, guidance_scale=guidance_scale,
+            generator=generator,
+            callback_on_step_end=callback_fn if progress_callback else None
         ).images[0]
 
         del pipe, transformer
