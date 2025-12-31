@@ -17,6 +17,7 @@
             <span style="font-size: 12px; color: var(--text-muted);">L4 최적화 단계별 생성 (Step-by-Step Generation)</span>
         </div>
         <div style="display: flex; gap: 10px;">
+            <button onclick="cancelJob()" class="btn-secondary" id="btn_cancel" style="display: none; background: #d32f2f;">작업 취소</button>
             <button onclick="resetAll()" class="btn-secondary">화면 초기화</button>
             <label
                 style="display: flex; align-items: center; gap: 6px; font-size: 13px; background: var(--panel-bg); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-color);">
@@ -56,12 +57,12 @@
 
                 <div class="control-group">
                     <label>배경 프롬프트 (영문)</label>
-                    <textarea id="bg_prompt">A wooden table in a bright kitchen, sunlight, realistic, 8k</textarea>
+                    <textarea id="bg_prompt">A rustic wooden table surface in a cozy kitchen. Warm morning sunlight streaming through window, creating soft natural shadows. Blurred kitchen background with bokeh effect, photorealistic, 8k, cinematic lighting, detailed wood grain texture</textarea>
                 </div>
 
                 <div class="control-group">
                     <label>배경 부정 프롬프트 (영문)</label>
-                    <input type="text" id="bg_negative_prompt" value="blurry, low quality, distorted, ugly">
+                    <input type="text" id="bg_negative_prompt" value="blurry, low quality, distorted, ugly, bad lighting, overexposed, underexposed, artificial, plastic">
                 </div>
 
                 <div class="control-group">
@@ -79,7 +80,7 @@
 
                 <div class="control-group">
                     <label>텍스트 내용</label>
-                    <input type="text" id="text_content" value="Special Sale">
+                    <input type="text" id="text_content" value="맛있는 바나나">
                 </div>
 
                 <div class="control-group">
@@ -93,12 +94,12 @@
                 <div class="control-group">
                     <label>텍스트 재질 프롬프트 (영문)</label>
                     <textarea
-                        id="text_model_prompt">Gold foil balloon text, inflated, shiny metallic texture, 3d render</textarea>
+                        id="text_model_prompt">3D render of gold foil balloon text, inflated letters, shiny metallic reflective texture, smooth surface, floating in air, studio lighting, sharp details, high quality, isolated on black background</textarea>
                 </div>
 
                 <div class="control-group">
                     <label>부정 프롬프트 (영문)</label>
-                    <input type="text" id="negative_prompt" value="low quality, ugly, distorted">
+                    <input type="text" id="negative_prompt" value="low quality, ugly, distorted, flat, 2d, blurry, pixelated, deformed text">
                 </div>
             </div>
 
@@ -133,7 +134,37 @@
                 </div>
                 <div style="display: flex; align-items: center; gap: 15px;">
                     <span id="step_info" style="color: var(--text-muted);">단계: -</span>
+                    <span id="eta_info" style="color: var(--accent-color); font-size: 12px;">예상 시간: -</span>
                     <span id="progress_info" style="color: var(--primary-color); font-weight: bold;">0%</span>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div style="background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-muted);" id="sub_step_info">-</span>
+                    <span style="font-size: 12px; color: var(--primary-color);" id="progress_text">0%</span>
+                </div>
+                <div style="width: 100%; height: 8px; background: #222; border-radius: 4px; overflow: hidden;">
+                    <div id="progress_bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+
+            <!-- System Metrics -->
+            <div style="background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: none;" id="metrics_panel">
+                <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-muted);">시스템 사용률</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">CPU</div>
+                        <div style="font-size: 16px; font-weight: bold; color: #4fc3f7;" id="cpu_usage">-</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">RAM</div>
+                        <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;" id="ram_usage">-</div>
+                    </div>
+                    <div id="gpu_metrics_container">
+                        <!-- GPU metrics will be inserted here -->
+                    </div>
                 </div>
             </div>
 
@@ -166,7 +197,12 @@
         </div>
     </div>
 
-    <script src="/static/js/dashboard.js"></script>
+    <!-- Load JS modules in order -->
+    <script src="/static/js/storage.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/timing.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/main.js"></script>
 </body>
 
 </html>

@@ -70,7 +70,7 @@ class FluxGenerator:
         flush_gpu()
         return image
 
-    def refine_image(self, draft_image: Image.Image, prompt: str = None, strength: float = 0.6, guidance_scale: float = 3.5, seed: int = None) -> Image.Image:
+    def refine_image(self, draft_image: Image.Image, prompt: str = None, strength: float = 0.6, guidance_scale: float = 3.5, seed: int = None, progress_callback=None) -> Image.Image:
         """
         이미지를 리터칭(Img2Img)하여 품질을 높입니다.
         
@@ -80,6 +80,7 @@ class FluxGenerator:
             strength (float): 변환 강도
             guidance_scale (float): 프롬프트 준수 강도
             seed (int, optional): 난수 시드
+            progress_callback (callable, optional): 진행률 콜백 함수
             
         Returns:
             Image.Image: 리터칭된 이미지

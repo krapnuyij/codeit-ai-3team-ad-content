@@ -1,3 +1,9 @@
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
+
 import multiprocessing
 import uuid
 import time
@@ -208,8 +214,9 @@ async def get_status(job_id: str):
     current_metrics = get_system_metrics()
     system_metrics_model = SystemMetrics(
         cpu_percent=current_metrics['cpu_percent'],
-        ram_percent=current_metrics['ram_percent'],
+        ram_used_gb=current_metrics['ram_used_gb'],
         ram_total_gb=current_metrics['ram_total_gb'],
+        ram_percent=current_metrics['ram_percent'],
         gpu_info=[GPUMetric(**gpu) for gpu in current_metrics['gpu_info']]
     )
     

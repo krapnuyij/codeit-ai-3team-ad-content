@@ -6,11 +6,15 @@ project_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
 import torch
+import warnings
 from PIL import Image
 from torchvision import transforms
 from transformers import AutoModelForImageSegmentation
 from config import MODEL_IDS, DEVICE, logger
 from utils import flush_gpu
+
+# timm 라이브러리 deprecation 경고 억제
+warnings.filterwarnings("ignore", category=FutureWarning, module="timm")
 
 class SegmentationModel:
     """

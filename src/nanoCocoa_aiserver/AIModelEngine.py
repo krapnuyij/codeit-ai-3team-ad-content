@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
 
 from PIL import Image
 from models.segmentation import SegmentationModel
@@ -85,7 +90,14 @@ class AIModelEngine:
             logger.info(f"[DUMMY] Refining image with strength: {strength}")
             return draft_image.copy() # 단순 복사
             
-        return self.flux_gen.refine_image(draft_image, prompt, strength, guidance_scale, seed, self.progress_callback)
+        return self.flux_gen.refine_image(
+            draft_image=draft_image,
+            prompt=prompt,
+            strength=strength,
+            guidance_scale=guidance_scale,
+            seed=seed,
+            progress_callback=self.progress_callback
+        )
 
     def run_sdxl_text_gen(self, canny_map: Image.Image, prompt: str, negative_prompt: str) -> Image.Image:
         """

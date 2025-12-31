@@ -32,6 +32,11 @@ class SDXLTextGenerator:
         Returns:
             Image.Image: 생성된 3D 텍스트 이미지
         """
+        if progress_callback is None:
+            logger.warning("[SDXL] progress_callback is None - 프로그레스 업데이트 불가")
+        else:
+            logger.info("[SDXL] progress_callback 정상 전달됨")
+        
         print("[Engine] Loading SDXL ControlNet... (SDXL ControlNet 로딩 중)")
         flush_gpu()
         
@@ -46,15 +51,20 @@ class SDXLTextGenerator:
         num_steps = 30
         
         def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
+            logger.info(f"[SDXL Callback] Step {step_index + 1}/{num_steps}")
             if progress_callback:
                 progress_callback(step_index + 1, num_steps, "sdxl_text_generation")
+            else:
+                logger.warning(f"[SDXL Callback] progress_callback이 None이어서 업데이트 생략")
             return callback_kwargs
         
+        logger.info(f"[SDXL] Inference 시작 - {num_steps} steps, callback={'설정됨' if progress_callback else '미설정'}")
         generated_img = pipe(
             prompt, negative_prompt=negative_prompt, image=canny_map, 
             controlnet_conditioning_scale=1.0, num_inference_steps=num_steps,
-            callback_on_step_end=callback_fn if progress_callback else None
+            callback_on_step_end=callback_fn
         ).images[0]
+        logger.info("[SDXL] Inference 완료")
         
         del pipe, controlnet, vae
         flush_gpu()

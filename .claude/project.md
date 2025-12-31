@@ -23,3 +23,7 @@ src/nanoCocoa_aiserver
 - fastapi를 기반으로 ai 모델링 서비스
 - fastapi tests폴더에서 RESET API 유닛 테스트
 - 브라우저 접근가능한 /test test_dashboard.html를 이용하여 RESET API 테스트
+
+
+## 3. 참고사항
+script 폴더는 기본적으로 무시하자

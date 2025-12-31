@@ -123,9 +123,18 @@ def run_unit_tests():
             fg_layer.paste(fg, (250, 250))
             comp = Image.alpha_composite(comp, fg_layer).convert("RGB")
             
-            # Refine
-            flux_refined = flux_gen.refine_image(comp, prompt="A banana on a wooden table", strength=0.6, seed=42)
-            log_result("3. Flux Refinement", "Success", flux_refined, "Refined composite image")
+            # Refine (progress_callback 포함)
+            def test_progress_callback(step, total, sub_step_name):
+                logger.info(f"[Test Progress] {sub_step_name}: {step}/{total}")
+                
+            flux_refined = flux_gen.refine_image(
+                draft_image=comp,
+                prompt="A banana on a wooden table",
+                strength=0.6,
+                seed=42,
+                progress_callback=test_progress_callback
+            )
+            log_result("3. Flux Refinement", "Success", flux_refined, "Refined composite image with progress_callback")
         else:
              log_result("3. Flux Refinement", "Skipped", None, "Missing inputs (Segmentation or Flux BG)")
     except Exception as e:

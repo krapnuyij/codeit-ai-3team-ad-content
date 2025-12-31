@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
 
 import os
 import gc
@@ -5,7 +10,7 @@ import base64
 import psutil
 import torch
 try:
-    import pynvml
+    import pynvml as pynvml  # nvidia-ml-py 패키지
 except ImportError:
     pynvml = None
 from io import BytesIO
@@ -34,15 +39,14 @@ def flush_gpu():
 
 def get_system_metrics():
     """
-    현재 시스템(CPU, RAM, GPU) 상태를 반환합니다.
+    현재 시스템(CPU, RAM, GPU, VRAM) 상태를 반환합니다.
     
     Returns:
-        dict: CPU 사용량, RAM 사용량, GPU 상세 정보
+        dict: CPU 사용량, RAM 사용량(현재 GB/최대 GB), GPU 사용률, VRAM 사용량(현재 GB/최대 GB)
     """
     cpu_usage = psutil.cpu_percent()
     ram_info = psutil.virtual_memory()
     
-    gpu_metrics = []
     gpu_metrics = []
     try:
         if pynvml:
@@ -52,24 +56,37 @@ def get_system_metrics():
                 handle = pynvml.nvmlDeviceGetHandleByIndex(i)
                 mem_info = pynvml.nvmlDeviceGetMemoryInfo(handle)
                 util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                gpu_name = pynvml.nvmlDeviceGetName(handle)
+                if isinstance(gpu_name, bytes):
+                    gpu_name = gpu_name.decode('utf-8')
+                
+                vram_used_gb = mem_info.used / 1024**3
+                vram_total_gb = mem_info.total / 1024**3
+                
                 gpu_metrics.append({
                     "index": i,
-                    "name": pynvml.nvmlDeviceGetName(handle),
-                    "memory_total": mem_info.total / 1024**2,
-                    "memory_used": mem_info.used / 1024**2,
-                    "gpu_util": util.gpu
+                    "name": gpu_name,
+                    "gpu_util": util.gpu,
+                    "vram_used_gb": round(vram_used_gb, 2),
+                    "vram_total_gb": round(vram_total_gb, 2),
+                    "vram_percent": round((vram_used_gb / vram_total_gb * 100), 1) if vram_total_gb > 0 else 0.0
                 })
             pynvml.nvmlShutdown()
         else:
-            # pynvml not installed or failed to import
-            pass
+            logger.warning("pynvml 라이브러리를 사용할 수 없습니다.")
     except Exception as e:
         logger.error(f"GPU Monitor Error (GPU 모니터링 오류): {e}")
+        import traceback
+        logger.error(traceback.format_exc())
 
+    ram_used_gb = ram_info.used / 1024**3
+    ram_total_gb = ram_info.total / 1024**3
+    
     return {
         "cpu_percent": cpu_usage,
+        "ram_used_gb": round(ram_used_gb, 2),
+        "ram_total_gb": round(ram_total_gb, 2),
         "ram_percent": ram_info.percent,
-        "ram_total_gb": ram_info.total / 1024**3,
         "gpu_info": gpu_metrics
     }
 

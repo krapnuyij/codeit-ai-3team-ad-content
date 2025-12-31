@@ -40,13 +40,22 @@ def test_flux_refine(flux_gen, seg_result, flux_bg, log_func):
             fg_layer.paste(fg, (250, 250))
             comp = Image.alpha_composite(comp, fg_layer).convert("RGB")
             
-            # Refine
-            # Reuse instance if possible or create new? The previous function returned the instance
+            # Refine (progress_callback 테스트 포함)
             if not flux_gen:
                 flux_gen = FluxGenerator()
+            
+            # progress_callback 테스트용 함수
+            def test_progress_callback(step, total, sub_step_name):
+                print(f"[Test Progress] {sub_step_name}: {step}/{total}")
                 
-            flux_refined = flux_gen.refine_image(comp, prompt="A banana on a wooden table", strength=0.6, seed=42)
-            log_func("3. Flux Refinement", "Success", flux_refined, "Refined composite image")
+            flux_refined = flux_gen.refine_image(
+                draft_image=comp,
+                prompt="A banana on a wooden table",
+                strength=0.6,
+                seed=42,
+                progress_callback=test_progress_callback
+            )
+            log_func("3. Flux Refinement", "Success", flux_refined, "Refined composite image with progress_callback")
         else:
              log_func("3. Flux Refinement", "Skipped", None, "Missing inputs (Segmentation or Flux BG)")
     except Exception as e:
