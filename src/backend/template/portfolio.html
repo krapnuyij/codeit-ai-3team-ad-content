@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODEIT 4기 3팀 | Portfolio</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <h1>CODEIT</h1>
+            <span>4기 3팀</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="index.html">HOME</a></li>
+                <li><a href="about.html">ABOUT</a></li>
+                <li><a href="services.html">SERVICES</a></li>
+                <li><a href="portfolio.html" class="active">PORTFOLIO</a></li>
+                <li><a href="contact.html">CONTACT</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="gradient-bg"></div>
+            <div class="hero-content">
+                <h2>PORTFOLIO</h2>
+                <p style="margin-top: 20px; font-size: 1rem; color: #999;">우리의 작업물을 확인해보세요</p>
+            </div>
+        </section>
+
+        <section class="portfolio-filter">
+            <button class="filter-btn active" data-filter="all">ALL</button>
+            <button class="filter-btn" data-filter="web">WEB</button>
+            <button class="filter-btn" data-filter="mobile">MOBILE</button>
+            <button class="filter-btn" data-filter="design">DESIGN</button>
+        </section>
+        <section class="portfolio-grid">
+            <div class="portfolio-item" data-category="web">
+                <div class="portfolio-image"></div>
+                <div class="portfolio-info">
+                    <h3>RESTAURANT AD</h3>
+                    <p>강남 고기집 AI 타겟팅 광고 - 예약률 40% 증가</p>
+                    <span class="portfolio-tag">WEB</span>
+                </div>
+            </div>
+
+            <div class="portfolio-item" data-category="mobile">
+                <div class="portfolio-image"></div>
+                <div class="portfolio-info">
+                    <h3>CAFE PROMOTION</h3>
+                    <p>신규 카페 인스타그램 릴스 홍보 - 방문자 수 급증</p>
+                    <span class="portfolio-tag">MOBILE</span>
+                </div>
+            </div>
+
+            <div class="portfolio-item" data-category="design">
+                <div class="portfolio-image"></div>
+                <div class="portfolio-info">
+                    <h3>BRAND VISUALS</h3>
+                    <p>프랜차이즈 매장 SNS 전용 카드뉴스 디자인</p>
+                    <span class="portfolio-tag">DESIGN</span>
+                </div>
+            </div>
+
+            <div class="portfolio-item" data-category="web">
+                <div class="portfolio-image"></div>
+                <div class="portfolio-info">
+                    <h3>LOCAL SERVICE AD</h3>
+                    <p>필라테스 스튜디오 위치 기반 광고 - 신규 등록 25% 증대</p>
+                    <span class="portfolio-tag">WEB</span>
+                </div>
+            </div>
+
+            <div class="portfolio-item" data-category="mobile">
+                <div class="portfolio-image"></div>
+                <div class="portfolio-info">
+                    <h3>DELIVERY APP AD</h3>
+                    <p>배달 전문점 타겟 고객 최적화 - 주문 건수 상승</p>
+                    <span class="portfolio-tag">MOBILE</span>
+                </div>
+            </div>
+
+            <div class="portfolio-item" data-category="design">
+                <div class="portfolio-info">
+                    <h3>EVENT BANNER</h3>
+                    <p>시즌 한정 메뉴 출시 홍보 배너 및 상세페이지</p>
+                    <span class="portfolio-tag">DESIGN</span>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 AURORA STUDIOS. ALL YOUR RESERVED</p>
+    </footer>
+
+    <style>
+        .portfolio-filter {
+            text-align: center;
+            margin: 60px 0 40px;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: 1px solid #333;
+            color: #999;
+            padding: 10px 25px;
+            margin: 0 5px;
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .filter-btn:hover,
+        .filter-btn.active {
+            border-color: #4096ee;
+            color: #fff;
+            background-color: rgba(64, 150, 238, 0.1);
+        }
+
+        .portfolio-grid {
+            max-width: 1400px;
+            margin: 0 auto 80px;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 30px;
+        }
+
+        .portfolio-item {
+            background-color: #050505;
+            border: 1px solid #333;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .portfolio-item:hover {
+            border-color: #4096ee;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(64, 150, 238, 0.2);
+        }
+
+        .portfolio-image {
+            width: 100%;
+            aspect-ratio: 16 / 10;
+            background: linear-gradient(135deg, rgba(64, 150, 238, 0.2), rgba(157, 78, 221, 0.2));
+            position: relative;
+        }
+
+        .portfolio-info {
+            padding: 25px;
+        }
+
+        .portfolio-info h3 {
+            font-size: 1rem;
+            letter-spacing: 1.5px;
+            margin-bottom: 10px;
+            font-weight: 400;
+        }
+
+        .portfolio-info p {
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .portfolio-tag {
+            display: inline-block;
+            font-size: 0.65rem;
+            color: #4096ee;
+            border: 1px solid #4096ee;
+            padding: 5px 12px;
+            letter-spacing: 1px;
+        }
+
+        @media (max-width: 768px) {
+            .portfolio-grid {
+                grid-template-columns: 1fr;
+                padding: 0 20px;
+            }
+        }
+    </style>
+
+    <script>
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const portfolioItems = document.querySelectorAll('.portfolio-item');
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                const filter = btn.dataset.filter;
+
+                portfolioItems.forEach(item => {
+                    if (filter === 'all' || item.dataset.category === filter) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+    </script>
+
+</body>
+</html>

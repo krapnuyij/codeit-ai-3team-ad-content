@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODEIT 4기 3팀 | Contact</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <h1>CODEIT</h1>
+            <span>4기 3팀</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="index.html">HOME</a></li>
+                <li><a href="about.html">ABOUT</a></li>
+                <li><a href="services.html">SERVICES</a></li>
+                <li><a href="portfolio.html">PORTFOLIO</a></li>
+                <li><a href="contact.html" class="active">CONTACT</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="gradient-bg"></div>
+            <div class="hero-content">
+                <h2>GET IN TOUCH</h2>
+                <p style="margin-top: 20px; font-size: 1rem; color: #999;">프로젝트 문의를 환영합니다</p>
+            </div>
+        </section>
+
+        <section class="contact-container">
+            <div class="contact-info">
+                <h3>CONTACT INFORMATION</h3>
+                <div class="info-item">
+                    <h4>ADDRESS</h4>
+                    <p>서울특별시 강남구 테헤란로 123<br>CODEIT 빌딩 4층</p>
+                </div>
+                <div class="info-item">
+                    <h4>EMAIL</h4>
+                    <p>contact@codeit-team3.com<br>support@codeit-team3.com</p>
+                </div>
+                <div class="info-item">
+                    <h4>PHONE</h4>
+                    <p>+82 2-1234-5678<br>+82 10-1234-5678</p>
+                </div>
+                <div class="info-item">
+                    <h4>BUSINESS HOURS</h4>
+                    <p>월-금: 09:00 - 18:00<br>주말 및 공휴일 휴무</p>
+                </div>
+                <div class="social-links">
+                    <h4>FOLLOW US</h4>
+                    <div class="social-icons">
+                        <a href="#" class="social-icon">FB</a>
+                        <a href="#" class="social-icon">IG</a>
+                        <a href="#" class="social-icon">TW</a>
+                        <a href="#" class="social-icon">LN</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="contact-form-wrapper">
+                <h3>SEND US A MESSAGE</h3>
+                <form class="contact-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <input type="text" placeholder="YOUR NAME" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" placeholder="YOUR EMAIL" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <input type="text" placeholder="SUBJECT" required>
+                    </div>
+                    <div class="form-group">
+                        <textarea rows="8" placeholder="YOUR MESSAGE" required></textarea>
+                    </div>
+                    <button type="submit" class="submit-btn">SEND MESSAGE</button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 AURORA STUDIOS. ALL YOUR RESERVED</p>
+    </footer>
+
+    <style>
+        .contact-container {
+            max-width: 1400px;
+            margin: 80px auto;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 80px;
+        }
+
+        .contact-info h3,
+        .contact-form-wrapper h3 {
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+
+        .info-item {
+            margin-bottom: 35px;
+            padding-bottom: 35px;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .info-item h4 {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: #4096ee;
+            margin-bottom: 15px;
+            font-weight: 400;
+        }
+
+        .info-item p {
+            font-size: 0.85rem;
+            line-height: 1.8;
+            color: #999;
+        }
+
+        .social-links {
+            margin-top: 50px;
+        }
+
+        .social-links h4 {
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            color: #4096ee;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .social-icon {
+            width: 45px;
+            height: 45px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #333;
+            color: #999;
+            text-decoration: none;
+            font-size: 0.7rem;
+            transition: all 0.3s;
+        }
+
+        .social-icon:hover {
+            border-color: #4096ee;
+            color: #4096ee;
+            background-color: rgba(64, 150, 238, 0.1);
+        }
+
+        .contact-form {
+            background-color: #050505;
+            border: 1px solid #333;
+            padding: 40px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            background: transparent;
+            border: 1px solid #444;
+            padding: 15px;
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.8rem;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            border-color: #4096ee;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background-color: transparent;
+            border: 1px solid #fff;
+            color: #fff;
+            padding: 15px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            background-color: #fff;
+            color: #000;
+        }
+
+        @media (max-width: 1024px) {
+            .contact-container {
+                grid-template-columns: 1fr;
+                gap: 60px;
+                padding: 0 20px;
+            }
+        }
+    </style>
+
+</body>
+</html>

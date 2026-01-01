@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODEIT 4기 3팀 | Services</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <h1>CODEIT</h1>
+            <span>4기 3팀</span>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="index.html">HOME</a></li>
+                <li><a href="about.html">ABOUT</a></li>
+                <li><a href="services.html" class="active">SERVICES</a></li>
+                <li><a href="portfolio.html">PORTFOLIO</a></li>
+                <li><a href="contact.html">CONTACT</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="gradient-bg"></div>
+            <div class="hero-content">
+                <h2>OUR SERVICES</h2>
+                <p style="margin-top: 20px; font-size: 1rem; color: #999;">전문적인 솔루션으로 여러분의 비즈니스를 지원합니다</p>
+            </div>
+        </section>
+        <section class="services-content">
+            <div class="service-card">
+                <div class="service-icon">01</div>
+                <h3>AI AD STRATEGY</h3>
+                <p>AI 분석을 통해 업종별 최적의 광고 시점과 매체를 분석하여 맞춤형 전략을 수립합니다.</p>
+                <ul class="service-features">
+                    <li>시장 트렌드 정밀 분석</li>
+                    <li>AI 기반 광고 예산 최적화</li>
+                    <li>경쟁사 노출 패턴 분석</li>
+                    <li>타겟 고객 페르소나 설정</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <div class="service-icon">02</div>
+                <h3>SMART TARGETING</h3>
+                <p>지역, 연령, 관심사 데이터를 활용해 실제 방문 확률이 높은 고객에게 광고를 노출합니다.</p>
+                <ul class="service-features">
+                    <li>초정밀 위치 기반 타겟팅</li>
+                    <li>관심사 기반 잠재고객 추출</li>
+                    <li>맞춤형 리타겟팅 시스템</li>
+                    <li>전환율 최적화 솔루션</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <div class="service-icon">03</div>
+                <h3>AD CONTENTS</h3>
+                <p>매장의 특성을 극대화할 수 있는 고효율 광고 소재와 카피를 전문적으로 기획합니다.</p>
+                <ul class="service-features">
+                    <li>SNS 최적화 비주얼 기획</li>
+                    <li>숏폼 영상 광고 전략</li>
+                    <li>카피라이팅 자동 생성</li>
+                    <li>브랜드 가이드라인 수립</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <div class="service-icon">04</div>
+                <h3>DASHBOARD</h3>
+                <p>실시간 광고 성과와 매출 연결 데이터를 한눈에 파악할 수 있는 대시보드를 제공합니다.</p>
+                <ul class="service-features">
+                    <li>실시간 성과 모니터링</li>
+                    <li>ROAS 및 효율 지표 분석</li>
+                    <li>방문자 행동 패턴 추적</li>
+                    <li>주간 성과 자동 보고서</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <div class="service-icon">05</div>
+                <h3>CHANNEL MGMT</h3>
+                <p>인스타그램, 네이버, 구글 등 다양한 광고 채널을 하나의 플랫폼에서 통합 관리합니다.</p>
+                <ul class="service-features">
+                    <li>멀티 채널 통합 관리</li>
+                    <li>API 기반 자동 입찰 제어</li>
+                    <li>매체별 성과 비교 분석</li>
+                    <li>통합 광고 승인 관리</li>
+                </ul>
+            </div>
+
+            <div class="service-card">
+                <div class="service-icon">06</div>
+                <h3>AI CONSULTING</h3>
+                <p>누적된 광고 데이터를 바탕으로 매장 매출 증대를 위한 종합 컨설팅을 제공합니다.</p>
+                <ul class="service-features">
+                    <li>신메뉴 및 상품 기획 자문</li>
+                    <li>고객 리뷰 감성 분석</li>
+                    <li>지역 상권 변화 감지</li>
+                    <li>재방문 유도 전략 제안</li>
+                </ul>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 AURORA STUDIOS. ALL YOUR RESERVED</p>
+    </footer>
+
+    <style>
+        .services-content {
+            max-width: 1400px;
+            margin: 80px auto;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 40px;
+        }
+
+        .service-card {
+            background-color: #050505;
+            border: 1px solid #333;
+            padding: 40px;
+            transition: all 0.3s;
+        }
+
+        .service-card:hover {
+            border-color: #4096ee;
+            box-shadow: 0 0 20px rgba(64, 150, 238, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .service-icon {
+            font-size: 3rem;
+            font-weight: 300;
+            color: #4096ee;
+            margin-bottom: 20px;
+        }
+
+        .service-card h3 {
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            font-weight: 400;
+        }
+
+        .service-card p {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #999;
+            margin-bottom: 25px;
+        }
+
+        .service-features {
+            list-style: none;
+            padding: 0;
+        }
+
+        .service-features li {
+            font-size: 0.75rem;
+            color: #666;
+            padding: 8px 0;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .service-features li:last-child {
+            border-bottom: none;
+        }
+
+        @media (max-width: 768px) {
+            .services-content {
+                grid-template-columns: 1fr;
+                padding: 0 20px;
+            }
+        }
+    </style>
+
+</body>
+</html>
