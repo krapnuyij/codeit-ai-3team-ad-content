@@ -167,6 +167,8 @@ class StatusResponse(BaseModel):
     sub_step: Optional[str] = Field(None, title="현재 서브 단계")
     message: str = Field(..., title="상태 메시지")
     elapsed_sec: float = Field(..., title="경과 시간 (초)")
+    eta_seconds: Optional[int] = Field(None, title="예상 남은 시간 (초)")
+    step_eta_seconds: Optional[int] = Field(None, title="현재 단계 예상 남은 시간 (초)")
     system_metrics: Optional[SystemMetrics] = Field(None, title="시스템 메트릭")
     parameters: dict = Field(default_factory=dict, title="입력 파라미터")
     step1_result: Optional[str] = Field(None, title="Step 1 결과 (Base64)")

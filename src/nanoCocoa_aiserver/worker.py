@@ -13,7 +13,7 @@ import time
 from PIL import Image
 
 from config import logger
-from utils import pil_to_base64, base64_to_pil, flush_gpu
+from utils import pil_to_base64, base64_to_pil, flush_gpu, step_stats_manager
 from AIModelEngine import AIModelEngine
 from step_processors import process_step1_background, process_step2_text, process_step3_composite
 
@@ -71,6 +71,34 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
         shared_state['sub_step'] = f"{sub_step_name} ({step_num}/{total_steps})"
         from utils import get_system_metrics
         shared_state['system_metrics'] = get_system_metrics()
+        
+        shared_state['progress_percent'] = final_progress
+        shared_state['sub_step'] = f"{sub_step_name} ({step_num}/{total_steps})"
+        from utils import get_system_metrics
+        shared_state['system_metrics'] = get_system_metrics()
+        
+        # [ETA 계산] 통계 기반 동적 예측
+        # 현재 진행 중인 단계와 남은 단계들의 평균 소요 시간을 합산하여 계산합니다.
+        current_step_key = "step1_background"
+        if 'step2' in current_main_step: current_step_key = "step2_text"
+        elif 'step3' in current_main_step: current_step_key = "step3_composite"
+        
+        avg_time = step_stats_manager.get_stat(current_step_key)
+        step_remaining = max(0, avg_time * (1.0 - sub_progress))
+        shared_state['step_eta_seconds'] = int(step_remaining)
+        
+        # [전체 ETA 계산]
+        # 현재 단계의 남은 시간 + 이후 단계들의 평균 소요 시간 합계
+        total_remaining = step_remaining
+        # 미래 단계 시간 추가 (현재 단계에 따라 다름)
+        if 'step1' in current_main_step:
+             total_remaining += step_stats_manager.get_stat("step2_text")
+             total_remaining += step_stats_manager.get_stat("step3_composite")
+        elif 'step2' in current_main_step:
+             total_remaining += step_stats_manager.get_stat("step3_composite")
+             
+        shared_state['eta_seconds'] = int(total_remaining)
+        shared_state['eta_update_time'] = time.time()
     
     engine = AIModelEngine(dummy_mode=test_mode, progress_callback=update_progress)
     
@@ -78,6 +106,7 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
         shared_state['status'] = 'running'
         shared_state['start_time'] = time.time()
         shared_state['sub_step'] = None
+        shared_state['eta_seconds'] = 0
         
         # 파라미터 추출
         start_step = input_data.get('start_step', 1)
@@ -91,7 +120,11 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
         # Step 1: 배경 생성 (Background Generation)
         # ==========================================
         if start_step <= 1:
+            s1_start = time.time()
             step1_result = process_step1_background(engine, input_data, shared_state, stop_event)
+            s1_dur = time.time() - s1_start
+            step_stats_manager.update_stat("step1_background", s1_dur)
+            
             if step1_result:
                 shared_state['images']['step1_result'] = pil_to_base64(step1_result)
                 shared_state['progress_percent'] = 33
@@ -106,7 +139,11 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
         # Step 2: 텍스트 에셋 생성 (Text Asset Gen)
         # ==========================================
         if start_step <= 2:
+            s2_start = time.time()
             step2_result = process_step2_text(engine, input_data, shared_state, stop_event)
+            s2_dur = time.time() - s2_start
+            step_stats_manager.update_stat("step2_text", s2_dur)
+
             if step2_result:
                 shared_state['images']['step2_result'] = pil_to_base64(step2_result)
                 shared_state['progress_percent'] = 66
@@ -128,7 +165,11 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
             if not step2_result and shared_state['images'].get('step2_result'):
                 step2_result = base64_to_pil(shared_state['images']['step2_result'])
             
+            s3_start = time.time()
             final_result = process_step3_composite(step1_result, step2_result, shared_state, stop_event)
+            s3_dur = time.time() - s3_start
+            step_stats_manager.update_stat("step3_composite", s3_dur)
+
             if final_result:
                 shared_state['images']['final_result'] = pil_to_base64(final_result)
                 shared_state['progress_percent'] = 100

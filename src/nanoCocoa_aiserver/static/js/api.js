@@ -22,7 +22,7 @@ async function fetchFonts() {
                 opt.innerText = font;
                 select.appendChild(opt);
             });
-            
+
             // Restore saved font or use first font
             const saved = localStorage.getItem('ai_ad_font_name');
             if (saved && data.fonts.includes(saved)) {
@@ -32,8 +32,8 @@ async function fetchFonts() {
                 updateFontPreview(data.fonts[0]);
             }
         }
-    } catch (e) { 
-        console.error("Font fetch error", e); 
+    } catch (e) {
+        console.error("Font fetch error", e);
     }
 }
 
@@ -45,12 +45,12 @@ async function resetAll() {
     if (currentJobId) {
         await cancelJob();
     }
-    
+
     clearInterval(pollingInterval);
     pollingInterval = null;
     currentJobId = null;
     jobStartTime = null;
-    
+
     resetUI();
     clearAllStorage();
 }
@@ -60,11 +60,11 @@ async function resetAll() {
  */
 async function cancelJob() {
     if (!currentJobId) return;
-    
+
     try {
         const res = await fetch(`/stop/${currentJobId}`, { method: 'POST' });
         const data = await res.json();
-        
+
         if (data.status === 'stopped') {
             document.getElementById('status_text').innerText = '작업 취소됨';
             document.getElementById('status_icon').style.color = '#ff9800';
@@ -171,7 +171,7 @@ async function startGeneration() {
  */
 function pollStatus(jobId, startStep) {
     if (pollingInterval) clearInterval(pollingInterval);
-    
+
     let lastStep = null;
     let stepStartTime = Date.now();
 
@@ -193,11 +193,17 @@ function pollStatus(jobId, startStep) {
                 lastStep = data.current_step;
                 stepStartTime = Date.now();
             }
-            
+
             // Update UI
             updateProgressUI(data);
-            updateETA(startStep, data.progress_percent, data.current_step);
-            
+
+            // Update ETA from server
+            if (data.eta_seconds !== undefined) {
+                updateETAFromServer(data.eta_seconds, data.step_eta_seconds);
+            } else {
+                updateETA(startStep, data.progress_percent, data.current_step);
+            }
+
             // Update system metrics
             if (data.system_metrics) {
                 updateMetricsDisplay(data.system_metrics);
@@ -224,14 +230,14 @@ function pollStatus(jobId, startStep) {
                     const stepDuration = (Date.now() - stepStartTime) / 1000;
                     recordStepTiming(lastStep, stepDuration);
                 }
-                
+
                 clearInterval(pollingInterval);
                 pollingInterval = null;
                 currentJobId = null;
                 jobStartTime = null;
                 document.getElementById('btn_cancel').style.display = 'none';
                 document.getElementById('eta_info').innerText = '완료';
-                
+
                 // Hide metrics panel when done
                 setTimeout(() => {
                     document.getElementById('metrics_panel').style.display = 'none';

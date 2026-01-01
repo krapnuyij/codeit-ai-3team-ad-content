@@ -9,7 +9,7 @@ import uuid
 import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Response, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 import os
 
 # 모듈화된 파일들에서 import
@@ -69,12 +69,16 @@ app.mount("/fonts", StaticFiles(directory=os.path.join(os.path.dirname(__file__)
 async def favicon():
     return FileResponse(os.path.join(os.path.dirname(__file__), "static", "favicon.ico"))
 
-@app.get("/test", response_class=HTMLResponse)
-async def test_dashboard():
+@app.get("/")
+async def root():
+    return RedirectResponse(url="/docs")
+
+@app.get("/example_generation", response_class=HTMLResponse)
+async def example_generation_dashboard():
     """
     개발 및 테스트를 위한 대시보드 페이지를 반환합니다.
     """
-    with open(os.path.join(os.path.dirname(__file__), "templates", "test_dashboard.html"), "r", encoding="utf-8") as f:
+    with open(os.path.join(os.path.dirname(__file__), "templates", "example_generation.html"), "r", encoding="utf-8") as f:
         return f.read()
 
 @app.get(
@@ -207,6 +211,17 @@ async def get_status(job_id: str):
     state = JOBS[job_id]
     elapsed = time.time() - state['start_time'] if state['start_time'] else 0
     
+    # [실시간 ETA 차감]
+    # 워커 업데이트 이후 흐른 시간을 차감하여 부드러운 카운트다운을 구현합니다.
+    eta_seconds = state.get('eta_seconds', 0)
+    step_eta_seconds = state.get('step_eta_seconds', 0)
+    last_update = state.get('eta_update_time')
+    
+    if last_update and state['status'] == 'running':
+        time_since_update = time.time() - last_update
+        eta_seconds = int(max(0, eta_seconds - time_since_update))
+        step_eta_seconds = int(max(0, step_eta_seconds - time_since_update))
+    
     # ManagerDict -> dict copy needed before serializing
     images_snapshot = dict(state['images'])
     
@@ -228,6 +243,8 @@ async def get_status(job_id: str):
         sub_step=state.get('sub_step'),
         message=state['message'],
         elapsed_sec=round(elapsed, 1),
+        eta_seconds=eta_seconds,
+        step_eta_seconds=step_eta_seconds,
         system_metrics=system_metrics_model,
         parameters=state.get('parameters', {}),
         step1_result=images_snapshot.get('step1_result'),

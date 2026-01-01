@@ -5,6 +5,7 @@ project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
 import os
+import json
 import gc
 import base64
 import psutil
@@ -172,3 +173,64 @@ def pil_canny_edge(image):
     edges = gray.filter(ImageFilter.FIND_EDGES)
     edges = edges.point(lambda x: 255 if x > 30 else 0)
     return edges.convert("RGB")
+
+class StepStatsManager:
+    """
+    단계별 실행 통계를 관리하는 클래스입니다.
+    이전 실행 기록을 바탕으로 평균 소요 시간을 계산하고 저장합니다.
+    """
+    def __init__(self):
+        self.stats_file = os.path.join(os.path.dirname(__file__), "step_stats.json")
+        self.default_stats = {
+            "step1_background": 20.0,
+            "step2_text": 15.0,
+            "step3_composite": 5.0
+        }
+        self.stats = self.load_stats()
+
+    def load_stats(self):
+        """파일에서 통계를 로드하거나 기본값을 반환합니다."""
+        if not os.path.exists(self.stats_file):
+            return self.default_stats.copy()
+        
+        try:
+            with open(self.stats_file, 'r') as f:
+                data = json.load(f)
+            # Ensure all keys exist
+            for key, val in self.default_stats.items():
+                if key not in data:
+                    data[key] = val
+            return data
+        except Exception as e:
+            logger.error(f"Failed to load step stats: {e}")
+            return self.default_stats.copy()
+
+    def update_stat(self, step_name: str, duration: float):
+        """
+        지수 이동 평균(EMA) 방식을 사용하여 특정 단계의 평균 소요 시간을 업데이트합니다.
+        
+        Args:
+            step_name (str): 단계 이름
+            duration (float): 실제 소요 시간
+        """
+        if step_name not in self.stats:
+            self.stats[step_name] = duration
+        else:
+            # EMA with alpha = 0.2 (recent values have 20% weight)
+            current_avg = self.stats[step_name]
+            new_avg = (current_avg * 0.8) + (duration * 0.2)
+            self.stats[step_name] = round(new_avg, 2)
+        
+        self.save_stats()
+
+    def get_stat(self, step_name: str) -> float:
+        return self.stats.get(step_name, self.default_stats.get(step_name, 10.0))
+
+    def save_stats(self):
+        try:
+            with open(self.stats_file, 'w') as f:
+                json.dump(self.stats, f, indent=4)
+        except Exception as e:
+            logger.error(f"Failed to save step stats: {e}")
+
+step_stats_manager = StepStatsManager()

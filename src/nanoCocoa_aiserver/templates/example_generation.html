@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Ad Generator Dashboard (L4 Optimized)</title>
+    <title>AI Ad Example Generation (L4 Optimized)</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="/static/css/dashboard.css">
 </head>
@@ -13,11 +13,12 @@
 
     <header style="display: flex; justify-content: space-between; align-items: center;">
         <div>
-            <h1>AI 광고 생성 대시보드</h1>
+            <h1>AI 광고 예시 생성 (Example Generation)</h1>
             <span style="font-size: 12px; color: var(--text-muted);">L4 최적화 단계별 생성 (Step-by-Step Generation)</span>
         </div>
         <div style="display: flex; gap: 10px;">
-            <button onclick="cancelJob()" class="btn-secondary" id="btn_cancel" style="display: none; background: #d32f2f;">작업 취소</button>
+            <button onclick="cancelJob()" class="btn-secondary" id="btn_cancel"
+                style="display: none; background: #d32f2f;">작업 취소</button>
             <button onclick="resetAll()" class="btn-secondary">화면 초기화</button>
             <label
                 style="display: flex; align-items: center; gap: 6px; font-size: 13px; background: var(--panel-bg); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-color);">
@@ -57,12 +58,14 @@
 
                 <div class="control-group">
                     <label>배경 프롬프트 (영문)</label>
-                    <textarea id="bg_prompt">A rustic wooden table surface in a cozy kitchen. Warm morning sunlight streaming through window, creating soft natural shadows. Blurred kitchen background with bokeh effect, photorealistic, 8k, cinematic lighting, detailed wood grain texture</textarea>
+                    <textarea
+                        id="bg_prompt">A rustic wooden table surface in a cozy kitchen. Warm morning sunlight streaming through window, creating soft natural shadows. Blurred kitchen background with bokeh effect, photorealistic, 8k, cinematic lighting, detailed wood grain texture</textarea>
                 </div>
 
                 <div class="control-group">
                     <label>배경 부정 프롬프트 (영문)</label>
-                    <input type="text" id="bg_negative_prompt" value="blurry, low quality, distorted, ugly, bad lighting, overexposed, underexposed, artificial, plastic">
+                    <input type="text" id="bg_negative_prompt"
+                        value="blurry, low quality, distorted, ugly, bad lighting, overexposed, underexposed, artificial, plastic">
                 </div>
 
                 <div class="control-group">
@@ -99,7 +102,8 @@
 
                 <div class="control-group">
                     <label>부정 프롬프트 (영문)</label>
-                    <input type="text" id="negative_prompt" value="low quality, ugly, distorted, flat, 2d, blurry, pixelated, deformed text">
+                    <input type="text" id="negative_prompt"
+                        value="low quality, ugly, distorted, flat, 2d, blurry, pixelated, deformed text">
                 </div>
             </div>
 
@@ -108,9 +112,8 @@
                 <div class="control-group">
                     <label>가이던스 스케일 (Guidance Scale)</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="range" id="guidance_scale" min="1" max="20" step="0.5" value="3.5"
-                            style="flex: 1;">
-                        <span id="guidance_val" style="width: 30px; text-align: right; font-size: 12px;">3.5</span>
+                        <input type="range" id="guidance_scale" min="1" max="5" step="0.1" value="2.0" style="flex: 1;">
+                        <span id="guidance_val" style="width: 30px; text-align: right; font-size: 12px;">2.0</span>
                     </div>
                 </div>
                 <div class="control-group">
@@ -140,19 +143,24 @@
             </div>
 
             <!-- Progress Bar -->
-            <div style="background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+            <div
+                style="background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                     <span style="font-size: 12px; color: var(--text-muted);" id="sub_step_info">-</span>
                     <span style="font-size: 12px; color: var(--primary-color);" id="progress_text">0%</span>
                 </div>
                 <div style="width: 100%; height: 8px; background: #222; border-radius: 4px; overflow: hidden;">
-                    <div id="progress_bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); transition: width 0.3s ease;"></div>
+                    <div id="progress_bar"
+                        style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); transition: width 0.3s ease;">
+                    </div>
                 </div>
             </div>
 
             <!-- System Metrics -->
-            <div style="background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: none;" id="metrics_panel">
-                <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-muted);">시스템 사용률</div>
+            <div style="background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: none;"
+                id="metrics_panel">
+                <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-muted);">시스템 사용률
+                </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
                     <div>
                         <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">CPU</div>
