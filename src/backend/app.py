@@ -46,9 +46,9 @@ async def lifespan(app: FastAPI):
         try:
             app.state.client = OpenAI(api_key=api_key)
             app.state.use_openai = True
-            print("✅ OpenAI 클라이언트 초기화 성공")
+            print("OpenAI 클라이언트 초기화 성공")
         except Exception as e:
-            print(f"⚠️ OpenAI 초기화 실패: {e}")
+            print(f"OpenAI 초기화 실패: {e}")
 
     # ONNX 모델로 fallback
     if not app.state.use_openai:
@@ -56,9 +56,9 @@ async def lifespan(app: FastAPI):
         try:
             onnx_path = "model.onnx"
             app.state.client = onnxruntime.InferenceSession(onnx_path)
-            print("✅ ONNX 모델 로드 성공")
+            print("ONNX 모델 로드 성공")
         except Exception as e:
-            print(f"❌ ONNX 로딩 실패: {e}")
+            print(f"ONNX 로딩 실패: {e}")
             raise RuntimeError("모든 클라이언트 초기화 실패") from e
 
     yield
@@ -68,16 +68,13 @@ async def lifespan(app: FastAPI):
 
 
 # FastAPI 앱 생성
-app = FastAPI(
-    title="AI Image Prompt Generator",
-    lifespan=lifespan
-)
+app = FastAPI(title="AI Image Prompt Generator", lifespan=lifespan)
 
 
 # 유틸리티 함수
 def to_base64(image_bytes: bytes) -> str:
     """이미지 바이트를 base64 문자열로 변환"""
-    encoded = base64.b64encode(image_bytes).decode('utf-8')
+    encoded = base64.b64encode(image_bytes).decode("utf-8")
     return f"data:image/png;base64,{encoded}"
 
 
@@ -85,32 +82,25 @@ def process_with_openai(image_data: bytes, client: OpenAI) -> AdPrompt:
     """OpenAI Responses API를 사용하여 프롬프트 생성"""
     try:
         encoded_image = to_base64(image_data)
-        response = client.chat.completions.create(
-
-        )
+        response = client.chat.completions.create()
         # Responses API의 parse 메서드 사용
         response = client.responses.parse(
             model="gpt-5-mini",  # 또는 "gpt-4o-2024-08-06"
             input=[
                 {
                     "role": "system",
-                    "content": "당신은 광고 이미지 생성을 위한 프롬프트 전문가입니다."
+                    "content": "당신은 광고 이미지 생성을 위한 프롬프트 전문가입니다.",
                 },
                 {
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
-                            "text": "이 이미지를 참고해서 광고용 이미지 생성을 위한 프롬프트를 만들어줘."
+                            "text": "이 이미지를 참고해서 광고용 이미지 생성을 위한 프롬프트를 만들어줘.",
                         },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": encoded_image
-                            }
-                        }
-                    ]
-                }
+                        {"type": "image_url", "image_url": {"url": encoded_image}},
+                    ],
+                },
             ],
             text_format=AdPrompt,  # Pydantic 모델로 자동 파싱
         )
@@ -120,8 +110,7 @@ def process_with_openai(image_data: bytes, client: OpenAI) -> AdPrompt:
 
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"OpenAI Responses API 호출 실패: {str(e)}"
+            status_code=500, detail=f"OpenAI Responses API 호출 실패: {str(e)}"
         )
 
 
@@ -129,10 +118,7 @@ def process_with_onnx(image_data: bytes, ort_session) -> AdPrompt:
     """ONNX 모델을 사용하여 프롬프트 생성"""
     try:
         # 이미지 디코딩
-        img = cv2.imdecode(
-            np.frombuffer(image_data, np.uint8),
-            cv2.IMREAD_COLOR
-        )
+        img = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
 
         if img is None:
             raise ValueError("이미지 디코딩 실패")
@@ -152,15 +138,11 @@ def process_with_onnx(image_data: bytes, ort_session) -> AdPrompt:
         negative_prompt = "low quality, blurry"
 
         return AdPrompt(
-            positive_prompt=positive_prompt,
-            negative_prompt=negative_prompt
+            positive_prompt=positive_prompt, negative_prompt=negative_prompt
         )
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"ONNX 모델 처리 실패: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"ONNX 모델 처리 실패: {str(e)}")
 
 
 # API 엔드포인트
@@ -169,17 +151,15 @@ async def root():
     """루트 엔드포인트"""
     return {
         "message": "AI Image Prompt Generator API",
-        "endpoints": {
-            "generate_prompt": "/generate-prompt (POST)"
-        }
+        "endpoints": {"generate_prompt": "/generate-prompt (POST)"},
     }
 
 
 @app.post("/generate-prompt", response_model=AdPrompt)
 async def generate_image_prompt(
-        file: UploadFile = File(...),
-        client: Union[OpenAI, onnxruntime.InferenceSession] = Depends(get_client),
-        use_openai: bool = Depends(get_use_openai)
+    file: UploadFile = File(...),
+    client: Union[OpenAI, onnxruntime.InferenceSession] = Depends(get_client),
+    use_openai: bool = Depends(get_use_openai),
 ):
     """
     업로드된 이미지로부터 광고용 이미지 생성 프롬프트 생성
@@ -213,8 +193,7 @@ async def generate_image_prompt(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"이미지 처리 중 오류 발생: {str(e)}"
+            status_code=500, detail=f"이미지 처리 중 오류 발생: {str(e)}"
         )
 
 
@@ -224,7 +203,7 @@ async def health_check(request: Request):
     return {
         "status": "healthy",
         "using_openai": request.app.state.use_openai,
-        "client_type": "OpenAI" if request.app.state.use_openai else "ONNX"
+        "client_type": "OpenAI" if request.app.state.use_openai else "ONNX",
     }
 
 

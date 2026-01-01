@@ -9,7 +9,7 @@ pragma: no-cache
 author: "김명환"
 ---
 
-# ✅ 협업일지
+# 협업일지
 
 <script>
 

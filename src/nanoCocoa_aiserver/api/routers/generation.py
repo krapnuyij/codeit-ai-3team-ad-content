@@ -197,7 +197,7 @@ async def get_status(job_id: str):
 
 
 @router.post(
-    "/stop/{job_id}", 
+    "/stop/{job_id}",
     summary="작업 강제 중단 (Stop Job)",
     response_description="중단 요청 결과"
 )
@@ -208,14 +208,109 @@ async def stop_job(job_id: str):
     """
     if job_id in STOP_EVENTS:
         STOP_EVENTS[job_id].set()
-    
+
     if job_id in PROCESSES:
         p = PROCESSES[job_id]
         if p.is_alive():
             p.join(timeout=3)
             if p.is_alive(): p.terminate()
-        
+
         if job_id in JOBS: JOBS[job_id]['status'] = 'stopped'
         return {"job_id": job_id, "status": "stopped"}
-        
+
     raise HTTPException(status_code=404, detail="Job not found")
+
+
+@router.get(
+    "/jobs",
+    summary="모든 작업 목록 조회 (Get All Jobs)",
+    response_description="전체 작업 목록과 각 작업의 상태"
+)
+async def get_all_jobs():
+    """
+    서버에 존재하는 모든 작업의 목록을 조회합니다.
+
+    ### 반환 필드 설명
+    - **total_jobs**: 전체 작업 개수
+    - **jobs**: 작업 목록 (각 작업의 job_id, status, progress, current_step, message 포함)
+    - **active_jobs**: 현재 실행 중이거나 대기 중인 작업 개수
+    - **completed_jobs**: 완료된 작업 개수
+    - **failed_jobs**: 실패한 작업 개수
+
+    ### 작업 상태 설명
+    - **pending**: 대기 중
+    - **running**: 실행 중
+    - **completed**: 완료됨
+    - **failed**: 실패함
+    - **stopped**: 사용자가 중단함
+    """
+    jobs_list = []
+    active_count = 0
+    completed_count = 0
+    failed_count = 0
+
+    for job_id, state in JOBS.items():
+        job_info = {
+            "job_id": job_id,
+            "status": state['status'],
+            "progress_percent": state['progress_percent'],
+            "current_step": state['current_step'],
+            "message": state['message'],
+            "start_time": state.get('start_time')
+        }
+        jobs_list.append(job_info)
+
+        if state['status'] in ('running', 'pending'):
+            active_count += 1
+        elif state['status'] == 'completed':
+            completed_count += 1
+        elif state['status'] == 'failed':
+            failed_count += 1
+
+    return {
+        "total_jobs": len(jobs_list),
+        "active_jobs": active_count,
+        "completed_jobs": completed_count,
+        "failed_jobs": failed_count,
+        "jobs": jobs_list
+    }
+
+
+@router.delete(
+    "/jobs/{job_id}",
+    summary="작업 삭제 (Delete Job)",
+    response_description="삭제 결과"
+)
+async def delete_job(job_id: str):
+    """
+    완료되었거나 실패한 작업을 메모리에서 삭제합니다.
+
+    ### 주의사항
+    - 실행 중인 작업은 삭제할 수 없습니다. 먼저 `/stop/{job_id}`로 중단해야 합니다.
+    - 삭제된 작업의 결과는 더 이상 조회할 수 없습니다.
+
+    ### 사용 시나리오
+    - 완료된 작업의 결과를 다운로드한 후 메모리 정리
+    - 실패한 작업 기록 제거
+    - 서버 리소스 관리 및 최적화
+    """
+    if job_id not in JOBS:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    state = JOBS[job_id]
+    if state['status'] in ('running', 'pending'):
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot delete running job. Please stop it first using /stop/{job_id}"
+        )
+
+    # 프로세스 정리
+    if job_id in PROCESSES:
+        del PROCESSES[job_id]
+    if job_id in STOP_EVENTS:
+        del STOP_EVENTS[job_id]
+
+    # 작업 정보 삭제
+    del JOBS[job_id]
+
+    return {"job_id": job_id, "status": "deleted", "message": "Job successfully deleted from memory"}

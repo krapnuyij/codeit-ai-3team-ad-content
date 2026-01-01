@@ -9,13 +9,23 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 import os
+import time
 from fastapi import APIRouter
 from fastapi.responses import FileResponse
 
-from utils import get_available_fonts
+from utils import get_available_fonts, get_system_metrics
 
 
 router = APIRouter()
+
+# 전역 상태 (generation.py에서 주입됨)
+JOBS = None
+
+
+def init_shared_state(jobs_dict):
+    """공유 상태 초기화 (app.py에서 호출)"""
+    global JOBS
+    JOBS = jobs_dict
 
 
 @router.get(
@@ -39,3 +49,57 @@ async def favicon():
     """파비콘 제공"""
     static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
     return FileResponse(os.path.join(static_dir, "favicon.ico"))
+
+
+@router.get(
+    "/health",
+    summary="서버 상태 체크 (Health Check)",
+    response_description="서버 가용성, GPU 상태, 현재 작업 정보"
+)
+async def health_check():
+    """
+    서버의 현재 상태와 가용성을 확인합니다.
+
+    ### 반환 필드 설명
+    - **status**: "healthy" 또는 "busy" (작업 실행 여부)
+    - **server_time**: 현재 서버 시간 (Unix timestamp)
+    - **total_jobs**: 전체 작업 개수
+    - **active_jobs**: 현재 실행 중이거나 대기 중인 작업 개수
+    - **system_metrics**: 실시간 CPU/RAM/GPU 사용률
+      - **cpu_percent**: CPU 사용률 (%)
+      - **ram_used_gb**: 사용 중인 RAM (GB)
+      - **ram_total_gb**: 전체 RAM (GB)
+      - **ram_percent**: RAM 사용률 (%)
+      - **gpu_info**: GPU 정보 리스트
+        - **index**: GPU 인덱스
+        - **name**: GPU 이름
+        - **gpu_util**: GPU 사용률 (%)
+        - **vram_used_gb**: 사용 중인 VRAM (GB)
+        - **vram_total_gb**: 전체 VRAM (GB)
+        - **vram_percent**: VRAM 사용률 (%)
+
+    ### 사용 시나리오
+    - 요청 전 서버 가용성 확인
+    - GPU 메모리 상태 모니터링
+    - 서버 부하 확인 및 최적화 시점 판단
+    """
+    metrics = get_system_metrics()
+
+    # 활성 작업 개수 계산
+    active_count = 0
+    total_jobs = 0
+    if JOBS:
+        total_jobs = len(JOBS)
+        for state in JOBS.values():
+            if state['status'] in ('running', 'pending'):
+                active_count += 1
+
+    server_status = "busy" if active_count > 0 else "healthy"
+
+    return {
+        "status": server_status,
+        "server_time": time.time(),
+        "total_jobs": total_jobs,
+        "active_jobs": active_count,
+        "system_metrics": metrics
+    }

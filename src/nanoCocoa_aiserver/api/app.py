@@ -18,7 +18,7 @@ from fastapi.responses import RedirectResponse
 from config import logger
 from utils import get_system_metrics
 from api.middleware import FontHeaderMiddleware
-from api.routers import generation, resources, dev_dashboard
+from api.routers import generation, resources, dev_dashboard, help
 
 
 # 전역 상태 관리
@@ -75,10 +75,12 @@ def create_app() -> FastAPI:
     
     # 라우터에 전역 상태 주입
     generation.init_shared_state(manager, JOBS, PROCESSES, STOP_EVENTS)
-    
+    resources.init_shared_state(JOBS)
+
     # 라우터 등록
     app.include_router(generation.router, tags=["Generation"])
     app.include_router(resources.router, tags=["Resources"])
+    app.include_router(help.router, tags=["Help & Documentation"])
     app.include_router(dev_dashboard.router, tags=["Development"])
     
     # Root endpoint
