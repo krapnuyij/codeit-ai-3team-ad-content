@@ -20,6 +20,20 @@ function initializeUI() {
         saveToLocalStorage();
     });
     
+    // Step 3 composition sliders
+    document.getElementById('composition_strength').addEventListener('input', e => {
+        document.getElementById('composition_strength_val').innerText = e.target.value;
+        saveToLocalStorage();
+    });
+    document.getElementById('composition_steps').addEventListener('input', e => {
+        document.getElementById('composition_steps_val').innerText = e.target.value;
+        saveToLocalStorage();
+    });
+    document.getElementById('composition_guidance_scale').addEventListener('input', e => {
+        document.getElementById('composition_guidance_val').innerText = e.target.value;
+        saveToLocalStorage();
+    });
+    
     // Font selection listener
     document.getElementById('font_name').addEventListener('change', (e) => {
         updateFontPreview(e.target.value);
@@ -34,10 +48,15 @@ function initializeUI() {
     });
     
     // Add change listeners for all input fields
-    ['bg_prompt', 'bg_negative_prompt', 'text_model_prompt', 'negative_prompt', 'seed'].forEach(id => {
+    ['bg_prompt', 'bg_negative_prompt', 'bg_composition_prompt', 'bg_composition_negative_prompt', 
+     'text_model_prompt', 'negative_prompt', 'seed', 
+     'composition_mode', 'text_position', 'composition_prompt', 'composition_negative_prompt'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input', saveToLocalStorage);
+            if (el.tagName === 'SELECT') {
+                el.addEventListener('change', saveToLocalStorage);
+            }
         }
     });
     

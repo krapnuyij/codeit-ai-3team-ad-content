@@ -5,7 +5,7 @@ worker.py
 import sys
 from pathlib import Path
 
-project_root = Path(__file__).resolve().parent
+project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 import multiprocessing
@@ -14,8 +14,8 @@ from PIL import Image
 
 from config import logger
 from utils import pil_to_base64, base64_to_pil, flush_gpu, step_stats_manager
-from AIModelEngine import AIModelEngine
-from step_processors import process_step1_background, process_step2_text, process_step3_composite
+from core.engine import AIModelEngine
+from core.processors import process_step1_background, process_step2_text, process_step3_composite
 
 
 def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event: multiprocessing.Event):
@@ -177,6 +177,16 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
                 shared_state['message'] = f'step1_image 디코딩 실패: {str(e)}'
                 return
 
+        # text_content가 없으면 STEP 2, 3 건너뛰고 STEP 1 결과를 최종 이미지로 사용
+        text_content = input_data.get('text_content')
+        if not text_content or text_content.strip() == "":
+            logger.info(f"[Worker] text_content 없음 → STEP 2, 3 건너뛰고 STEP 1 결과를 최종 이미지로 설정")
+            shared_state['images']['final_result'] = shared_state['images']['step1_result']
+            shared_state['progress_percent'] = 100
+            shared_state['status'] = 'completed'
+            shared_state['message'] = 'Background generation completed (텍스트 없음).'
+            return
+
         # ==========================================
         # Step 2: 텍스트 에셋 생성 (Text Asset Gen)
         # ==========================================
@@ -234,7 +244,7 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
                                    f"step2_result={'exists' if step2_result else 'missing'}")
                 
                 s3_start = time.time()
-                final_result = process_step3_composite(step1_result, step2_result, shared_state, stop_event)
+                final_result = process_step3_composite(engine, step1_result, step2_result, input_data, shared_state, stop_event)
                 s3_dur = time.time() - s3_start
                 step_stats_manager.update_stat("step3_composite", s3_dur)
 

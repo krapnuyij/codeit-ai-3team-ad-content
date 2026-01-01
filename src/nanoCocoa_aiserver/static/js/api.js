@@ -96,12 +96,22 @@ async function startGeneration() {
         text_content: document.getElementById('text_content').value,
         bg_prompt: document.getElementById('bg_prompt').value,
         bg_negative_prompt: document.getElementById('bg_negative_prompt').value,
+        bg_composition_prompt: document.getElementById('bg_composition_prompt')?.value || null,
+        bg_composition_negative_prompt: document.getElementById('bg_composition_negative_prompt')?.value || null,
         text_model_prompt: document.getElementById('text_model_prompt').value,
         negative_prompt: document.getElementById('negative_prompt').value,
         font_name: document.getElementById('font_name').value,
         strength: parseFloat(document.getElementById('strength').value),
         guidance_scale: parseFloat(document.getElementById('guidance_scale').value),
-        seed: document.getElementById('seed').value ? parseInt(document.getElementById('seed').value) : null
+        seed: document.getElementById('seed').value ? parseInt(document.getElementById('seed').value) : null,
+        // Step 3 텍스트 합성 파라미터
+        composition_mode: document.getElementById('composition_mode').value,
+        text_position: document.getElementById('text_position').value,
+        composition_prompt: document.getElementById('composition_prompt')?.value || null,
+        composition_negative_prompt: document.getElementById('composition_negative_prompt')?.value || null,
+        composition_strength: parseFloat(document.getElementById('composition_strength').value),
+        composition_steps: parseInt(document.getElementById('composition_steps').value),
+        composition_guidance_scale: parseFloat(document.getElementById('composition_guidance_scale').value)
     };
 
     // Requirement Checks

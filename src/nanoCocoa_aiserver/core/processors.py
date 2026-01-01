@@ -15,7 +15,12 @@ from utils import pil_to_base64, base64_to_pil, pil_canny_edge, get_available_fo
 
 def process_step1_background(engine, input_data: dict, shared_state: dict, stop_event) -> Image.Image:
     """
-    Step 1: 배경 생성 (Background Generation)
+    Step 1: 이미지 특성 추출 및 주입 (Feature Extraction & Injection)
+    
+    프로세스:
+    1. 누끼 (Segmentation): 상품 이미지에서 특성 추출
+    2. 배경 생성 (Background Generation): 프롬프트 기반 배경 생성
+    3. 특성 주입 (Feature Injection): Inpainting으로 상품 특성을 배경에 주입
     
     Args:
         engine: AIModelEngine 인스턴스
@@ -24,7 +29,7 @@ def process_step1_background(engine, input_data: dict, shared_state: dict, stop_
         stop_event: 중단 이벤트
         
     Returns:
-        Image.Image: 생성된 배경 이미지
+        Image.Image: 특성이 주입된 최종 이미지
     """
     if stop_event.is_set():
         return None
@@ -64,9 +69,11 @@ def process_step1_background(engine, input_data: dict, shared_state: dict, stop_
         seed=seed
     )
     
-    # 3. 초안 합성 (Composite Draft)
-    shared_state['sub_step'] = 'compositing_draft'
+    # 3. 이미지 특성 주입 (Feature Injection via Inpainting)
+    shared_state['sub_step'] = 'flux_feature_injection'
     shared_state['system_metrics'] = get_system_metrics()
+    
+    # 3-1. 상품 배치 계산
     bg_w, bg_h = bg_img.size
     scale = 0.4
     fg_resized = product_fg.resize(
@@ -76,24 +83,35 @@ def process_step1_background(engine, input_data: dict, shared_state: dict, stop_
     x = (bg_w - fg_resized.width) // 2
     y = int(bg_h * 0.55)
     
-    base_comp = bg_img.convert("RGBA")
-    fg_layer = Image.new("RGBA", bg_img.size)
-    fg_layer.paste(fg_resized, (x, y))
-    base_comp = Image.alpha_composite(base_comp, fg_layer)
-    draft_final = base_comp.convert("RGB")
+    # 3-2. 상품 마스크 생성 (inpainting 영역)
+    product_mask_placed = Image.new("L", bg_img.size, 0)
+    mask_resized = mask.resize(fg_resized.size, Image.LANCZOS)
+    product_mask_placed.paste(mask_resized, (x, y))
     
-    # 4. 리파인 (Flux Img-to-Img)
-    shared_state['sub_step'] = 'flux_refinement'
-    shared_state['system_metrics'] = get_system_metrics()
-    strength = input_data.get('strength', 0.6)
-    refined_base = engine.run_flux_refinement(
-        draft_final, 
-        strength=strength, 
-        guidance_scale=guidance_scale, 
+    # 3-3. Inpainting으로 특성 주입
+    composition_prompt = input_data.get('bg_composition_prompt') or (
+        "A photorealistic product lying naturally on the surface. "
+        "Heavy contact shadows, ambient occlusion, realistic texture and lighting, "
+        "8k, extremely detailed, cinematic."
+    )
+    composition_negative_prompt = input_data.get('bg_composition_negative_prompt') or (
+        "floating, disconnected, unrealistic shadows, artificial lighting, cut out, sticker effect"
+    )
+    strength = input_data.get('strength', 0.5)
+    
+    result_img = engine.run_flux_inpaint_injection(
+        background=bg_img,
+        product_foreground=fg_resized,
+        product_mask=product_mask_placed,
+        position=(x, y),
+        prompt=composition_prompt,
+        negative_prompt=composition_negative_prompt,
+        strength=strength,
+        guidance_scale=guidance_scale,
         seed=seed
     )
     
-    return refined_base
+    return result_img
 
 
 def process_step2_text(engine, input_data: dict, shared_state: dict, stop_event) -> Image.Image:
@@ -169,26 +187,34 @@ def process_step2_text(engine, input_data: dict, shared_state: dict, stop_event)
     return transparent_text
 
 
-def process_step3_composite(step1_result: Image.Image, step2_result: Image.Image, 
-                            shared_state: dict, stop_event) -> Image.Image:
+def process_step3_composite(
+    engine,  # AIModelEngine 인스턴스 필요
+    step1_result: Image.Image, 
+    step2_result: Image.Image,
+    input_data: dict,  # 합성 파라미터 필요
+    shared_state: dict, 
+    stop_event
+) -> Image.Image:
     """
-    Step 3: 최종 합성 (Final Composite)
+    Step 3: 프롬프트 기반 지능형 합성 (Intelligent Composition)
     
     Args:
+        engine: AIModelEngine 인스턴스
         step1_result: Step 1 배경 이미지
         step2_result: Step 2 텍스트 이미지
+        input_data: 입력 파라미터 (composition_mode, text_position 등)
         shared_state: 공유 상태 딕셔너리
         stop_event: 중단 이벤트
         
     Returns:
-        Image.Image: 최종 합성 이미지
+        Image.Image: 프롬프트 기반으로 합성된 최종 이미지
     """
     if stop_event.is_set():
         return None
 
     shared_state['current_step'] = 'step3_composite'
-    shared_state['message'] = 'Step 3: Final Compositing... (최종 합성 중)'
-    shared_state['sub_step'] = 'final_composite'
+    shared_state['message'] = 'Step 3: Intelligent Compositing... (지능형 합성 중)'
+    shared_state['sub_step'] = 'intelligent_composite'
     from utils import get_system_metrics
     shared_state['system_metrics'] = get_system_metrics()
     
@@ -197,15 +223,47 @@ def process_step3_composite(step1_result: Image.Image, step2_result: Image.Image
     if not step2_result:
         raise ValueError("[Step 3 Error] Missing 'step2_result'. Cannot composite.")
     
-    # 합성
-    base_comp = step1_result.convert("RGBA")
-    text_asset = step2_result.convert("RGBA")
+    # 합성 파라미터 추출
+    composition_mode = input_data.get('composition_mode', 'overlay')  # overlay/blend/behind
+    text_position = input_data.get('text_position', 'top')  # top/center/bottom
+    user_prompt = input_data.get('composition_prompt')  # 사용자 커스텀 프롬프트 (옵션)
+    negative_prompt = input_data.get('composition_negative_prompt')  # 네거티브 프롬프트 (옵션)
+    strength = input_data.get('composition_strength', 0.4)  # 변환 강도
+    num_steps = input_data.get('composition_steps', 28)  # 추론 스텝 (품질 우선)
+    guidance_scale = input_data.get('composition_guidance_scale', 3.5)  # 가이던스 스케일
+    seed = input_data.get('seed')
     
-    # 크기 맞추기
-    if base_comp.size != text_asset.size:
-        text_asset = text_asset.resize(base_comp.size, Image.LANCZOS)
+    logger.info(f"[Step 3] Composition parameters: mode={composition_mode}, position={text_position}, strength={strength}, steps={num_steps}, guidance={guidance_scale}")
+    
+    try:
+        # 지능형 합성 실행
+        final_result = engine.run_intelligent_composite(
+            background=step1_result,
+            text_asset=step2_result,
+            composition_mode=composition_mode,
+            text_position=text_position,
+            user_prompt=user_prompt,
+            strength=strength,
+            num_inference_steps=num_steps,
+            seed=seed
+        )
         
-    final_comp = Image.alpha_composite(base_comp, text_asset)
-    final_result = final_comp.convert("RGB")
-    
-    return final_result
+        logger.info("[Step 3] ✅ Intelligent composition completed")
+        return final_result
+        
+    except Exception as e:
+        logger.error(f"[Step 3] Intelligent composition failed: {e}", exc_info=True)
+        logger.warning("[Step 3] Falling back to simple alpha composite")
+        
+        # Fallback: 단순 합성
+        if hasattr(engine, 'compositor'):
+            final_result = engine.compositor.compose_simple(step1_result, step2_result)
+        else:
+            base_comp = step1_result.convert("RGBA")
+            text_asset = step2_result.convert("RGBA")
+            if base_comp.size != text_asset.size:
+                text_asset = text_asset.resize(base_comp.size, Image.LANCZOS)
+            final_comp = Image.alpha_composite(base_comp, text_asset)
+            final_result = final_comp.convert("RGB")
+        
+        return final_result

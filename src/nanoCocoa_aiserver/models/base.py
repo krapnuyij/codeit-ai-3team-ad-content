@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from typing import Optional
 
 from config import logger
-from system_monitor import flush_gpu
+from services.monitor import flush_gpu
 
 
 class BaseAIModel(ABC):

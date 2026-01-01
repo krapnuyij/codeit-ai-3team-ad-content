@@ -174,6 +174,7 @@ def flux_gen_model():
         # Patch heavy dependencies
         with patch('nanoCocoa_aiserver.models.flux_generator.FluxPipeline') as mock_txt2img, \
              patch('nanoCocoa_aiserver.models.flux_generator.FluxImg2ImgPipeline') as mock_img2img, \
+             patch('nanoCocoa_aiserver.models.flux_generator.FluxInpaintPipeline') as mock_inpaint, \
              patch('nanoCocoa_aiserver.models.flux_generator.FluxTransformer2DModel'), \
              patch('nanoCocoa_aiserver.models.flux_generator.BitsAndBytesConfig'), \
              patch('nanoCocoa_aiserver.models.flux_generator.flush_gpu'):
@@ -189,6 +190,10 @@ def flux_gen_model():
             mock_pipe_instance2 = MagicMock()
             mock_pipe_instance2.return_value.images = [dummy_img]
             mock_img2img.from_pretrained.return_value = mock_pipe_instance2
+            
+            mock_pipe_instance3 = MagicMock()
+            mock_pipe_instance3.return_value.images = [dummy_img]
+            mock_inpaint.from_pretrained.return_value = mock_pipe_instance3
 
             yield FluxGenerator()
     except Exception as e:

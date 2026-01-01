@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 
 # Add src to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/nanoCocoa_aiserver')))
 
 from nanoCocoa_aiserver.main import app
 from nanoCocoa_aiserver.utils import base64_to_pil

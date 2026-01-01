@@ -59,7 +59,7 @@ except ImportError:
 
 # Add src to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
-
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src/nanoCocoa_aiserver')))
 
 from nanoCocoa_aiserver.main import app, JOBS
 
@@ -234,3 +234,83 @@ def test_reset_argument_validation():
     # It sets 'failed' only if I missed it, or maybe it doesn't.
     # If it doesn't, this is a bug I should fix or at least test for.
     pass
+
+def test_no_text_content_scenario():
+    """
+    Test 5: No Text Content Scenario (TEXT 없이 STEP1만 실행)
+    text_content가 없거나 빈 문자열일 경우, STEP1 결과를 final_result로 반환해야 함.
+    """
+    banana_b64 = get_base64_image(BANANA_IMG_PATH)
+    
+    # text_content를 None으로 설정
+    req_body = {
+        "start_step": 1,
+        "input_image": banana_b64,
+        "bg_prompt": "wooden table background",
+        "text_content": None,  # TEXT 없음
+        "test_mode": True
+    }
+    
+    resp = client.post("/generate", json=req_body)
+    assert resp.status_code == 200
+    job_id = resp.json()["job_id"]
+    
+    # Poll for completion
+    max_wait = 30
+    poll_interval = 0.5
+    data = None
+    for _ in range(int(max_wait / poll_interval)):
+        time.sleep(poll_interval)
+        status_resp = client.get(f"/status/{job_id}")
+        data = status_resp.json()
+        if data["status"] in ["completed", "failed", "stopped", "error"]:
+            break
+    
+    # Assertions
+    assert data is not None, "No status data received"
+    assert data["status"] == "completed", f"Job did not complete. Status: {data['status']}, Message: {data.get('message', 'N/A')}"
+    assert data.get("step1_result") is not None, "Step1 result is missing"
+    assert data.get("step2_result") is None, "Step2 should be skipped when text_content is None"
+    assert data.get("final_result") is not None, "Final result is missing"
+    # final_result는 step1_result와 동일해야 함
+    assert data["final_result"] == data["step1_result"], "Final result should be same as step1_result when text_content is None"
+    
+def test_empty_text_content_scenario():
+    """
+    Test 6: Empty Text Content Scenario (TEXT가 빈 문자열인 경우)
+    text_content가 빈 문자열일 경우에도 STEP1 결과를 final_result로 반환해야 함.
+    """
+    banana_b64 = get_base64_image(BANANA_IMG_PATH)
+    
+    # text_content를 빈 문자열로 설정
+    req_body = {
+        "start_step": 1,
+        "input_image": banana_b64,
+        "bg_prompt": "white studio background",
+        "text_content": "",  # 빈 문자열
+        "test_mode": True
+    }
+    
+    resp = client.post("/generate", json=req_body)
+    assert resp.status_code == 200
+    job_id = resp.json()["job_id"]
+    
+    # Poll for completion
+    max_wait = 30
+    poll_interval = 0.5
+    data = None
+    for _ in range(int(max_wait / poll_interval)):
+        time.sleep(poll_interval)
+        status_resp = client.get(f"/status/{job_id}")
+        data = status_resp.json()
+        if data["status"] in ["completed", "failed", "stopped", "error"]:
+            break
+    
+    # Assertions
+    assert data is not None, "No status data received"
+    assert data["status"] == "completed", f"Job did not complete. Status: {data['status']}, Message: {data.get('message', 'N/A')}"
+    assert data.get("step1_result") is not None, "Step1 result is missing"
+    assert data.get("step2_result") is None, "Step2 should be skipped when text_content is empty"
+    assert data.get("final_result") is not None, "Final result is missing"
+    # final_result는 step1_result와 동일해야 함
+    assert data["final_result"] == data["step1_result"], "Final result should be same as step1_result when text_content is empty"

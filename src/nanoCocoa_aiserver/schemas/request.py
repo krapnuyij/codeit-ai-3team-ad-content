@@ -1,7 +1,9 @@
-
+"""
+request.py
+요청 스키마 정의
+"""
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
-from config import logger
 
 
 class GenerateRequest(BaseModel):
@@ -38,11 +40,14 @@ class GenerateRequest(BaseModel):
         json_schema_extra={"example": 1}
     )
     
-    # 공통 필수 입력
-    text_content: str = Field(
-        "Special Sale", 
+    # 공통 입력 (텍스트 없이도 배경만 생성 가능)
+    text_content: Optional[str] = Field(
+        None,
         title="광고 문구 (Text Content)",
-        description="3D로 렌더링되어 이미지에 삽입될 텍스트 내용입니다. (예: 'SALE', 'Open', 'New')",
+        description=(
+            "3D로 렌더링되어 이미지에 삽입될 텍스트 내용입니다. (예: 'SALE', 'Open', 'New')\n"
+            "**None 또는 빈 문자열인 경우**: STEP2, STEP3를 건너뛰고 배경 생성(STEP1) 결과만 반환합니다."
+        ),
         json_schema_extra={"example": "Summer Sale"}
     )
 
@@ -66,6 +71,27 @@ class GenerateRequest(BaseModel):
         title="배경 부정 프롬프트 (Background Negative Prompt)",
         description="배경 생성 시 배제하고 싶은 요소들에 대한 키워드입니다.",
         json_schema_extra={"example": "blur, noise, artifacts, low resolution"}
+    )
+    
+    bg_composition_prompt: Optional[str] = Field(
+        None,
+        title="배경 합성 프롬프트 (Background Composition Prompt)",
+        description=(
+            "**[Step 1 실행 시 권장]** 배경과 상품을 자연스럽게 합성하기 위한 프롬프트입니다.\n"
+            "상품이 배경에 자연스럽게 놓인 모습을 구체적으로 묘사합니다.\n"
+            "예: 'A photorealistic shot of product lying naturally on table with contact shadows'"
+        ),
+        json_schema_extra={"example": "A photorealistic close-up shot of a ripe yellow banana lying naturally on a rustic wooden table. Heavy contact shadows, ambient occlusion, wood texture reflection, warm sunlight, cinematic lighting, 8k, extremely detailed."}
+    )
+    
+    bg_composition_negative_prompt: Optional[str] = Field(
+        None,
+        title="배경 합성 부정 프롬프트 (Background Composition Negative Prompt)",
+        description=(
+            "**[Step 1 실행 시 권장]** 배경 합성 시 제외할 요소를 영문으로 작성합니다.\n"
+            "예: 'floating', 'disconnected', 'unrealistic shadows', 'sticker effect'"
+        ),
+        json_schema_extra={"example": "floating, disconnected, unrealistic shadows, artificial lighting"}
     )
 
     # Step 2 (텍스트 에셋) 입력
@@ -108,6 +134,87 @@ class GenerateRequest(BaseModel):
             "Step 2 이전부터 실행 시에는 서버가 생성한 이미지를 자동으로 사용하므로 비워둡니다."
         )
     )
+    
+    # Step 3 합성 파라미터 (지능형 합성)
+    composition_mode: str = Field(
+        "overlay",
+        title="합성 모드 (Composition Mode)",
+        description=(
+            "텍스트와 배경의 합성 방식을 지정합니다.\n"
+            "- `overlay`: 텍스트를 배경 위에 명확하게 배치 (기본값)\n"
+            "- `blend`: 텍스트를 배경과 자연스럽게 섞어 조화롭게 통합\n"
+            "- `behind`: 텍스트를 배경 뒤에 배치하여 깊이감 연출"
+        ),
+        json_schema_extra={"example": "blend"}
+    )
+    
+    text_position: str = Field(
+        "top",
+        title="텍스트 위치 (Text Position)",
+        description=(
+            "텍스트를 배치할 화면 위치를 지정합니다.\n"
+            "- `top`: 상단 영역\n"
+            "- `center`: 중앙 영역\n"
+            "- `bottom`: 하단 영역"
+        ),
+        json_schema_extra={"example": "center"}
+    )
+    
+    composition_prompt: Optional[str] = Field(
+        None,
+        title="합성 커스텀 프롬프트 (Composition Custom Prompt)",
+        description=(
+            "합성 시 추가로 적용할 사용자 정의 프롬프트입니다. (선택사항)\n"
+            "예: 'with subtle shadow', 'glowing effect', 'integrated with lighting'"
+        ),
+        json_schema_extra={"example": "with subtle drop shadow, cinematic lighting"}
+    )
+    
+    composition_negative_prompt: Optional[str] = Field(
+        None,
+        title="합성 네거티브 프롬프트 (Composition Negative Prompt)",
+        description=(
+            "합성 시 제외할 요소들에 대한 부정 프롬프트입니다. (선택사항)\n"
+            "예: 'floating', 'disconnected', 'unrealistic shadows'"
+        ),
+        json_schema_extra={"example": "floating, disconnected, bad integration"}
+    )
+    
+    composition_strength: float = Field(
+        0.4,
+        ge=0.0,
+        le=1.0,
+        title="합성 변환 강도 (Composition Strength)",
+        description=(
+            "Flux Inpainting 합성 시 변환 강도입니다.\n"
+            "낮을수록 원본 배경 보존, 높을수록 프롬프트에 따라 변형 (기본 0.4)"
+        ),
+        json_schema_extra={"example": 0.35}
+    )
+    
+    composition_steps: int = Field(
+        28,
+        ge=10,
+        le=50,
+        title="합성 추론 스텝 (Composition Inference Steps)",
+        description=(
+            "Flux Inpainting 합성 시 추론 스텝 수입니다.\n"
+            "높을수록 품질 향상, 시간 증가 (기본 28, 품질 우선 시 40~50 권장)"
+        ),
+        json_schema_extra={"example": 35}
+    )
+    
+    composition_guidance_scale: float = Field(
+        3.5,
+        ge=1.0,
+        le=7.0,
+        title="합성 가이던스 스케일 (Composition Guidance Scale)",
+        description=(
+            "Flux Inpainting 합성 시 프롬프트 준수 강도입니다.\n"
+            "높을수록 프롬프트에 충실, 낮을수록 자연스러움 우선 (기본 3.5)"
+        ),
+        json_schema_extra={"example": 4.0}
+    )
 
     # 공통 파라미터 (고급 설정)
     strength: float = Field(
@@ -140,47 +247,3 @@ class GenerateRequest(BaseModel):
         description="True일 경우 AI 모델을 구동하지 않고 더미 데이터를 반환합니다. 빠른 API 테스트용입니다.",
         json_schema_extra={"example": False}
     )
-
-class GPUMetric(BaseModel):
-    """GPU 메트릭 정보"""
-    index: int = Field(..., title="GPU 인덱스")
-    name: str = Field(..., title="GPU 이름")
-    gpu_util: int = Field(..., title="GPU 사용률 (%)")
-    vram_used_gb: float = Field(..., title="사용 중인 VRAM (GB)")
-    vram_total_gb: float = Field(..., title="전체 VRAM (GB)")
-    vram_percent: float = Field(..., title="VRAM 사용률 (%)")
-
-class SystemMetrics(BaseModel):
-    """시스템 메트릭 정보"""
-    cpu_percent: float = Field(..., title="CPU 사용률 (%)")
-    ram_used_gb: float = Field(..., title="사용 중인 RAM (GB)")
-    ram_total_gb: float = Field(..., title="전체 RAM (GB)")
-    ram_percent: float = Field(..., title="RAM 사용률 (%)")
-    gpu_info: list[GPUMetric] = Field(default_factory=list, title="GPU 정보 목록")
-
-class StatusResponse(BaseModel):
-    """작업 상태 응답 스키마"""
-    job_id: str = Field(..., title="작업 ID")
-    status: str = Field(..., title="작업 상태")
-    progress_percent: int = Field(..., title="진행률 (%)")
-    current_step: str = Field(..., title="현재 단계")
-    sub_step: Optional[str] = Field(None, title="현재 서브 단계")
-    message: str = Field(..., title="상태 메시지")
-    elapsed_sec: float = Field(..., title="경과 시간 (초)")
-    eta_seconds: Optional[int] = Field(None, title="예상 남은 시간 (초)")
-    step_eta_seconds: Optional[int] = Field(None, title="현재 단계 예상 남은 시간 (초)")
-    system_metrics: Optional[SystemMetrics] = Field(None, title="시스템 메트릭")
-    parameters: dict = Field(default_factory=dict, title="입력 파라미터")
-    step1_result: Optional[str] = Field(None, title="Step 1 결과 (Base64)")
-    step2_result: Optional[str] = Field(None, title="Step 2 결과 (Base64)")
-    final_result: Optional[str] = Field(None, title="최종 결과 (Base64)")
-
-class ResumeRequest(BaseModel):
-    """
-    [Deprecated] 작업 재개 요청 스키마
-    현재는 GenerateRequest의 start_step을 사용하여 대체 가능합니다.
-    """
-    job_id: str = Field(..., title="작업 ID")
-    run_from_step: int = Field(..., ge=2, le=3, title="재시작 단계")
-    new_text: Optional[str] = Field(None, title="변경할 텍스트")
-

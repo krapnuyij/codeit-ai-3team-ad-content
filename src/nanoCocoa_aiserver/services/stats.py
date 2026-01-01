@@ -7,7 +7,7 @@
 
 import json
 import os
-from typing import Dict
+from typing import Dict, Optional
 
 from config import logger
 
@@ -19,12 +19,12 @@ class StepStatsManager:
     """
     
     DEFAULT_STATS = {
-        "step1_background": 450.0,  # 7.5분 (15분의 50%)
-        "step2_text": 360.0,        # 6분 (15분의 40%)
-        "step3_composite": 90.0     # 1.5분 (15분의 10%)
+        "step1_background": 80.0,   # 실측 평균 ~80초 (배경 생성)
+        "step2_text": 35.0,         # 실측 평균 ~35초 (텍스트 생성)
+        "step3_composite": 5.0      # 실측 평균 ~5초 (합성, 최소 안전값)
     }
     
-    def __init__(self, stats_file: str = None):
+    def __init__(self, stats_file: Optional[str] = None):
         """
         Args:
             stats_file (str, optional): 통계 파일 경로. None이면 기본 경로 사용.

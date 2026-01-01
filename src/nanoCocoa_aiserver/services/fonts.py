@@ -15,10 +15,12 @@ def get_fonts_dir() -> str:
     폰트 디렉토리 경로를 반환합니다.
     
     Returns:
-        str: 폰트 디렉토리의 절대 경로 (현재 모듈 디렉토리 내 'fonts' 폴더)
+        str: 폰트 디렉토리의 절대 경로 (프로젝트 루트의 'fonts' 폴더)
     """
+    # services/ 폴더에서 한 단계 상위(nanoCocoa_aiserver/)로 이동
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(current_dir, "fonts")
+    parent_dir = os.path.dirname(current_dir)
+    return os.path.join(parent_dir, "fonts")
 
 
 def get_available_fonts() -> List[str]:
