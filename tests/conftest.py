@@ -20,6 +20,39 @@ except ImportError:
     sys.path.append(os.path.dirname(__file__))
     from test_utils import save_image, calculate_histogram, generate_markdown_report
 
+
+# ==========================================
+# pytest 명령줄 옵션 추가
+# ==========================================
+def pytest_addoption(parser):
+    """
+    --dummy / --no-dummy 옵션 추가:
+    - 기본값: dummy 모드 (GPU 미사용, 빠른 인터페이스 테스트)
+    - --no-dummy: 실제 AI 엔진 사용 (GPU 필요)
+    """
+    parser.addoption(
+        "--dummy",
+        action="store_true",
+        dest="dummy",
+        default=True,
+        help="Run tests in dummy mode (no GPU, fast interface tests) [DEFAULT]"
+    )
+    parser.addoption(
+        "--no-dummy",
+        action="store_false",
+        dest="dummy",
+        help="Run tests with real AI engine (GPU required)"
+    )
+
+
+@pytest.fixture(scope="session")
+def dummy_mode(request):
+    """
+    --dummy / --no-dummy 옵션 값을 반환하는 fixture.
+    기본값: True (dummy 모드)
+    """
+    return request.config.getoption("dummy")
+
 # Configuration for Report
 TIMESTAMP = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
 TESTS_DIR = os.path.dirname(__file__)

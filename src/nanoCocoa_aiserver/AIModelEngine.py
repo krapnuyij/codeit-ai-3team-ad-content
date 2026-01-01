@@ -68,6 +68,12 @@ class AIModelEngine:
         """
         if self.dummy_mode:
             logger.info(f"[DUMMY] Generating BG with prompt: {prompt}")
+            import time
+            total_steps = 10
+            for i in range(total_steps):
+                time.sleep(0.5)  # Simulate delay
+                if self.progress_callback:
+                    self.progress_callback(i + 1, total_steps, "flux_bg_generation")
             return self._create_dummy_image(1024, 1024, "lightblue")
             
         return self.flux_gen.generate_background(prompt, negative_prompt, guidance_scale, seed, self.progress_callback)
@@ -88,6 +94,12 @@ class AIModelEngine:
         """
         if self.dummy_mode:
             logger.info(f"[DUMMY] Refining image with strength: {strength}")
+            import time
+            total_steps = 5
+            for i in range(total_steps):
+                time.sleep(0.5)
+                if self.progress_callback:
+                    self.progress_callback(i + 1, total_steps, "flux_refinement")
             return draft_image.copy() # 단순 복사
             
         return self.flux_gen.refine_image(
@@ -113,6 +125,12 @@ class AIModelEngine:
         """
         if self.dummy_mode:
             logger.info(f"[DUMMY] Generating 3D Text with prompt: {prompt}")
+            import time
+            total_steps = 8
+            for i in range(total_steps):
+                time.sleep(0.5)
+                if self.progress_callback:
+                    self.progress_callback(i + 1, total_steps, "sdxl_text_gen")
             return self._create_dummy_image(1024, 1024, "yellow")
             
         return self.sdxl_gen.generate_text_effect(canny_map, prompt, negative_prompt, self.progress_callback)

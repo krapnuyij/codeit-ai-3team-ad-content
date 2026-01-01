@@ -74,7 +74,7 @@ async function updateFontPreview(fontPath) {
         preview.innerText = '로딩 중...';
         
         // Load font using FontFace API
-        const fontUrl = `/fonts/${fontPath}`;
+        const fontUrl = `/fonts/${encodeURI(fontPath)}`;
         const fontFace = new FontFace(fontName, `url(${fontUrl})`);
         
         await fontFace.load();
@@ -135,7 +135,7 @@ function updateMetricsDisplay(metrics) {
     const ramEl = document.getElementById('ram_usage');
     
     cpuEl.innerText = metrics.cpu_percent.toFixed(1) + '%';
-    ramEl.innerText = `${metrics.ram_used_gb.toFixed(1)}GB / ${metrics.ram_total_gb.toFixed(1)}GB (${metrics.ram_percent.toFixed(1)}%)`;
+    ramEl.innerText = `RAM ${metrics.ram_used_gb.toFixed(1)}GB / ${metrics.ram_total_gb.toFixed(1)}GB (${metrics.ram_percent.toFixed(1)}%)`;
     
     // GPU metrics
     const gpuContainer = document.getElementById('gpu_metrics_container');
@@ -144,8 +144,8 @@ function updateMetricsDisplay(metrics) {
             return `
             <div>
                 <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">GPU ${idx} - ${gpu.name}</div>
-                <div style="font-size: 16px; font-weight: bold; color: #ff9800;">${gpu.gpu_util}%</div>
-                <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;">
+                <div style="font-size: 10px;">${gpu.gpu_util}%</div>
+                <div style="font-size: 16px; color: #ff9800; margin-top: 2px;">
                     VRAM: ${gpu.vram_used_gb.toFixed(1)}GB / ${gpu.vram_total_gb.toFixed(1)}GB (${gpu.vram_percent.toFixed(1)}%)
                 </div>
             </div>

@@ -18,6 +18,9 @@ from utils import get_system_metrics, get_available_fonts
 from schemas import GenerateRequest, StatusResponse, SystemMetrics, GPUMetric
 from worker import worker_process
 
+# API 라우터
+from api.routers import dev_dashboard
+
 # ==========================================
 # 🌐 FastAPI App & MCP Schemas
 # ==========================================
@@ -60,10 +63,30 @@ app.router.lifespan_context = lifespan
 
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
+
+class FontHeaderMiddleware(BaseHTTPMiddleware):
+    """폰트 파일 응답 헤더 설정 미들웨어"""
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/fonts/"):
+            # 폰트 파일 MIME 타입 및 CORS 헤더 설정
+            if request.url.path.endswith(".ttf"):
+                response.headers["Content-Type"] = "font/ttf"
+            elif request.url.path.endswith(".otf"):
+                response.headers["Content-Type"] = "font/otf"
+            response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+
+app.add_middleware(FontHeaderMiddleware)
 
 # Static files mount
 app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 app.mount("/fonts", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "fonts")), name="fonts")
+
+# Include routers
+app.include_router(dev_dashboard.router)
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
@@ -72,14 +95,6 @@ async def favicon():
 @app.get("/")
 async def root():
     return RedirectResponse(url="/docs")
-
-@app.get("/example_generation", response_class=HTMLResponse)
-async def example_generation_dashboard():
-    """
-    개발 및 테스트를 위한 대시보드 페이지를 반환합니다.
-    """
-    with open(os.path.join(os.path.dirname(__file__), "templates", "example_generation.html"), "r", encoding="utf-8") as f:
-        return f.read()
 
 @app.get(
     "/fonts", 

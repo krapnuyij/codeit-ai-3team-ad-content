@@ -130,10 +130,15 @@ def process_step2_text(engine, input_data: dict, shared_state: dict, stop_event)
     
     try:
         font_path = get_font_path(font_name) if font_name else None
-        font = ImageFont.truetype(font_path, 160) if font_path else ImageFont.load_default()
+        if not font_path:
+            raise ValueError(f"폰트를 찾을 수 없습니다: {font_name}")
+        font = ImageFont.truetype(font_path, 160)
+    except (OSError, FileNotFoundError) as e:
+        logger.error(f"Font load failed: {font_name} - {e}", exc_info=True)
+        raise ValueError(f"폰트 로딩 실패: {font_name}. 파일 경로 또는 인코딩 문제를 확인하세요. 원본 오류: {str(e)}")
     except Exception as e:
-        logger.warning(f"Font load failed: {e}")
-        font = ImageFont.load_default()
+        logger.error(f"Unexpected font error: {e}", exc_info=True)
+        raise ValueError(f"폰트 로딩 중 예상치 못한 오류: {str(e)}")
     
     text_guide = Image.new("RGB", (W, H), "black")
     draw = ImageDraw.Draw(text_guide)

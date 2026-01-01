@@ -224,7 +224,7 @@ function pollStatus(jobId, startStep) {
                 showImage('container_final', data.final_result);
             }
 
-            if (['completed', 'stopped', 'failed'].includes(data.status)) {
+            if (['completed', 'stopped', 'failed', 'error'].includes(data.status)) {
                 // Record final step timing
                 if (lastStep) {
                     const stepDuration = (Date.now() - stepStartTime) / 1000;
@@ -237,6 +237,13 @@ function pollStatus(jobId, startStep) {
                 jobStartTime = null;
                 document.getElementById('btn_cancel').style.display = 'none';
                 document.getElementById('eta_info').innerText = '완료';
+                
+                // 에러 상태 처리
+                if (data.status === 'error' || data.status === 'failed') {
+                    document.getElementById('error_msg').innerText = data.message || '알 수 없는 오류가 발생했습니다.';
+                    document.getElementById('status_icon').style.color = '#d32f2f';
+                    document.getElementById('status_text').innerText = 'ERROR';
+                }
 
                 // Hide metrics panel when done
                 setTimeout(() => {

@@ -150,18 +150,24 @@ def test_red_rose_generation():
     assert resp.status_code == 200
     job_id = resp.json()["job_id"]
     
-    # Poll for completion
-    for _ in range(10):
-        time.sleep(0.5)
+    # Poll for completion (increased timeout for multiprocessing worker)
+    max_wait = 30  # 30 seconds max wait
+    poll_interval = 0.5
+    data = None
+    for _ in range(int(max_wait / poll_interval)):
+        time.sleep(poll_interval)
         status_resp = client.get(f"/status/{job_id}")
         data = status_resp.json()
-        if data["status"] in ["completed", "failed", "stopped"]:
+        if data["status"] in ["completed", "failed", "stopped", "error"]:
             break
-            
-    assert data["status"] == "completed"
-    assert data["step1_result"] is not None
+    
+    # Assert after loop to have latest data
+    assert data is not None, "No status data received"
+    assert data["status"] == "completed", f"Job did not complete. Status: {data['status']}, Message: {data.get('message', 'N/A')}"
+    assert data.get("step1_result") is not None, "Step1 result is missing"
     # Dummy mode returns something valid
-    assert len(data["step1_result"]) > 0
+    assert len(data["step1_result"]) > 0, "Step1 result is empty"
+
 
 def test_kindergarten_ad_generation():
     """
@@ -180,19 +186,27 @@ def test_kindergarten_ad_generation():
     assert resp.status_code == 200
     job_id = resp.json()["job_id"]
     
-    # Poll for completion
-    for _ in range(10):
-        time.sleep(0.5)
+    # Poll for completion (increased timeout for multiprocessing worker)
+    max_wait = 30  # 30 seconds max wait
+    poll_interval = 0.5
+    data = None
+    for _ in range(int(max_wait / poll_interval)):
+        time.sleep(poll_interval)
         status_resp = client.get(f"/status/{job_id}")
         data = status_resp.json()
-        if data["status"] in ["completed", "failed", "stopped"]:
+        if data["status"] in ["completed", "failed", "stopped", "error"]:
             break
-            
-    assert data["status"] == "completed"
+    
+    # Assert after loop to have latest data
+    assert data is not None, "No status data received"
+    assert data["status"] == "completed", f"Job did not complete. Status: {data['status']}, Message: {data.get('message', 'N/A')}"
+    assert data.get("step1_result") is not None, "Step1 result is missing"
+    assert data.get("step2_result") is not None, "Step2 result is missing"
+    assert data.get("final_result") is not None, "Final result is missing"
     # Ensure all steps ran
-    assert data["step1_result"] is not None
-    assert data["step2_result"] is not None
-    assert data["final_result"] is not None
+    assert data.get("step1_result") is not None, "Step1 result is missing"
+    assert data.get("step2_result") is not None, "Step2 result is missing"
+    assert data.get("final_result") is not None, "Final result is missing"
 
 def test_reset_argument_validation():
     """

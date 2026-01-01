@@ -106,10 +106,32 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
         shared_state['status'] = 'running'
         shared_state['start_time'] = time.time()
         shared_state['sub_step'] = None
-        shared_state['eta_seconds'] = 0
         
         # 파라미터 추출
         start_step = input_data.get('start_step', 1)
+
+        # [초기 ETA 계산]
+        initial_eta = 0
+        initial_step_eta = 0
+        
+        if start_step <= 1:
+            initial_eta += step_stats_manager.get_stat("step1_background")
+            initial_step_eta = step_stats_manager.get_stat("step1_background")
+            # Step 1 implies subsequent steps
+            initial_eta += step_stats_manager.get_stat("step2_text")
+            initial_eta += step_stats_manager.get_stat("step3_composite")
+        elif start_step == 2:
+            initial_eta += step_stats_manager.get_stat("step2_text")
+            initial_step_eta = step_stats_manager.get_stat("step2_text")
+            initial_eta += step_stats_manager.get_stat("step3_composite")
+        elif start_step == 3:
+            initial_eta += step_stats_manager.get_stat("step3_composite")
+            initial_step_eta = step_stats_manager.get_stat("step3_composite")
+            
+        shared_state['eta_seconds'] = int(initial_eta)
+        shared_state['step_eta_seconds'] = int(initial_step_eta)
+        shared_state['eta_update_time'] = time.time()
+
         
         # 단계별 결과물 변수 (PIL Image)
         step1_result = None
@@ -120,59 +142,113 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
         # Step 1: 배경 생성 (Background Generation)
         # ==========================================
         if start_step <= 1:
-            s1_start = time.time()
-            step1_result = process_step1_background(engine, input_data, shared_state, stop_event)
-            s1_dur = time.time() - s1_start
-            step_stats_manager.update_stat("step1_background", s1_dur)
-            
-            if step1_result:
-                shared_state['images']['step1_result'] = pil_to_base64(step1_result)
-                shared_state['progress_percent'] = 33
+            try:
+                s1_start = time.time()
+                step1_result = process_step1_background(engine, input_data, shared_state, stop_event)
+                s1_dur = time.time() - s1_start
+                step_stats_manager.update_stat("step1_background", s1_dur)
+                
+                if step1_result:
+                    shared_state['images']['step1_result'] = pil_to_base64(step1_result)
+                    shared_state['progress_percent'] = 33
+                else:
+                    raise ValueError("Step 1 returned None - 배경 생성 실패")
+                    
+            except Exception as e:
+                logger.error(f"[Worker] Step 1 failed for job {job_id}: {e}", exc_info=True)
+                shared_state['status'] = 'error'
+                shared_state['message'] = f'Step 1 오류 (배경 생성 실패): {str(e)}'
+                return
         else:
             # Step 1을 건너뛸 경우, 입력받은 step1_image 사용
             img_s1_b64 = input_data.get('step1_image')
-            if img_s1_b64:
+            if not img_s1_b64:
+                logger.error(f"[Worker] start_step={start_step}인데 step1_image 없음")
+                shared_state['status'] = 'error'
+                shared_state['message'] = 'start_step > 1이지만 step1_image가 제공되지 않았습니다.'
+                return
+            
+            try:
                 step1_result = base64_to_pil(img_s1_b64)
                 shared_state['images']['step1_result'] = img_s1_b64
+            except Exception as e:
+                logger.error(f"[Worker] step1_image 디코딩 실패: {e}")
+                shared_state['status'] = 'error'
+                shared_state['message'] = f'step1_image 디코딩 실패: {str(e)}'
+                return
 
         # ==========================================
         # Step 2: 텍스트 에셋 생성 (Text Asset Gen)
         # ==========================================
         if start_step <= 2:
-            s2_start = time.time()
-            step2_result = process_step2_text(engine, input_data, shared_state, stop_event)
-            s2_dur = time.time() - s2_start
-            step_stats_manager.update_stat("step2_text", s2_dur)
+            try:
+                s2_start = time.time()
+                step2_result = process_step2_text(engine, input_data, shared_state, stop_event)
+                s2_dur = time.time() - s2_start
+                step_stats_manager.update_stat("step2_text", s2_dur)
 
-            if step2_result:
-                shared_state['images']['step2_result'] = pil_to_base64(step2_result)
-                shared_state['progress_percent'] = 66
+                if step2_result:
+                    shared_state['images']['step2_result'] = pil_to_base64(step2_result)
+                    shared_state['progress_percent'] = 66
+                else:
+                    raise ValueError("Step 2 returned None - 텍스트 생성 실패")
+                    
+            except Exception as e:
+                logger.error(f"[Worker] Step 2 failed for job {job_id}: {e}", exc_info=True)
+                shared_state['status'] = 'error'
+                shared_state['message'] = f'Step 2 오류 (텍스트 생성 실패): {str(e)}'
+                return
         else:
             # Step 2 건너뛸 경우
             img_s2_b64 = input_data.get('step2_image')
-            if img_s2_b64:
+            if not img_s2_b64:
+                logger.error(f"[Worker] start_step={start_step}인데 step2_image 없음")
+                shared_state['status'] = 'error'
+                shared_state['message'] = 'start_step > 2이지만 step2_image가 제공되지 않았습니다.'
+                return
+            
+            try:
                 step2_result = base64_to_pil(img_s2_b64)
                 shared_state['images']['step2_result'] = img_s2_b64
+            except Exception as e:
+                logger.error(f"[Worker] step2_image 디코딩 실패: {e}")
+                shared_state['status'] = 'error'
+                shared_state['message'] = f'step2_image 디코딩 실패: {str(e)}'
+                return
 
         # ==========================================
         # Step 3: 최종 합성 (Final Composite)
         # ==========================================
         if start_step <= 3:
-            # Step 1, Step 2 결과물 확보 확인
-            if not step1_result and shared_state['images'].get('step1_result'):
-                step1_result = base64_to_pil(shared_state['images']['step1_result'])
+            try:
+                # Step 1, Step 2 결과물 확보 확인
+                if not step1_result and shared_state['images'].get('step1_result'):
+                    step1_result = base64_to_pil(shared_state['images']['step1_result'])
+                    
+                if not step2_result and shared_state['images'].get('step2_result'):
+                    step2_result = base64_to_pil(shared_state['images']['step2_result'])
                 
-            if not step2_result and shared_state['images'].get('step2_result'):
-                step2_result = base64_to_pil(shared_state['images']['step2_result'])
-            
-            s3_start = time.time()
-            final_result = process_step3_composite(step1_result, step2_result, shared_state, stop_event)
-            s3_dur = time.time() - s3_start
-            step_stats_manager.update_stat("step3_composite", s3_dur)
+                if not step1_result or not step2_result:
+                    raise ValueError(f"Step 3 requires both step1 and step2 results. "
+                                   f"step1_result={'exists' if step1_result else 'missing'}, "
+                                   f"step2_result={'exists' if step2_result else 'missing'}")
+                
+                s3_start = time.time()
+                final_result = process_step3_composite(step1_result, step2_result, shared_state, stop_event)
+                s3_dur = time.time() - s3_start
+                step_stats_manager.update_stat("step3_composite", s3_dur)
 
-            if final_result:
-                shared_state['images']['final_result'] = pil_to_base64(final_result)
-                shared_state['progress_percent'] = 100
+                if final_result:
+                    shared_state['images']['final_result'] = pil_to_base64(final_result)
+                    shared_state['progress_percent'] = 100
+                else:
+                    raise ValueError("Step 3 returned None - 합성 실패")
+                    
+            except Exception as e:
+                logger.error(f"[Worker] Step 3 failed for job {job_id}: {e}", exc_info=True)
+                shared_state['status'] = 'error'
+                shared_state['message'] = f'Step 3 오류 (합성 실패): {str(e)}'
+                return
 
         # 완료 처리
         if stop_event.is_set():
@@ -183,9 +259,9 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
             shared_state['message'] = 'All steps completed successfully.'
 
     except Exception as e:
-        logger.error(f"Worker error for job {job_id}: {e}", exc_info=True)
-        shared_state['status'] = 'failed'
-        shared_state['message'] = f'Error: {str(e)}'
+        logger.error(f"[Worker] Unexpected error for job {job_id}: {e}", exc_info=True)
+        shared_state['status'] = 'error'
+        shared_state['message'] = f'예상치 못한 오류: {str(e)}'
         
     finally:
         flush_gpu()

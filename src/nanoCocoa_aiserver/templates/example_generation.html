@@ -71,7 +71,7 @@
                 <div class="control-group">
                     <label>강도 (Strength, 0.0 - 1.0)</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="range" id="strength" min="0" max="1" step="0.05" value="0.6" style="flex: 1;">
+                        <input type="range" id="strength" min="0" max="1" step="0.01" value="0.6" style="flex: 1;">
                         <span id="strength_val" style="width: 30px; text-align: right; font-size: 12px;">0.6</span>
                     </div>
                 </div>
@@ -164,11 +164,7 @@
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
                     <div>
                         <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">CPU</div>
-                        <div style="font-size: 16px; font-weight: bold; color: #4fc3f7;" id="cpu_usage">-</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">RAM</div>
-                        <div style="font-size: 10px; color: var(--text-muted); margin-top: 2px;" id="ram_usage">-</div>
+                        <div style="font-size: 10px;" id="cpu_usage">-</div>
                     </div>
                     <div id="gpu_metrics_container">
                         <!-- GPU metrics will be inserted here -->
