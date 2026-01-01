@@ -71,7 +71,7 @@
                 <div class="control-group">
                     <label>배경 합성 프롬프트 (Background Composition, 영문)</label>
                     <textarea id="bg_composition_prompt"
-                        rows="3">A photorealistic close-up shot of a ripe yellow banana lying naturally on a rustic wooden table. Heavy contact shadows, ambient occlusion, wood texture reflection, warm sunlight, cinematic lighting, 8k, extremely detailed.</textarea>
+                        rows="3">A photorealistic object lying naturally on a rustic wooden table. Heavy contact shadows, ambient occlusion, wood texture reflection, warm sunlight, cinematic lighting, 8k, extremely detailed.</textarea>
                     <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
                         배경과 상품을 자연스럽게 합성하기 위한 프롬프트
                     </div>
@@ -128,7 +128,7 @@
             <!-- Step 3 Params (텍스트 합성 파라미터) -->
             <div class="panel" id="panel_step3">
                 <div class="panel-header">3단계: 텍스트 합성 (Text Composition)</div>
-                
+
                 <div class="control-group">
                     <label>텍스트 합성 모드 (Text Composition Mode)</label>
                     <select id="composition_mode">
@@ -140,62 +140,69 @@
                         텍스트와 배경의 합성 방식
                     </div>
                 </div>
-                
+
                 <div class="control-group">
                     <label>텍스트 위치 (Text Position)</label>
                     <select id="text_position">
                         <option value="top" selected>상단 (Top)</option>
                         <option value="center">중앙 (Center)</option>
                         <option value="bottom">하단 (Bottom)</option>
+                        <option value="auto">자동 (Auto) - 최적 위치</option>
                     </select>
                 </div>
-                
+
                 <div class="control-group">
                     <label>텍스트 합성 프롬프트 (Text Composition Prompt, 선택, 영문)</label>
-                    <textarea id="composition_prompt" 
+                    <textarea id="composition_prompt"
                         placeholder="예: with subtle shadow, glowing effect, integrated with lighting"
                         rows="2"></textarea>
                     <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
                         합성 시 추가 효과 지정 (비워두면 자동 생성)
                     </div>
                 </div>
-                
+
                 <div class="control-group">
                     <label>텍스트 합성 네거티브 프롬프트 (선택, 영문)</label>
-                    <input type="text" id="composition_negative_prompt" 
+                    <input type="text" id="composition_negative_prompt"
                         placeholder="예: floating, disconnected, unrealistic shadows">
                     <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
                         합성에서 제외할 요소 (비워두면 기본값 사용)
                     </div>
                 </div>
-                
+
                 <div class="control-group">
                     <label>텍스트 합성 강도 (Text Composition Strength)</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="range" id="composition_strength" min="0" max="1" step="0.05" value="0.4" style="flex: 1;">
-                        <span id="composition_strength_val" style="width: 35px; text-align: right; font-size: 12px;">0.4</span>
+                        <input type="range" id="composition_strength" min="0" max="1" step="0.05" value="0.4"
+                            style="flex: 1;">
+                        <span id="composition_strength_val"
+                            style="width: 35px; text-align: right; font-size: 12px;">0.4</span>
                     </div>
                     <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
                         낮을수록 원본 보존, 높을수록 프롬프트 반영
                     </div>
                 </div>
-                
+
                 <div class="control-group">
                     <label>텍스트 합성 인퍼런스 스텝 (Inference Steps)</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="range" id="composition_steps" min="10" max="50" step="1" value="28" style="flex: 1;">
-                        <span id="composition_steps_val" style="width: 35px; text-align: right; font-size: 12px;">28</span>
+                        <input type="range" id="composition_steps" min="10" max="50" step="1" value="28"
+                            style="flex: 1;">
+                        <span id="composition_steps_val"
+                            style="width: 35px; text-align: right; font-size: 12px;">28</span>
                     </div>
                     <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
                         높을수록 품질↑ 시간↑ (28~35 권장)
                     </div>
                 </div>
-                
+
                 <div class="control-group">
                     <label>텍스트 합성 가이던스 스케일</label>
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <input type="range" id="composition_guidance_scale" min="1" max="7" step="0.1" value="3.5" style="flex: 1;">
-                        <span id="composition_guidance_val" style="width: 35px; text-align: right; font-size: 12px;">3.5</span>
+                        <input type="range" id="composition_guidance_scale" min="1" max="7" step="0.1" value="3.5"
+                            style="flex: 1;">
+                        <span id="composition_guidance_val"
+                            style="width: 35px; text-align: right; font-size: 12px;">3.5</span>
                     </div>
                 </div>
             </div>

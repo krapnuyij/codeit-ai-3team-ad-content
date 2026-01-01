@@ -76,3 +76,56 @@ def pil_canny_edge(image: Image.Image, threshold: int = 30) -> Image.Image:
     edges = gray.filter(ImageFilter.FIND_EDGES)
     edges = edges.point(lambda x: 255 if x > threshold else 0)
     return edges.convert("RGB")
+
+
+def reposition_text_asset(
+    image: Image.Image, 
+    target_position: str, 
+    margin: int = 100
+) -> Image.Image:
+    """
+    텍스트 에셋(투명 배경)의 내용물을 감지하여 box를 계산하고,
+    지정된 위치(top/center/bottom)로 이동시킵니다.
+    
+    Args:
+        image: 텍스트 에셋 이미지 (RGBA)
+        target_position: 'top', 'center', 'bottom'
+        margin: 상/하단 여백 (px)
+        
+    Returns:
+        Image.Image: 위치가 조정된 이미지
+    """
+    if image.mode != "RGBA":
+        image = image.convert("RGBA")
+        
+    # 1. 텍스트 영역 Bounding Box 찾기
+    # 알파 채널에서 0이 아닌 영역 찾기
+    alpha = image.split()[-1]
+    bbox = alpha.getbbox()
+    
+    if not bbox:
+        # 빈 이미지인 경우 그대로 반환
+        return image
+        
+    text_content = image.crop(bbox)
+    content_w, content_h = text_content.size
+    w, h = image.size
+    
+    # 2. 이동할 목표 좌표 (좌상단 기준)
+    target_x = (w - content_w) // 2
+    
+    if target_position == "top":
+        target_y = margin
+    elif target_position == "center":
+        target_y = (h - content_h) // 2
+    elif target_position == "bottom":
+        target_y = h - content_h - margin
+    else:
+        # 알 수 없는 위치면 원래대로
+        return image
+        
+    # 3. 새 캔버스에 붙여넣기
+    new_image = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    new_image.paste(text_content, (target_x, target_y))
+    
+    return new_image

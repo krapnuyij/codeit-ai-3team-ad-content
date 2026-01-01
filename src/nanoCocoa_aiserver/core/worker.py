@@ -60,11 +60,34 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
             base_progress = 0
             step_range = 33
         
-        # 서브 스텝 내 진행률 계산 (0.0 ~ 1.0)
-        sub_progress = step_num / total_steps
+        # 서브 스텝별 가중치 적용 (Weighted Progress)
+        progress_weight = 0.0
         
-        # 최종 진행률 = 베이스 + (서브 진행률 * 스텝 범위)
-        final_progress = int(base_progress + (sub_progress * step_range))
+        if 'step1' in current_main_step:
+            # Step 1: Background Gen (50%) + Feature Injection (50%)
+            # Segmentation은 매우 빠르므로 0% 비중으로 처리 (혹은 무시)
+            if "flux_bg_generation" in sub_step_name:
+                # 0 ~ 50% 구간
+                progress_weight = (step_num / total_steps) * 0.5
+            elif "flux_feature_injection" in sub_step_name:
+                # 50 ~ 100% 구간
+                progress_weight = 0.5 + ((step_num / total_steps) * 0.5)
+            else:
+                progress_weight = 0 # segmentation etc
+                
+        elif 'step2' in current_main_step:
+            # Step 2: Text Gen (100%)
+            progress_weight = step_num / total_steps
+            
+        elif 'step3' in current_main_step:
+            # Step 3: Composite (100%)
+            progress_weight = step_num / total_steps
+            
+        else:
+            progress_weight = 0
+        
+        # 최종 진행률 = 베이스 + (가중된 서브 진행률 * 스텝 범위)
+        final_progress = int(base_progress + (progress_weight * step_range))
         final_progress = min(100, max(0, final_progress))
         
         shared_state['progress_percent'] = final_progress
@@ -84,7 +107,7 @@ def worker_process(job_id: str, input_data: dict, shared_state: dict, stop_event
         elif 'step3' in current_main_step: current_step_key = "step3_composite"
         
         avg_time = step_stats_manager.get_stat(current_step_key)
-        step_remaining = max(0, avg_time * (1.0 - sub_progress))
+        step_remaining = max(0, avg_time * (1.0 - progress_weight))
         shared_state['step_eta_seconds'] = int(step_remaining)
         
         # [전체 ETA 계산]

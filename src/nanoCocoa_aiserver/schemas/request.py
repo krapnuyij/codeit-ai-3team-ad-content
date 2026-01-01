@@ -79,9 +79,9 @@ class GenerateRequest(BaseModel):
         description=(
             "**[Step 1 실행 시 권장]** 배경과 상품을 자연스럽게 합성하기 위한 프롬프트입니다.\n"
             "상품이 배경에 자연스럽게 놓인 모습을 구체적으로 묘사합니다.\n"
-            "예: 'A photorealistic shot of product lying naturally on table with contact shadows'"
+            "예: 'A photorealistic object integration. Heavy contact shadows...'"
         ),
-        json_schema_extra={"example": "A photorealistic close-up shot of a ripe yellow banana lying naturally on a rustic wooden table. Heavy contact shadows, ambient occlusion, wood texture reflection, warm sunlight, cinematic lighting, 8k, extremely detailed."}
+        json_schema_extra={"example": "A photorealistic object lying naturally on a rustic wooden table. Heavy contact shadows, ambient occlusion, wood texture reflection, warm sunlight, cinematic lighting, 8k, extremely detailed."}
     )
     
     bg_composition_negative_prompt: Optional[str] = Field(
@@ -155,7 +155,8 @@ class GenerateRequest(BaseModel):
             "텍스트를 배치할 화면 위치를 지정합니다.\n"
             "- `top`: 상단 영역\n"
             "- `center`: 중앙 영역\n"
-            "- `bottom`: 하단 영역"
+            "- `bottom`: 하단 영역\n"
+            "- `auto`: 배경 여백을 자동 감지하여 최적 위치 선정"
         ),
         json_schema_extra={"example": "center"}
     )

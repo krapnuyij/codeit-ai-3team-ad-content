@@ -170,6 +170,11 @@ class CompositionEngine:
             # 3. Flux Inpainting 실행
             logger.info(f"🔄 Running Flux Inpainting: strength={strength}, guidance={guidance_scale}, steps={num_inference_steps}")
             
+            def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
+                if progress_callback:
+                    progress_callback(step_index + 1, num_inference_steps, "intelligent_composite")
+                return callback_kwargs
+
             result = self.pipe(
                 prompt=composition_prompt,
                 negative_prompt=final_negative,
@@ -177,7 +182,8 @@ class CompositionEngine:
                 mask_image=mask,
                 strength=strength,
                 guidance_scale=guidance_scale,
-                num_inference_steps=num_inference_steps
+                num_inference_steps=num_inference_steps,
+                callback_on_step_end=callback_fn if progress_callback else None
             ).images[0]
             
             logger.info("✅ Composition completed successfully")

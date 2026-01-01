@@ -90,7 +90,7 @@ def process_step1_background(engine, input_data: dict, shared_state: dict, stop_
     
     # 3-3. Inpainting으로 특성 주입
     composition_prompt = input_data.get('bg_composition_prompt') or (
-        "A photorealistic product lying naturally on the surface. "
+        "A photorealistic object integration. "
         "Heavy contact shadows, ambient occlusion, realistic texture and lighting, "
         "8k, extremely detailed, cinematic."
     )
@@ -225,7 +225,7 @@ def process_step3_composite(
     
     # 합성 파라미터 추출
     composition_mode = input_data.get('composition_mode', 'overlay')  # overlay/blend/behind
-    text_position = input_data.get('text_position', 'top')  # top/center/bottom
+    text_position = input_data.get('text_position', 'top')  # top/center/bottom/auto
     user_prompt = input_data.get('composition_prompt')  # 사용자 커스텀 프롬프트 (옵션)
     negative_prompt = input_data.get('composition_negative_prompt')  # 네거티브 프롬프트 (옵션)
     strength = input_data.get('composition_strength', 0.4)  # 변환 강도
@@ -233,15 +233,40 @@ def process_step3_composite(
     guidance_scale = input_data.get('composition_guidance_scale', 3.5)  # 가이던스 스케일
     seed = input_data.get('seed')
     
+    # [Auto Position Logic]
+    final_text_asset = step2_result
+    
+    if text_position == "auto":
+        from utils.MaskGenerator import MaskGenerator
+        from utils.images import reposition_text_asset
+        
+        # 1. 최적 위치 자동 감지
+        recommended_pos = MaskGenerator.recommend_position(step1_result)
+        logger.info(f"[Step 3] Auto-positioning selected. Recommended: '{recommended_pos}'")
+        
+        # 2. 위치 결정
+        text_position = recommended_pos
+        
+        # 3. 텍스트 에셋 재배치 (Step 2는 기본적으로 Top에 생성됨)
+        # 만약 Step 2가 이미 해당 위치에 있다면 생략 가능하지만, 명시적으로 이동
+        final_text_asset = reposition_text_asset(step2_result, text_position)
+        logger.info(f"[Step 3] Text asset repositioned to '{text_position}'")
+    else:
+        # 수동 위치 선택 시에도, Step 2 결과가 Top에 있다면 이동 필요할 수 있음
+        # 하지만 현재 UX상 Step 2 생성 시 위치를 지정하지 않으므로(기본 Top), 
+        # 합성 단계에서 위치를 바꿀 때 reposition을 해주는 것이 좋음
+        from utils.images import reposition_text_asset
+        final_text_asset = reposition_text_asset(step2_result, text_position)
+
     logger.info(f"[Step 3] Composition parameters: mode={composition_mode}, position={text_position}, strength={strength}, steps={num_steps}, guidance={guidance_scale}")
     
     try:
         # 지능형 합성 실행
         final_result = engine.run_intelligent_composite(
             background=step1_result,
-            text_asset=step2_result,
+            text_asset=final_text_asset,  # 재배치된 텍스트 에셋 사용
             composition_mode=composition_mode,
-            text_position=text_position,
+            text_position=text_position,  # 결정된 위치("auto" 아님)
             user_prompt=user_prompt,
             strength=strength,
             num_inference_steps=num_steps,
@@ -257,10 +282,10 @@ def process_step3_composite(
         
         # Fallback: 단순 합성
         if hasattr(engine, 'compositor'):
-            final_result = engine.compositor.compose_simple(step1_result, step2_result)
+            final_result = engine.compositor.compose_simple(step1_result, final_text_asset)
         else:
             base_comp = step1_result.convert("RGBA")
-            text_asset = step2_result.convert("RGBA")
+            text_asset = final_text_asset.convert("RGBA")
             if base_comp.size != text_asset.size:
                 text_asset = text_asset.resize(base_comp.size, Image.LANCZOS)
             final_comp = Image.alpha_composite(base_comp, text_asset)

@@ -204,3 +204,53 @@ class MaskGenerator:
         
         combined = Image.alpha_composite(bg_rgba, mask_colored)
         return combined.convert("RGB")
+
+    @staticmethod
+    def recommend_position(
+        background: Image.Image,
+        threshold_percentile: int = 40,
+        min_area: float = 0.15
+    ) -> Literal["top", "center", "bottom"]:
+        """
+        배경의 여백을 분석하여 최적의 텍스트 배치 위치를 추천합니다.
+        
+        Args:
+            background: 배경 이미지
+            threshold_percentile: 밝기 임계값 (기본 40)
+            min_area: 최소 면적 비율
+            
+        Returns:
+            Literal["top", "center", "bottom"]: 추천 위치
+        """
+        w, h = background.size
+        # 그레이스케일 변환 및 임계값 마스킹
+        bg_gray = background.convert("L")
+        bg_arr = np.array(bg_gray)
+        threshold = np.percentile(bg_arr, threshold_percentile)
+        mask_arr = (bg_arr < threshold) # True for dark areas (empty space)
+        
+        # 영역별 여백 점수 계산 (단순 픽셀 수)
+        # 상단 (0 ~ 33%)
+        top_area = mask_arr[0:int(h*0.33), :].sum()
+        # 중앙 (33% ~ 66%)
+        center_area = mask_arr[int(h*0.33):int(h*0.66), :].sum()
+        # 하단 (66% ~ 100%)
+        bottom_area = mask_arr[int(h*0.66):h, :].sum()
+        
+        scores = {
+            "top": top_area,
+            "center": center_area,
+            "bottom": bottom_area
+        }
+        
+        # 가장 여백이 많은 곳 선택
+        best_position = max(scores, key=scores.get)
+        
+        # 전체적으로 여백이 너무 적으면 기본값 top 반환 (안전장치)
+        total_pixels = w * h
+        if scores[best_position] / (total_pixels / 3) < min_area:
+             logger.warning(f"Not enough empty space found (max {scores[best_position]}), defaulting to top")
+             return "top"
+             
+        logger.info(f"Auto-position recommendation: {best_position} (scores: {scores})")
+        return best_position
