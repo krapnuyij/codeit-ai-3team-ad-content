@@ -109,21 +109,35 @@ graph TD
 
 **3.2.2. Pipeline Stages (파이프라인 단계)**
 
-* **Stage A (Base Construction):**
-1. `BiRefNet` 로드 -> 제품 누끼(Segmentation) -> 언로드.
-2. `FLUX` 로드 -> 배경 생성(T2I) -> 언로드.
-3. 합성(Compositing) 및 그림자 생성 (CPU 연산).
-4. `FLUX Img2Img` 로드 -> 리터칭(Refinement) -> 언로드.
+실제 구현에서는 **3단계 Step 구조**로 설계되어 있습니다:
 
+* **Step 1 (Background Generation - 배경 생성):**
+1. `BiRefNet` 로드 → 제품 누끼(Segmentation) → 언로드
+2. `FLUX` 로드 → 배경 생성(T2I) → 언로드
+3. 합성(Compositing) 및 그림자 생성 (CPU 연산)
+4. `FLUX Img2Img` 로드 → 리터칭(Refinement) → 언로드
+   - **출력**: 배경과 합성된 상품 이미지 (step1_result)
+   - **진행률**: 0% → 33%
 
-* **Stage B (Text Asset Generation):**
-1. 텍스트 레이아웃 및 Canny Map 생성 (CPU/PIL).
-2. `SDXL ControlNet` 로드 -> 3D 텍스트 생성 -> 언로드.
-3. `BiRefNet` 재로드 -> 텍스트 배경 제거 -> 언로드.
+* **Step 2 (Text Asset Generation - 텍스트 자산 생성):**
+1. 텍스트 레이아웃 및 Canny Map 생성 (CPU/PIL)
+2. `SDXL ControlNet` 로드 → 3D 텍스트 생성 → 언로드
+3. `BiRefNet` 재로드 → 텍스트 배경 제거 → 언로드
+   - **출력**: 배경 제거된 3D 텍스트 이미지 (step2_result)
+   - **진행률**: 33% → 66%
 
+* **Step 3 (Final Composition - 최종 합성):**
+1. Step 1 결과 (배경 이미지)와 Step 2 결과 (텍스트 이미지)를 합성
+2. FLUX Inpainting을 사용한 지능형 합성 (텍스트 위치, 합성 모드 적용)
+3. 최종 레이어 합성 (CPU/PIL)
+   - **출력**: 최종 광고 이미지 (final_result)
+   - **진행률**: 66% → 100%
 
-* **Stage C (Final Composition):**
-1. 최종 레이어 합성 (CPU/PIL).
+**단계별 재시작(Resume) 지원:**
+- `start_step` 파라미터를 통해 특정 단계부터 시작 가능
+- Step 2부터 시작 시 `step1_image` 필수 제공
+- Step 3부터 시작 시 `step1_image`, `step2_image` 모두 필수 제공
+- 텍스트가 없을 경우 (`text_content == null`), Step 2/3 건너뛰고 Step 1 결과를 최종 이미지로 사용
 
 
 
@@ -148,38 +162,94 @@ MCP(Model Context Protocol)를 지원하기 위해 JSON 기반의 명시적인 �
 
 **4.1. Request Schema (JSON)**
 
+실제 구현된 요청 스키마 (`GenerateRequest`):
+
 ```json
 {
+  "start_step": 1,
   "input_image": "base64_string...",
   "text_content": "Super Sale",
-  "control_flags": {
-    "run_stage_a": true,
-    "run_stage_b": true,
-    "run_stage_c": true
-  },
-  "overrides": {
-    "base_image": null 
-  }
+  "bg_prompt": "Wooden table in a cozy cafe, sunlight, realistic",
+  "bg_negative_prompt": "blurry, low quality, distorted",
+  "bg_composition_prompt": "A photorealistic object lying naturally on a rustic wooden table...",
+  "bg_composition_negative_prompt": "floating, disconnected, unrealistic shadows",
+  "step1_image": null,
+  "text_model_prompt": "3D render of Gold foil balloon text, inflated, shiny metallic texture",
+  "negative_prompt": "floor, ground, dirt, debris, ugly, low quality",
+  "font_name": "NanumSquare/NanumSquareB.ttf",
+  "step2_image": null,
+  "composition_mode": "overlay",
+  "text_position": "top",
+  "composition_prompt": "with subtle shadow, cinematic lighting",
+  "composition_negative_prompt": "floating, disconnected, bad integration",
+  "composition_strength": 0.4,
+  "composition_steps": 28,
+  "composition_guidance_scale": 3.5,
+  "strength": 0.6,
+  "guidance_scale": 3.5,
+  "seed": null,
+  "test_mode": false
 }
-
 ```
 
-* `overrides` 필드를 통해 사용자는 이전 단계에서 생성된 이미지를 수정해서 다시 주입할 수 있습니다 (Human-in-the-loop 지원).
+**주요 파라미터 설명:**
+- `start_step` (1~3): 실행 시작 단계 (Human-in-the-loop 지원)
+- `step1_image`, `step2_image`: 이전 단계 결과를 수정하여 재주입 가능
+- `composition_mode`: 합성 방식 (`overlay`, `blend`, `behind`)
+- `text_position`: 텍스트 위치 (`top`, `center`, `bottom`, `auto`)
+- `test_mode`: 더미 모드 (AI 모델 없이 빠른 테스트)
 
 **4.2. Response Schema (JSON)**
 
+실제 구현된 응답 스키마 (`StatusResponse`):
+
 ```json
 {
-  "job_id": "uuid-v4",
+  "job_id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "running",
-  "estimated_time": 120,
-  "resource_usage": {
-    "gpu_vram_used_mb": 14500,
-    "gpu_utilization": 98
-  }
+  "progress_percent": 45,
+  "current_step": "step2_text_asset",
+  "sub_step": "sdxl_text_generation (15/28)",
+  "message": "Generating 3D text...",
+  "elapsed_sec": 67.3,
+  "eta_seconds": 85,
+  "step_eta_seconds": 42,
+  "system_metrics": {
+    "cpu_percent": 45.2,
+    "ram_used_gb": 12.5,
+    "ram_total_gb": 32.0,
+    "ram_percent": 39.1,
+    "gpu_info": [
+      {
+        "index": 0,
+        "name": "NVIDIA L4",
+        "vram_used_mb": 15234,
+        "vram_total_mb": 24576,
+        "vram_percent": 62.0,
+        "utilization": 98
+      }
+    ]
+  },
+  "parameters": {
+    "start_step": 1,
+    "text_content": "Super Sale",
+    "bg_prompt": "Wooden table..."
+  },
+  "step1_result": "base64_image_step1...",
+  "step2_result": null,
+  "final_result": null
 }
-
 ```
+
+**주요 필드 설명:**
+- `status`: `pending`, `running`, `completed`, `failed`, `stopped`
+- `progress_percent`: 0~100% 진행률 (가중치 기반 계산)
+- `current_step`: 현재 메인 단계 (`step1_background`, `step2_text_asset`, `step3_composite`)
+- `sub_step`: 현재 서브 단계 및 추론 스텝 (예: `flux_bg_generation (10/28)`)
+- `eta_seconds`: 전체 작업 예상 남은 시간 (통계 기반 동적 계산, 음수는 초과)
+- `step_eta_seconds`: 현재 단계 예상 남은 시간
+- `system_metrics`: 실시간 CPU/RAM/GPU 사용률
+- `step1_result`, `step2_result`, `final_result`: 단계별 결과 이미지 (Base64)
 
 ---
 
@@ -215,36 +285,224 @@ sequenceDiagram
     API->>Mgr: Create Job & Shared Dict
     Mgr->>Worker: Spawn Process
     API-->>User: Return Job ID (Async)
-    
-    loop Stage A (Background)
+
+    loop Step 1 (Background)
+        Worker->>Worker: Update status: step1_background
         Worker->>Worker: Load BiRefNet
         Worker->>GPU: Alloc VRAM
         Worker->>Worker: Segmentation
         Worker->>GPU: Free VRAM (Flush)
-        
+
         Worker->>Worker: Load FLUX
         Worker->>GPU: Alloc VRAM (High Load)
-        Worker->>Worker: Gen Background
+        Worker->>Worker: T2I Background Generation
         Worker->>GPU: Free VRAM (Flush)
-        
-        Worker->>Mgr: Update Shared Memory (Base64)
+
+        Worker->>Worker: Compositing (CPU)
+        Worker->>Worker: Load FLUX Img2Img
+        Worker->>GPU: Alloc VRAM
+        Worker->>Worker: Feature Injection (Refinement)
+        Worker->>GPU: Free VRAM (Flush)
+
+        Worker->>Mgr: Update Shared Memory (step1_result Base64)
+        Worker->>Mgr: Update progress: 33%
     end
-    
+
+    User->>API: GET /status/{id}
+    API->>Mgr: Read Progress
+    Mgr-->>API: Return Status + Images + Metrics
+    API-->>User: JSON Response (progress=33%, step1_result)
+
+    loop Step 2 (Text Asset)
+        Worker->>Worker: Update status: step2_text_asset
+        Worker->>Worker: Canny Processing (CPU)
+        Worker->>Worker: Load SDXL ControlNet
+        Worker->>GPU: Alloc VRAM
+        Worker->>Worker: Generate 3D Text
+        Worker->>GPU: Free VRAM (Flush)
+
+        Worker->>Worker: Load BiRefNet
+        Worker->>GPU: Alloc VRAM
+        Worker->>Worker: Remove Text Background
+        Worker->>GPU: Free VRAM (Flush)
+
+        Worker->>Mgr: Update Shared Memory (step2_result Base64)
+        Worker->>Mgr: Update progress: 66%
+    end
+
     User->>API: GET /status/{id}
     API->>Mgr: Read Progress
     Mgr-->>API: Return Status + Images
-    API-->>User: JSON Response
-    
-    loop Stage B (Text)
-        Worker->>Worker: Canny Processing (CPU)
-        Worker->>Worker: Load SDXL
+    API-->>User: JSON Response (progress=66%, step2_result)
+
+    loop Step 3 (Composition)
+        Worker->>Worker: Update status: step3_composite
+        Worker->>Worker: Load FLUX Inpainting
         Worker->>GPU: Alloc VRAM
-        Worker->>Worker: Gen Text
+        Worker->>Worker: Intelligent Composition
         Worker->>GPU: Free VRAM (Flush)
-        Worker->>Mgr: Update Shared Memory
+
+        Worker->>Worker: Final Layer Composition (CPU)
+        Worker->>Mgr: Update Shared Memory (final_result Base64)
+        Worker->>Mgr: Update progress: 100%
     end
-    
+
     Worker->>Mgr: Set Status = Completed
     Worker->>Worker: Process Exit
 
+    User->>API: GET /status/{id}
+    API->>Mgr: Read Final Result
+    Mgr-->>API: Return Completed Status + Final Image
+    API-->>User: JSON Response (status=completed, final_result)
+```
+
+---
+
+**7. 실제 구현된 API 엔드포인트 (Implemented API Endpoints)**
+
+### 7.1. 생성 관련 엔드포인트
+
+**POST /generate**
+- **설명**: AI 광고 생성 작업 시작 (Non-blocking)
+- **요청**: `GenerateRequest` (JSON)
+- **응답**: `{job_id: str, status: str}`
+- **상태 코드**:
+  - `200 OK`: 작업 시작 성공
+  - `503 Service Unavailable`: 다른 작업 진행 중 (단일 작업만 지원)
+    - `Retry-After` 헤더 포함 (예상 대기 시간)
+
+**GET /status/{job_id}**
+- **설명**: 작업 상태 및 결과 조회
+- **응답**: `StatusResponse` (JSON)
+  - 진행률, 현재 단계, 서브 단계
+  - 경과 시간 및 예상 남은 시간 (ETA)
+  - 실시간 시스템 메트릭 (CPU/RAM/GPU)
+  - 단계별 결과 이미지 (Base64)
+
+**POST /stop/{job_id}**
+- **설명**: 작업 강제 중단
+- **응답**: `{job_id: str, status: "stopped"}`
+
+### 7.2. 리소스 확인 엔드포인트
+
+**GET /health**
+- **설명**: 서버 상태 및 GPU 가용성 확인
+- **응답**: `{status: str, gpu_available: bool}`
+
+**GET /fonts**
+- **설명**: 사용 가능한 폰트 목록 조회
+- **응답**: `[{name: str, path: str}]`
+
+**GET /resources**
+- **설명**: 실시간 시스템 리소스 확인
+- **응답**: `SystemMetrics` (CPU/RAM/GPU 사용률)
+
+### 7.3. 개발 및 디버깅 엔드포인트
+
+**GET /dashboard** (개발 모드)
+- **설명**: HTML 대시보드 (작업 목록, 시스템 메트릭)
+- **응답**: HTML 페이지
+
+---
+
+**8. 실제 구현 특징 (Implementation Highlights)**
+
+### 8.1. 동적 ETA 계산
+
+워커 프로세스는 통계 기반의 **동적 ETA(Estimated Time to Arrival)**를 계산합니다:
+
+1. **단계별 통계 수집**: `StepStatsManager`가 각 단계의 실제 소요 시간을 추적
+2. **가중치 기반 진행률**: 각 서브 스텝의 비중을 고려한 정확한 진행률 계산
+   - Step 1: 배경 생성 50% + 합성 50%
+   - Step 2: 텍스트 생성 100%
+   - Step 3: 합성 100%
+3. **실시간 차감**: API 응답 시 마지막 업데이트 이후 경과 시간을 차감하여 부드러운 카운트다운 구현
+4. **음수 ETA**: 예상 시간 초과 시 음수로 표시하여 지연 정보 제공
+
+**코드 참조**: [worker.py:103-124](d:/project/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver/core/worker.py#L103-L124)
+
+### 8.2. 지능형 합성 (Intelligent Composition)
+
+Step 3에서는 FLUX Inpainting을 사용한 고급 합성 기능을 제공합니다:
+
+- **합성 모드** (`composition_mode`):
+  - `overlay`: 텍스트를 배경 위에 명확하게 배치
+  - `blend`: 텍스트를 배경과 자연스럽게 섞어 조화
+  - `behind`: 텍스트를 배경 뒤에 배치 (깊이감)
+
+- **자동 위치 선정** (`text_position`):
+  - `auto`: 배경 여백 자동 감지하여 최적 위치 선정
+  - `top`, `center`, `bottom`: 수동 지정
+
+- **프롬프트 기반 세밀 조정**:
+  - `composition_prompt`: 합성 스타일 추가 지정 (예: "with subtle shadow")
+  - `composition_negative_prompt`: 제외 요소 지정
+
+**코드 참조**: [processors.py](d:/project/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver/core/processors.py)
+
+### 8.3. 멀티프로세싱 아키텍처
+
+- **프로세스 격리**: FastAPI 메인 스레드와 AI 추론 작업 완전 분리
+- **공유 메모리**: `multiprocessing.Manager.dict()`를 통한 프로세스 간 상태 공유
+- **Stop Event**: `multiprocessing.Event`를 통한 안전한 작업 중단
+- **좀비 프로세스 방지**: `join()` 및 `terminate()` 적절한 사용
+
+**코드 참조**: [generation.py](d:/project/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver/api/routers/generation.py)
+
+### 8.4. GPU 메모리 관리
+
+```python
+def flush_gpu():
+    """GPU VRAM 및 시스템 RAM 캐시를 완전히 정리"""
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        torch.cuda.synchronize()
+    gc.collect()
+```
+
+- **JIT 로딩**: 모델을 필요할 때만 GPU에 로드
+- **즉시 언로딩**: 사용 후 즉시 `del model` 및 `flush_gpu()` 호출
+- **단일 작업 정책**: 동시에 하나의 작업만 처리하여 메모리 경합 방지
+
+**코드 참조**: [utils/images.py](d:/project/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver/utils/images.py)
+
+---
+
+**9. 디렉토리 구조 (Directory Structure)**
+
+```
+src/nanoCocoa_aiserver/
+├── api/
+│   ├── app.py                    # FastAPI 애플리케이션 진입점
+│   ├── middleware.py             # CORS 및 미들웨어 설정
+│   └── routers/
+│       ├── generation.py         # 생성 관련 엔드포인트
+│       ├── resources.py          # 리소스 확인 엔드포인트
+│       └── dev_dashboard.py      # 개발 대시보드
+├── core/
+│   ├── engine.py                 # AI 모델 엔진 (모델 로딩 및 추론)
+│   ├── processors.py             # 단계별 처리 로직 (Step 1/2/3)
+│   └── worker.py                 # 워커 프로세스 메인 함수
+├── models/
+│   ├── base.py                   # 기본 모델 래퍼
+│   ├── segmentation.py           # BiRefNet 모델
+│   ├── flux_generator.py         # FLUX 모델
+│   ├── sdxl_text.py              # SDXL ControlNet 모델
+│   └── CompositionEngine.py      # 합성 엔진
+├── schemas/
+│   ├── request.py                # 요청 스키마 (GenerateRequest)
+│   ├── response.py               # 응답 스키마 (StatusResponse)
+│   └── metrics.py                # 시스템 메트릭 스키마
+├── services/
+│   ├── monitor.py                # 시스템 모니터링
+│   ├── stats.py                  # 통계 관리 (StepStatsManager)
+│   └── fonts.py                  # 폰트 관리
+├── utils/
+│   ├── images.py                 # 이미지 유틸리티 (Base64, GPU Flush)
+│   └── MaskGenerator.py          # 마스크 생성
+├── fonts/                        # 한글 폰트 라이브러리
+├── static/                       # 정적 파일 (CSS, JS)
+├── templates/                    # HTML 템플릿
+├── config.py                     # 설정 및 상수
+└── main.py                       # 서버 실행 엔트리포인트
 ```
