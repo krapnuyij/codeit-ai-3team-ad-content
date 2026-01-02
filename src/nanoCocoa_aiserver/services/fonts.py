@@ -38,7 +38,7 @@ def get_available_fonts() -> List[str]:
         return []
     
     font_files = []
-    for root, dirs, files in os.walk(fonts_dir):
+    for root, _, files in os.walk(fonts_dir):
         for file in files:
             if file.lower().endswith(('.ttf', '.otf')):
                 # fonts_dir로부터의 상대 경로 저장

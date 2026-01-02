@@ -39,3 +39,35 @@ async def favicon():
     """파비콘 제공"""
     static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
     return FileResponse(os.path.join(static_dir, "favicon.ico"))
+
+
+@router.get("/fonts/{font_path:path}", include_in_schema=False)
+async def serve_font(font_path: str):
+    """
+    폰트 파일 제공 (Custom File Response for Korean support)
+    """
+    from services.fonts import get_fonts_dir
+    import os
+    from fastapi import HTTPException
+    
+    fonts_dir = get_fonts_dir()
+    
+    # URL decoding is handled by FastAPI automatically for path params
+    full_path = os.path.join(fonts_dir, font_path)
+    
+    # Security check: Ensure the path is within fonts_dir
+    try:
+        common_prefix = os.path.commonpath([fonts_dir, full_path])
+        if os.path.abspath(common_prefix) != os.path.abspath(fonts_dir):
+            raise HTTPException(status_code=403, detail="Access denied")
+    except ValueError:
+         raise HTTPException(status_code=403, detail="Access denied")
+
+    if not os.path.exists(full_path) or not os.path.isfile(full_path):
+        raise HTTPException(status_code=404, detail="Font not found")
+        
+    media_type = "font/ttf"
+    if full_path.endswith(".otf"):
+        media_type = "font/otf"
+        
+    return FileResponse(full_path, media_type=media_type)
