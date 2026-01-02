@@ -1,3 +1,14 @@
+---
+layout: default
+title: "AI 광고 생성 에이전트 서버 아키텍처 설계서"
+description: "AI 광고 생성 에이전트 서버 아키텍처 설계서"
+date: 2026-01-02
+author: "김명환"
+cache-control: no-cache
+expires: 0
+pragma: no-cache
+---
+
 # AI 광고 생성 에이전트 서버 아키텍처 설계서
 
 **1. 개요 (Introduction)**
