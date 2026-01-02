@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "nanococoa-ad-generator": {
+      "command": "python",
+      "args": [
+        "mcp_server.py"
+      ],
+      "env": {
+        "API_BASE_URL": "http://localhost:8000"
+      },
+      "description": "nanoCocoa AI Ad Generator - AI 광고 이미지 생성 서버",
+      "metadata": {
+        "version": "2.0.0",
+        "author": "AI Team",
+        "contact": "c0z0c.dev@gmail.com"
+      }
+    }
+  },
+  "notes": {
+    "installation": "이 설정을 Claude Desktop에 사용하려면 setup_mcp.py를 실행하거나 수동으로 Claude Desktop config에 추가하세요.",
+    "manual_setup": {
+      "windows": "%APPDATA%\\Claude\\claude_desktop_config.json",
+      "macos": "~/Library/Application Support/Claude/claude_desktop_config.json",
+      "linux": "~/.config/Claude/claude_desktop_config.json"
+    },
+    "requirements": [
+      "FastAPI 서버가 http://localhost:8000에서 실행 중이어야 합니다",
+      "Python 3.8 이상",
+      "mcp 패키지 설치 (pip install mcp)",
+      "httpx 패키지 설치 (pip install httpx)"
+    ]
+  }
+}

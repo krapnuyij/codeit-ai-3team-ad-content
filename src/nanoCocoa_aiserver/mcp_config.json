@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "nanococoa-ad-generator": {
+      "command": "python",
+      "args": [
+        "mcp_server.py"
+      ],
+      "env": {
+        "API_BASE_URL": "http://localhost:8000"
+      },
+      "description": "nanoCocoa AI Ad Generator - Create AI-powered advertising images with product images, backgrounds, and 3D text effects"
+    }
+  }
+}
