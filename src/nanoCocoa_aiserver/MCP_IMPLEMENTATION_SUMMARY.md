@@ -312,7 +312,7 @@ Claude: [Uses generate_ad with start_step=2]
 
 ### FastAPI Server
 
-- fastapi, uvicorn
+- FastAPI, uvicorn
 - torch, diffusers, transformers
 - pillow, opencv-python
 - pynvml, psutil

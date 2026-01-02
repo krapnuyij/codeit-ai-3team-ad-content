@@ -11,7 +11,7 @@ sys.path.insert(0, str(project_root))
 import multiprocessing
 import uuid
 import time
-from fastapi import APIRouter, HTTPException, Response, status
+from FastAPI import APIRouter, HTTPException, Response, status
 
 from config import logger, TOTAL_ESTIMATED_TIME
 from utils import get_system_metrics

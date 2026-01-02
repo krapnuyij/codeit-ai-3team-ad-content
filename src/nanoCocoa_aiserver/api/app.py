@@ -11,9 +11,9 @@ sys.path.insert(0, str(project_root))
 import multiprocessing
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse
+from FastAPI import FastAPI
+from FastAPI.staticfiles import StaticFiles
+from FastAPI.responses import RedirectResponse
 
 from config import logger
 from utils import get_system_metrics

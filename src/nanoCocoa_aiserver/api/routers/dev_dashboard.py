@@ -7,8 +7,8 @@ REST API 테스트용 웹 대시보드를 제공합니다.
 
 import os
 
-from fastapi import APIRouter, Response, status
-from fastapi.responses import HTMLResponse
+from FastAPI import APIRouter, Response, status
+from FastAPI.responses import HTMLResponse
 
 from config import logger
 

@@ -34,7 +34,7 @@ packages = [
     ("TorchVision", "torchvision"),
     ("Transformers", "transformers"),
     ("Diffusers", "diffusers"),
-    ("FastAPI", "fastapi"),
+    ("FastAPI", "FastAPI"),
     ("Uvicorn", "uvicorn"),
     ("Gradio", "gradio"),
     ("Pydantic", "pydantic"),

@@ -1,7 +1,7 @@
 # Codeit AI 3팀 - 생성형 AI 기반 소상공인을 위한 광고 콘텐츠 제작 서비스 
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.28-red)
+![FastAPI](https://img.shields.io/badge/FastAPI-1.28-red)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.0-orange)
 ![GCP](https://img.shields.io/badge/GCP-L4%20GPU-green)
 
@@ -59,7 +59,7 @@
 ---
 
 ## 6. 기술 스택
-- Frontend: Streamlit
+- Frontend: FastAPI
 - Backend: FastAPI (선택), LLM 연동
 - Model: HuggingFace (Stable Diffusion 계열), OpenAI API (프롬프트 엔지니어링)
 - Infra: GCP VM (L4 GPU, 34.44.205.198, us-central1)

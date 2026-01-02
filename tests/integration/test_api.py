@@ -3,7 +3,7 @@ import sys
 import os
 import time
 import base64
-from fastapi.testclient import TestClient
+from FastAPI.testclient import TestClient
 
 # Add src to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))

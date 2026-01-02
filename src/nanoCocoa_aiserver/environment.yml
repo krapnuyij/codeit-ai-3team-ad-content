@@ -75,7 +75,7 @@ dependencies:
     - tifffile==2025.12.20
 
     # Web Framework
-    - fastapi==0.128.0
+    - FastAPI==0.128.0
     - uvicorn==0.40.0
     - gradio==6.2.0
     - starlette==0.50.0

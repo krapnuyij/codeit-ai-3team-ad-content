@@ -7,7 +7,7 @@
 
 import pytest
 import asyncio
-from fastapi.testclient import TestClient
+from FastAPI.testclient import TestClient
 
 import sys
 from pathlib import Path

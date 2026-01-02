@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
-from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from FastAPI import FastAPI, UploadFile, File, Depends, HTTPException, Request
+from FastAPI.responses import JSONResponse
 from contextlib import asynccontextmanager
 import onnxruntime
 from openai import OpenAI

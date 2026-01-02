@@ -10,8 +10,8 @@ sys.path.insert(0, str(project_root))
 
 import os
 import time
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from FastAPI import APIRouter, HTTPException
+from FastAPI.responses import FileResponse
 
 from utils import get_available_fonts, get_system_metrics
 

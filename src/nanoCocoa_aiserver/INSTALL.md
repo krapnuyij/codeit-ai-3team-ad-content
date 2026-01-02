@@ -115,7 +115,7 @@ python -c "import torch; print(f'MPS Available: {torch.backends.mps.is_available
 python --version  # Python 3.11.x 여야 함
 
 # 주요 패키지 확인
-python -c "import torch, transformers, fastapi, gradio; print('✅ All imports successful!')"
+python -c "import torch, transformers, FastAPI, gradio; print('✅ All imports successful!')"
 
 # CUDA 확인 (GPU 사용 시)
 python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}'); print(f'Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"CPU\"}')"

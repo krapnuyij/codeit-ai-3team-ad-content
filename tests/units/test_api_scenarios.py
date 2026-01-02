@@ -4,7 +4,7 @@ import base64
 import time
 import os
 import sys
-from fastapi.testclient import TestClient
+from FastAPI.testclient import TestClient
 from pathlib import Path
 
 # Mocking dependencies for Dummy Mode tests if they are missing
