@@ -1,9 +1,9 @@
 """
 mcp_server.py
-MCP (Model Context Protocol) Server for nanoCocoa AI Ad Generator
+nanoCocoa AI 광고 생성기를 위한 MCP (Model Context Protocol) 서버
 
-This MCP server exposes the FastAPI endpoints as tools that LLMs can use.
-It provides a standardized interface for AI assistants to generate ad images.
+이 MCP 서버는 FastAPI 엔드포인트를 LLM이 사용할 수 있는 도구로 노출합니다.
+AI 어시스턴트가 광고 이미지를 생성할 수 있는 표준화된 인터페이스를 제공합니다.
 """
 
 import asyncio
@@ -23,146 +23,152 @@ from mcp.types import (
 )
 import mcp.server.stdio
 
-# Configure logging
+# 로깅 설정
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nanococoa-mcp-server")
 
-# FastAPI server configuration
+# FastAPI 서버 설정
 API_BASE_URL = "http://localhost:8000"
-POLL_INTERVAL = 3  # seconds
+POLL_INTERVAL = 3  # 폴링 간격 (초)
 
 
 class NanoCocoaMCPServer:
-    """MCP Server for nanoCocoa AI Ad Generator"""
+    """nanoCocoa AI 광고 생성기를 위한 MCP 서버"""
 
     def __init__(self, api_base_url: str = API_BASE_URL):
+        """
+        MCP 서버 초기화
+
+        Args:
+            api_base_url (str): FastAPI 서버의 기본 URL (기본값: http://localhost:8000)
+        """
         self.api_base_url = api_base_url
         self.server = Server("nanococoa-ad-generator")
         self.client = httpx.AsyncClient(timeout=300.0)
 
-        # Register handlers
+        # 핸들러 등록
         self.server.list_tools = self.list_tools
         self.server.call_tool = self.call_tool
         self.server.list_resources = self.list_resources
         self.server.read_resource = self.read_resource
 
     async def list_tools(self) -> list[Tool]:
-        """List available tools"""
+        """사용 가능한 도구 목록 반환"""
         return [
             Tool(
                 name="health_check",
-                description="""Check server health status and availability.
+                description="""서버 상태 및 가용성을 확인합니다.
 
-Returns:
-- status: 'healthy' or 'busy'
-- active_jobs: number of running jobs
-- system_metrics: CPU/RAM/GPU usage
+반환값:
+- status: 'healthy' 또는 'busy'
+- active_jobs: 실행 중인 작업 수
+- system_metrics: CPU/RAM/GPU 사용률
 
-Use this before starting a new job to check if server is available.""",
+새 작업을 시작하기 전에 서버 가용성을 확인하는 데 사용합니다.""",
                 inputSchema={"type": "object", "properties": {}, "required": []},
             ),
             Tool(
                 name="list_fonts",
-                description="""Get list of available fonts for text generation.
+                description="""텍스트 생성에 사용 가능한 폰트 목록을 가져옵니다.
 
-Returns:
-- fonts: array of font file paths (e.g., ["NanumGothic/NanumGothic.ttf"])
+반환값:
+- fonts: 폰트 파일 경로 배열 (예: ["NanumGothic/NanumGothic.ttf"])
 
-Use the font paths in the 'font_name' parameter when generating ads.""",
+광고 생성 시 'font_name' 매개변수에 폰트 경로를 사용하세요.""",
                 inputSchema={"type": "object", "properties": {}, "required": []},
             ),
             Tool(
                 name="generate_ad",
-                description="""Start a new ad generation job.
+                description="""새 광고 생성 작업을 시작합니다.
 
-This is the main tool for creating AI-generated advertising images. It combines product images with AI-generated backgrounds and 3D text effects.
+AI 생성 광고 이미지를 만드는 주요 도구입니다. 상품 이미지를 AI 생성 배경 및 3D 텍스트 효과와 결합합니다.
 
-Required Parameters:
-- input_image: Product image as Base64 string
-- bg_prompt: Background description in English (e.g., "luxury hotel lobby with warm lighting")
+필수 매개변수:
+- input_image: Base64 문자열로 인코딩된 상품 이미지
+- bg_prompt: 영어로 작성된 배경 설명 (예: "luxury hotel lobby with warm lighting")
 
-Optional Parameters:
-- text_content: Text to display (leave empty for background-only generation)
-- text_model_prompt: 3D text style description (e.g., "gold metallic text with shadow")
-- font_name: Font file path from list_fonts
-- composition_mode: "overlay", "blend", or "behind"
-- text_position: "top", "center", "bottom", or "auto"
-- start_step: 1 (full pipeline), 2 (text only), or 3 (composition only)
+선택 매개변수:
+- text_content: 표시할 텍스트 (배경만 생성하려면 비워두세요)
+- text_model_prompt: 3D 텍스트 스타일 설명 (예: "gold metallic text with shadow")
+- font_name: list_fonts에서 가져온 폰트 파일 경로
+- composition_mode: "overlay", "blend", "behind" 중 하나
+- text_position: "top", "center", "bottom", "auto" 중 하나
+- start_step: 1 (전체 파이프라인), 2 (텍스트만), 3 (합성만)
 
-Returns:
-- job_id: Use this to check status with check_job_status
+반환값:
+- job_id: check_job_status로 상태 확인 시 사용
 - status: "started"
 
-Note: This is non-blocking. Use check_job_status to poll for results.""",
+참고: 이 작업은 비차단 방식입니다. check_job_status를 사용하여 결과를 폴링하세요.""",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "input_image": {
                             "type": "string",
-                            "description": "Product image encoded as Base64 string",
+                            "description": "Base64 문자열로 인코딩된 상품 이미지",
                         },
                         "bg_prompt": {
                             "type": "string",
-                            "description": "Background scene description in English",
+                            "description": "영어로 작성된 배경 장면 설명",
                         },
                         "text_content": {
                             "type": "string",
-                            "description": "Text to display in the ad (optional, leave empty for background-only)",
+                            "description": "광고에 표시할 텍스트 (선택사항, 배경만 생성하려면 비워두세요)",
                         },
                         "text_model_prompt": {
                             "type": "string",
-                            "description": "3D text style description (e.g., 'gold metallic text with shadow')",
+                            "description": "3D 텍스트 스타일 설명 (예: 'gold metallic text with shadow')",
                         },
                         "font_name": {
                             "type": "string",
-                            "description": "Font file path from list_fonts (optional)",
+                            "description": "list_fonts에서 가져온 폰트 파일 경로 (선택사항)",
                         },
                         "bg_negative_prompt": {
                             "type": "string",
-                            "description": "Elements to exclude from background",
+                            "description": "배경에서 제외할 요소",
                         },
                         "negative_prompt": {
                             "type": "string",
-                            "description": "Elements to exclude from text",
+                            "description": "텍스트에서 제외할 요소",
                         },
                         "composition_mode": {
                             "type": "string",
                             "enum": ["overlay", "blend", "behind"],
-                            "description": "How to composite text with background",
+                            "description": "배경과 텍스트를 합성하는 방식",
                         },
                         "text_position": {
                             "type": "string",
                             "enum": ["top", "center", "bottom", "auto"],
-                            "description": "Text placement position",
+                            "description": "텍스트 배치 위치",
                         },
                         "strength": {
                             "type": "number",
-                            "description": "Image transformation strength (0.0-1.0, default: 0.6)",
+                            "description": "이미지 변환 강도 (0.0-1.0, 기본값: 0.6)",
                         },
                         "guidance_scale": {
                             "type": "number",
-                            "description": "Prompt adherence strength (1.0-20.0, default: 3.5)",
+                            "description": "프롬프트 준수 강도 (1.0-20.0, 기본값: 3.5)",
                         },
                         "composition_strength": {
                             "type": "number",
-                            "description": "Composition transformation strength (0.0-1.0, default: 0.4)",
+                            "description": "합성 변환 강도 (0.0-1.0, 기본값: 0.4)",
                         },
                         "seed": {
                             "type": "integer",
-                            "description": "Random seed for reproducibility (optional)",
+                            "description": "재현성을 위한 난수 시드 (선택사항)",
                         },
                         "start_step": {
                             "type": "integer",
                             "enum": [1, 2, 3],
-                            "description": "Starting step: 1=full pipeline, 2=text only (needs step1_image), 3=composition only (needs step1_image and step2_image)",
+                            "description": "시작 단계: 1=전체 파이프라인, 2=텍스트만 (step1_image 필요), 3=합성만 (step1_image와 step2_image 필요)",
                         },
                         "step1_image": {
                             "type": "string",
-                            "description": "Previous background result (Base64) for start_step >= 2",
+                            "description": "start_step >= 2일 때 사용할 이전 배경 결과 (Base64)",
                         },
                         "step2_image": {
                             "type": "string",
-                            "description": "Previous text result (Base64) for start_step == 3",
+                            "description": "start_step == 3일 때 사용할 이전 텍스트 결과 (Base64)",
                         },
                     },
                     "required": ["input_image", "bg_prompt"],
@@ -170,28 +176,28 @@ Note: This is non-blocking. Use check_job_status to poll for results.""",
             ),
             Tool(
                 name="check_job_status",
-                description="""Check the status and results of a generation job.
+                description="""생성 작업의 상태와 결과를 확인합니다.
 
-Parameters:
-- job_id: The job ID returned by generate_ad
+매개변수:
+- job_id: generate_ad에서 반환된 작업 ID
 
-Returns:
-- status: "pending", "running", "completed", "failed", or "stopped"
-- progress_percent: 0-100
-- current_step: Current pipeline step
-- message: Status message
-- step1_result: Background image (Base64) when available
-- step2_result: Text image (Base64) when available
-- final_result: Final composite image (Base64) when completed
-- system_metrics: Real-time CPU/GPU metrics
+반환값:
+- status: "pending", "running", "completed", "failed", "stopped" 중 하나
+- progress_percent: 0-100 진행률
+- current_step: 현재 파이프라인 단계
+- message: 상태 메시지
+- step1_result: 사용 가능할 때 배경 이미지 (Base64)
+- step2_result: 사용 가능할 때 텍스트 이미지 (Base64)
+- final_result: 완료 시 최종 합성 이미지 (Base64)
+- system_metrics: 실시간 CPU/GPU 메트릭
 
-Poll this endpoint every 3-5 seconds until status is 'completed' or 'failed'.""",
+상태가 'completed' 또는 'failed'가 될 때까지 3-5초마다 이 엔드포인트를 폴링하세요.""",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "job_id": {
                             "type": "string",
-                            "description": "Job ID from generate_ad",
+                            "description": "generate_ad에서 받은 작업 ID",
                         }
                     },
                     "required": ["job_id"],
@@ -199,102 +205,102 @@ Poll this endpoint every 3-5 seconds until status is 'completed' or 'failed'."""
             ),
             Tool(
                 name="stop_job",
-                description="""Stop a running generation job.
+                description="""실행 중인 생성 작업을 중지합니다.
 
-Parameters:
-- job_id: The job ID to stop
+매개변수:
+- job_id: 중지할 작업 ID
 
-Returns:
-- job_id: The stopped job ID
+반환값:
+- job_id: 중지된 작업 ID
 - status: "stopped"
 
-Use this to cancel a job that's taking too long or was started with wrong parameters.""",
+너무 오래 걸리거나 잘못된 매개변수로 시작된 작업을 취소하는 데 사용합니다.""",
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "job_id": {"type": "string", "description": "Job ID to stop"}
+                        "job_id": {"type": "string", "description": "중지할 작업 ID"}
                     },
                     "required": ["job_id"],
                 },
             ),
             Tool(
                 name="list_jobs",
-                description="""Get list of all jobs on the server.
+                description="""서버의 모든 작업 목록을 가져옵니다.
 
-Returns:
-- total_jobs: Total number of jobs
-- active_jobs: Number of running/pending jobs
-- completed_jobs: Number of completed jobs
-- failed_jobs: Number of failed jobs
-- jobs: Array of job information
+반환값:
+- total_jobs: 전체 작업 수
+- active_jobs: 실행 중/대기 중인 작업 수
+- completed_jobs: 완료된 작업 수
+- failed_jobs: 실패한 작업 수
+- jobs: 작업 정보 배열
 
-Use this to see all jobs and their current states.""",
+모든 작업과 현재 상태를 확인하는 데 사용합니다.""",
                 inputSchema={"type": "object", "properties": {}, "required": []},
             ),
             Tool(
                 name="delete_job",
-                description="""Delete a completed or failed job from server memory.
+                description="""완료되거나 실패한 작업을 서버 메모리에서 삭제합니다.
 
-Parameters:
-- job_id: The job ID to delete
+매개변수:
+- job_id: 삭제할 작업 ID
 
-Returns:
-- job_id: Deleted job ID
+반환값:
+- job_id: 삭제된 작업 ID
 - status: "deleted"
 
-Note: Cannot delete running jobs. Stop them first with stop_job.
-Use this to clean up completed jobs and free server memory.""",
+참고: 실행 중인 작업은 삭제할 수 없습니다. 먼저 stop_job으로 중지하세요.
+완료된 작업을 정리하고 서버 메모리를 확보하는 데 사용합니다.""",
                 inputSchema={
                     "type": "object",
                     "properties": {
-                        "job_id": {"type": "string", "description": "Job ID to delete"}
+                        "job_id": {"type": "string", "description": "삭제할 작업 ID"}
                     },
                     "required": ["job_id"],
                 },
             ),
             Tool(
                 name="generate_and_wait",
-                description="""Start ad generation and wait for completion (blocking).
+                description="""광고 생성을 시작하고 완료될 때까지 대기합니다 (차단 방식).
 
-This is a convenience tool that combines generate_ad + polling check_job_status until completion.
+generate_ad + check_job_status 폴링을 완료될 때까지 결합한 편의 도구입니다.
 
-Parameters: Same as generate_ad
-- input_image: Product image (Base64)
-- bg_prompt: Background description
-- text_content: Ad text (optional)
-- ... (all other generate_ad parameters)
+매개변수: generate_ad와 동일
+- input_image: 상품 이미지 (Base64)
+- bg_prompt: 배경 설명
+- text_content: 광고 텍스트 (선택사항)
+- ... (generate_ad의 모든 다른 매개변수)
 
-Returns:
-- final_result: Base64 encoded final image (when successful)
-- step1_result: Background image (Base64)
-- step2_result: Text image (Base64)
-- status: Final status
-- All job status information
+반환값:
+- final_result: Base64로 인코딩된 최종 이미지 (성공 시)
+- step1_result: 배경 이미지 (Base64)
+- step2_result: 텍스트 이미지 (Base64)
+- status: 최종 상태
+- 모든 작업 상태 정보
 
-This tool will automatically poll the server and return when the job is complete or failed.
-Estimated time: 80-120 seconds for full pipeline.""",
+이 도구는 자동으로 서버를 폴링하고 작업이 완료되거나 실패할 때 반환합니다.
+예상 소요 시간: 전체 파이프라인 80-120초.""",
                 inputSchema={
                     "type": "object",
                     "properties": {
                         "input_image": {
                             "type": "string",
-                            "description": "Product image encoded as Base64 string",
+                            "description": "Base64 문자열로 인코딩된 상품 이미지",
                         },
                         "bg_prompt": {
                             "type": "string",
-                            "description": "Background scene description in English",
+                            "description": "영어로 작성된 배경 장면 설명",
                         },
                         "text_content": {
                             "type": "string",
-                            "description": "Text to display in the ad (optional)",
+                            "description": "광고에 표시할 텍스트 (선택사항)",
                         },
                         "text_model_prompt": {
                             "type": "string",
-                            "description": "3D text style description",
+                            "description": "3D 텍스트 스타일 설명",
                         },
                         "font_name": {
                             "type": "string",
-                            "description": "Font file path from list_fonts",
+                            "description": "list_fonts에서 가져온 폰트 파일 경로",
                         },
                         "bg_negative_prompt": {"type": "string"},
                         "negative_prompt": {"type": "string"},
@@ -322,7 +328,16 @@ Estimated time: 80-120 seconds for full pipeline.""",
     async def call_tool(
         self, name: str, arguments: dict
     ) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
-        """Execute a tool"""
+        """
+        도구 실행
+
+        Args:
+            name (str): 실행할 도구 이름
+            arguments (dict): 도구 실행에 필요한 인자
+
+        Returns:
+            Sequence[TextContent | ImageContent | EmbeddedResource]: 도구 실행 결과
+        """
         try:
             if name == "health_check":
                 return await self._health_check()
@@ -347,30 +362,38 @@ Estimated time: 80-120 seconds for full pipeline.""",
             return [TextContent(type="text", text=f"Error: {str(e)}")]
 
     async def list_resources(self) -> list[Resource]:
-        """List available resources"""
+        """사용 가능한 리소스 목록 반환"""
         return [
             Resource(
                 uri="nanococoa://help/guide",
-                name="API Usage Guide",
+                name="API 사용 가이드",
                 mimeType="application/json",
-                description="Complete API usage guide with workflows and examples",
+                description="워크플로우 및 예제가 포함된 완전한 API 사용 가이드",
             ),
             Resource(
                 uri="nanococoa://help/parameters",
-                name="Parameter Reference",
+                name="매개변수 참조",
                 mimeType="application/json",
-                description="Detailed parameter reference for all API endpoints",
+                description="모든 API 엔드포인트에 대한 상세 매개변수 참조",
             ),
             Resource(
                 uri="nanococoa://help/examples",
-                name="Usage Examples",
+                name="사용 예제",
                 mimeType="application/json",
-                description="Real-world usage examples with code snippets",
+                description="코드 스니펫이 포함된 실제 사용 예제",
             ),
         ]
 
     async def read_resource(self, uri: str) -> str:
-        """Read a resource"""
+        """
+        리소스 읽기
+
+        Args:
+            uri (str): 읽을 리소스의 URI
+
+        Returns:
+            str: 리소스 내용 (JSON 형식)
+        """
         try:
             if uri == "nanococoa://help/guide":
                 response = await self.client.get(f"{self.api_base_url}/help")
@@ -391,7 +414,7 @@ Estimated time: 80-120 seconds for full pipeline.""",
             return f"Error reading resource: {str(e)}"
 
     async def _health_check(self) -> Sequence[TextContent]:
-        """Health check implementation"""
+        """서버 상태 확인 구현"""
         response = await self.client.get(f"{self.api_base_url}/health")
         response.raise_for_status()
         data = response.json()
@@ -399,7 +422,7 @@ Estimated time: 80-120 seconds for full pipeline.""",
         return [TextContent(type="text", text=json.dumps(data, indent=2))]
 
     async def _list_fonts(self) -> Sequence[TextContent]:
-        """List fonts implementation"""
+        """폰트 목록 조회 구현"""
         response = await self.client.get(f"{self.api_base_url}/fonts")
         response.raise_for_status()
         data = response.json()
@@ -407,7 +430,7 @@ Estimated time: 80-120 seconds for full pipeline.""",
         return [TextContent(type="text", text=json.dumps(data, indent=2))]
 
     async def _generate_ad(self, arguments: dict) -> Sequence[TextContent]:
-        """Generate ad implementation"""
+        """광고 생성 구현"""
         response = await self.client.post(
             f"{self.api_base_url}/generate", json=arguments
         )
@@ -418,7 +441,7 @@ Estimated time: 80-120 seconds for full pipeline.""",
             return [
                 TextContent(
                     type="text",
-                    text=f"Server is busy. {data.get('message', '')} Retry after {retry_after} seconds.\n\n"
+                    text=f"서버가 사용 중입니다. {data.get('message', '')} {retry_after}초 후 재시도하세요.\n\n"
                     + json.dumps(data, indent=2),
                 )
             ]
@@ -429,8 +452,8 @@ Estimated time: 80-120 seconds for full pipeline.""",
         return [
             TextContent(
                 type="text",
-                text=f"Job started successfully!\n\nJob ID: {data['job_id']}\n\n"
-                + "Use 'check_job_status' tool with this job_id to monitor progress.\n\n"
+                text=f"작업이 성공적으로 시작되었습니다!\n\n작업 ID: {data['job_id']}\n\n"
+                + "진행 상황을 모니터링하려면 이 job_id로 'check_job_status' 도구를 사용하세요.\n\n"
                 + json.dumps(data, indent=2),
             )
         ]
@@ -438,7 +461,7 @@ Estimated time: 80-120 seconds for full pipeline.""",
     async def _check_job_status(
         self, arguments: dict
     ) -> Sequence[TextContent | ImageContent]:
-        """Check job status implementation"""
+        """작업 상태 확인 구현"""
         job_id = arguments["job_id"]
         response = await self.client.get(f"{self.api_base_url}/status/{job_id}")
         response.raise_for_status()
@@ -446,39 +469,39 @@ Estimated time: 80-120 seconds for full pipeline.""",
 
         results = []
 
-        # Status information
+        # 상태 정보
         status_text = (
-            f"Job Status Report\n"
+            f"작업 상태 보고서\n"
             f"================\n\n"
-            f"Job ID: {data['job_id']}\n"
-            f"Status: {data['status']}\n"
-            f"Progress: {data['progress_percent']}%\n"
-            f"Current Step: {data['current_step']}\n"
-            f"Message: {data['message']}\n"
-            f"Elapsed Time: {data['elapsed_sec']}s\n"
+            f"작업 ID: {data['job_id']}\n"
+            f"상태: {data['status']}\n"
+            f"진행률: {data['progress_percent']}%\n"
+            f"현재 단계: {data['current_step']}\n"
+            f"메시지: {data['message']}\n"
+            f"경과 시간: {data['elapsed_sec']}초\n"
         )
 
         if data.get("eta_seconds") is not None:
-            status_text += f"Estimated Remaining: {data['eta_seconds']}s\n"
+            status_text += f"예상 남은 시간: {data['eta_seconds']}초\n"
 
-        status_text += f"\nFull Response:\n{json.dumps(data, indent=2)}"
+        status_text += f"\n전체 응답:\n{json.dumps(data, indent=2)}"
 
         results.append(TextContent(type="text", text=status_text))
 
-        # Include images if available
-        # Note: MCP ImageContent expects data URLs or we can embed as base64
+        # 사용 가능한 이미지가 있으면 포함
+        # 참고: MCP ImageContent는 데이터 URL을 기대하거나 base64로 임베드할 수 있습니다
         if data.get("final_result"):
             results.append(
                 TextContent(
                     type="text",
-                    text=f"\n\nFinal result available! (Base64 length: {len(data['final_result'])} chars)",
+                    text=f"\n\n최종 결과 사용 가능! (Base64 길이: {len(data['final_result'])} 문자)",
                 )
             )
 
         return results
 
     async def _stop_job(self, arguments: dict) -> Sequence[TextContent]:
-        """Stop job implementation"""
+        """작업 중지 구현"""
         job_id = arguments["job_id"]
         response = await self.client.post(f"{self.api_base_url}/stop/{job_id}")
         response.raise_for_status()
@@ -487,30 +510,30 @@ Estimated time: 80-120 seconds for full pipeline.""",
         return [
             TextContent(
                 type="text",
-                text=f"Job stopped successfully.\n\n{json.dumps(data, indent=2)}",
+                text=f"작업이 성공적으로 중지되었습니다.\n\n{json.dumps(data, indent=2)}",
             )
         ]
 
     async def _list_jobs(self) -> Sequence[TextContent]:
-        """List jobs implementation"""
+        """작업 목록 조회 구현"""
         response = await self.client.get(f"{self.api_base_url}/jobs")
         response.raise_for_status()
         data = response.json()
 
         summary = (
-            f"Jobs Summary\n"
+            f"작업 요약\n"
             f"============\n\n"
-            f"Total Jobs: {data['total_jobs']}\n"
-            f"Active Jobs: {data['active_jobs']}\n"
-            f"Completed Jobs: {data['completed_jobs']}\n"
-            f"Failed Jobs: {data['failed_jobs']}\n\n"
-            f"Full Response:\n{json.dumps(data, indent=2)}"
+            f"전체 작업: {data['total_jobs']}\n"
+            f"활성 작업: {data['active_jobs']}\n"
+            f"완료된 작업: {data['completed_jobs']}\n"
+            f"실패한 작업: {data['failed_jobs']}\n\n"
+            f"전체 응답:\n{json.dumps(data, indent=2)}"
         )
 
         return [TextContent(type="text", text=summary)]
 
     async def _delete_job(self, arguments: dict) -> Sequence[TextContent]:
-        """Delete job implementation"""
+        """작업 삭제 구현"""
         job_id = arguments["job_id"]
         response = await self.client.delete(f"{self.api_base_url}/jobs/{job_id}")
         response.raise_for_status()
@@ -519,13 +542,13 @@ Estimated time: 80-120 seconds for full pipeline.""",
         return [
             TextContent(
                 type="text",
-                text=f"Job deleted successfully.\n\n{json.dumps(data, indent=2)}",
+                text=f"작업이 성공적으로 삭제되었습니다.\n\n{json.dumps(data, indent=2)}",
             )
         ]
 
     async def _generate_and_wait(self, arguments: dict) -> Sequence[TextContent]:
-        """Generate and wait for completion implementation"""
-        # Start generation
+        """생성 및 완료 대기 구현"""
+        # 생성 시작
         response = await self.client.post(
             f"{self.api_base_url}/generate", json=arguments
         )
@@ -536,7 +559,7 @@ Estimated time: 80-120 seconds for full pipeline.""",
             return [
                 TextContent(
                     type="text",
-                    text=f"Server is busy. {data.get('message', '')} Retry after {retry_after} seconds.",
+                    text=f"서버가 사용 중입니다. {data.get('message', '')} {retry_after}초 후 재시도하세요.",
                 )
             ]
 
@@ -544,9 +567,9 @@ Estimated time: 80-120 seconds for full pipeline.""",
         job_data = response.json()
         job_id = job_data["job_id"]
 
-        logger.info(f"Job started: {job_id}. Waiting for completion...")
+        logger.info(f"작업 시작됨: {job_id}. 완료 대기 중...")
 
-        # Poll until completion
+        # 완료될 때까지 폴링
         while True:
             await asyncio.sleep(POLL_INTERVAL)
 
@@ -560,40 +583,40 @@ Estimated time: 80-120 seconds for full pipeline.""",
             progress = status_data["progress_percent"]
             message = status_data["message"]
 
-            logger.info(f"Job {job_id}: {status} - {progress}% - {message}")
+            logger.info(f"작업 {job_id}: {status} - {progress}% - {message}")
 
             if status in ("completed", "failed", "stopped"):
                 break
 
-        # Return final result
+        # 최종 결과 반환
         if status == "completed":
             result_text = (
-                f"Generation Completed Successfully!\n\n"
-                f"Job ID: {job_id}\n"
-                f"Progress: {progress}%\n"
-                f"Message: {message}\n\n"
+                f"생성이 성공적으로 완료되었습니다!\n\n"
+                f"작업 ID: {job_id}\n"
+                f"진행률: {progress}%\n"
+                f"메시지: {message}\n\n"
             )
 
             if status_data.get("final_result"):
-                result_text += f"Final Result: Available (Base64 length: {len(status_data['final_result'])} chars)\n"
+                result_text += f"최종 결과: 사용 가능 (Base64 길이: {len(status_data['final_result'])} 문자)\n"
             if status_data.get("step1_result"):
-                result_text += f"Step 1 Result: Available (Base64 length: {len(status_data['step1_result'])} chars)\n"
+                result_text += f"Step 1 결과: 사용 가능 (Base64 길이: {len(status_data['step1_result'])} 문자)\n"
             if status_data.get("step2_result"):
-                result_text += f"Step 2 Result: Available (Base64 length: {len(status_data['step2_result'])} chars)\n"
+                result_text += f"Step 2 결과: 사용 가능 (Base64 길이: {len(status_data['step2_result'])} 문자)\n"
 
-            result_text += f"\n\nFull Response:\n{json.dumps(status_data, indent=2)}"
+            result_text += f"\n\n전체 응답:\n{json.dumps(status_data, indent=2)}"
 
             return [TextContent(type="text", text=result_text)]
         else:
             return [
                 TextContent(
                     type="text",
-                    text=f"Job {status}: {message}\n\n{json.dumps(status_data, indent=2)}",
+                    text=f"작업 {status}: {message}\n\n{json.dumps(status_data, indent=2)}",
                 )
             ]
 
     async def run(self):
-        """Run the MCP server"""
+        """MCP 서버 실행"""
         async with mcp.server.stdio.stdio_server() as (read_stream, write_stream):
             await self.server.run(
                 read_stream, write_stream, self.server.create_initialization_options()
@@ -601,7 +624,7 @@ Estimated time: 80-120 seconds for full pipeline.""",
 
 
 async def main():
-    """Main entry point"""
+    """메인 진입점"""
     server = NanoCocoaMCPServer()
     await server.run()
 

@@ -1,3 +1,14 @@
+---
+layout: default
+title: "nanoCocoa MCP 서버 - 구현 요약"
+description: "nanoCocoa MCP 서버 - 구현 요약"
+date: 2026-01-02
+author: "김명환"
+cache-control: no-cache
+expires: 0
+pragma: no-cache
+---
+
 # nanoCocoa MCP 서버 - 구현 요약
 
 ## 1. 프로젝트 개요
