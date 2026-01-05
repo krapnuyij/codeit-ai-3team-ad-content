@@ -78,7 +78,7 @@ async def generate_ad(req: GenerateRequest, response: Response):
     ### Step 구조 및 실행 방법
     1. **Step 1 (Background)**:
        - `start_step=1` (기본값)
-       - `input_image` (누끼 딸 상품 이미지) 필수
+       - `input_image` (누끼 딸 상품 이미지) 선택
     2. **Step 2 (Text Asset)**:
        - `start_step=2`
        - `step1_image` (배경 합성된 이미지) 필수

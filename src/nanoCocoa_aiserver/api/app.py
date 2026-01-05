@@ -12,9 +12,10 @@ sys.path.insert(0, str(project_root))
 import multiprocessing
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from config import logger
 from utils import get_system_metrics
@@ -71,6 +72,15 @@ def create_app() -> FastAPI:
     )
 
     app.router.lifespan_context = lifespan
+
+    # CORS 설정 (MCP 원격 접속용)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # 프로덕션에서는 특정 도메인으로 제한
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     # Middleware
     app.add_middleware(FontHeaderMiddleware)

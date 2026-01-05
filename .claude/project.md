@@ -13,7 +13,6 @@
 - **필수 기능**: 생성형 AI를 활용한 이미지 생성 기능 구현
 - **제공 형태**:
   - FastAPI 기반 REST API 서버
-  - MCP (Model Context Protocol, 모델 컨텍스트 프로토콜) 서버 (LLM 에이전트 연동)
   - FastAPI 기반 웹 애플리케이션 (향후 구현)
 
 ## 2. 프로젝트 구조
@@ -52,8 +51,6 @@ codeit-ai-3team-ad-content/
 │   ├── utils/                       # 유틸리티 함수
 │   │   ├── images.py                # 이미지 처리
 │   │   └── MaskGenerator.py         # 마스크 생성
-│   ├── mcp_server.py                # MCP 서버 구현
-│   ├── setup_mcp.py                 # MCP 설정 도구
 │   ├── config.py                    # 설정 및 상수
 │   └── main.py                      # 서버 실행 엔트리포인트
 ├── tests/                           # 테스트 코드
@@ -67,8 +64,6 @@ codeit-ai-3team-ad-content/
 │   ├── integration/                 # 통합 테스트
 │   │   ├── test_api.py
 │   │   └── test_concurrency.py
-│   ├── mcp/                         # MCP 테스트
-│   │   └── test_mcp_dummy.py
 │   ├── conftest.py                  # pytest 설정
 │   └── pytest.ini                   # pytest 옵션
 ├── docs/                            # 프로젝트 문서
@@ -76,7 +71,6 @@ codeit-ai-3team-ad-content/
 │       ├── README.md                # 문서 목차
 │       ├── 환경설정_가이드.md
 │       ├── 완전한_설치_가이드.md
-│       ├── MCP서버_사용가이드.md
 │       ├── REFACTORING_SUMMARY.md
 │       └── nanoCocoa_AI_Server_아키텍처설계.md
 └── .claude/
@@ -91,7 +85,7 @@ codeit-ai-3team-ad-content/
 1. **자원 최적화 (Resource Optimization)**: 제한된 24GB VRAM 환경에서 거대 모델 (FLUX, SDXL)을 운용하기 위해 JIT (Just-In-Time, 적시 컴파일) 로딩 및 언로딩 전략 채택
 2. **비동기 처리 (Asynchronous Processing)**: FastAPI 메인 스레드의 블로킹을 방지하기 위해 멀티프로세싱 (multiprocessing, 멀티프로세싱)을 활용하여 추론 작업 격리
 3. **상태 보존 및 제어 (State Persistence & Control)**: 외부 데이터베이스 없이 인메모리 (In-Memory, 인메모리) 공유 객체를 통해 작업 단계별 결과물 저장 및 중간 재시작 (Resume, 재시작) 기능 제공
-4. **MCP 호환성 (MCP Compatibility)**: LLM 에이전트가 도구로서 쉽게 호출할 수 있도록 명확한 API 스키마 (schema, 스키마)와 상태 코드 정의
+4. **API 명확성**: 명확한 API 스키마 (schema, 스키마)와 상태 코드 정의로 클라이언트 통합 용이
 5. **테스트 주도 개발 (TDD)**: 모든 기능은 단위 테스트 및 통합 테스트를 통과해야 함
 
 ### 3.2. 3단계 파이프라인

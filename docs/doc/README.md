@@ -12,22 +12,13 @@ nanoCocoa AI 광고 생성기 프로젝트의 기술 문서 모음입니다.
 - 문제 해결 방법
 
 ### 1.2. [완전한_설치_가이드.md](완전한_설치_가이드.md)
-FastAPI 서버와 MCP 서버의 완전한 설치 및 설정 가이드입니다.
+FastAPI 서버의 완전한 설치 및 설정 가이드입니다.
 - 아키텍처 개요
 - FastAPI 서버 설치 및 실행
-- MCP 서버 설정
 - 테스트 방법
 - 문제 해결
 
-### 1.3. [MCP서버_사용가이드.md](MCP서버_사용가이드.md)
-MCP (Model Context Protocol, 모델 컨텍스트 프로토콜) 서버 사용 가이드입니다.
-- MCP 도구 설명
-- 설치 방법
-- 예시 워크플로우
-- API 엔드포인트 매핑
-- 모범 사례
-
-### 1.4. [GCP_VM_접속가이드.md](GCP_VM_접속가이드.md)
+### 1.3. [GCP_VM_접속가이드.md](GCP_VM_접속가이드.md)
 Google Cloud Platform VM 접속 가이드입니다.
 
 ## 2. 아키텍처 및 설계
@@ -62,8 +53,10 @@ nanoCocoa AI 서버의 상세 아키텍처 설계 문서입니다.
 ### 4.1. [TODO_DOCUMENTATION.md](TODO_DOCUMENTATION.md)
 문서화 작업 목록 및 pytest 실행 옵션 가이드입니다.
 
-## 5. 구현 상세
+## 5. API 사용
 
-MCP 서버 구현에 대한 상세 내용은 소스 디렉토리를 참조하세요:
-- [src/nanoCocoa_aiserver/MCP_IMPLEMENTATION_SUMMARY.md](../../src/nanoCocoa_aiserver/MCP_IMPLEMENTATION_SUMMARY.md)
+REST API를 통한 광고 이미지 생성:
+- API 문서: http://34.44.205.198:8000/docs
+- 개발자 대시보드: http://34.44.205.198:8000/example_generation
+- 사용 가이드: http://34.44.205.198:8000/help
 

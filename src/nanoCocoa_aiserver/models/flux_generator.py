@@ -64,10 +64,6 @@ class FluxGenerator:
         generator = None
         if seed is not None:
             generator = torch.Generator("cpu").manual_seed(seed)
-        else:
-            generator = torch.Generator("cpu").manual_seed(
-                42
-            )  # Default seed for consistency if not specified
 
         num_steps = 25
 
@@ -90,6 +86,19 @@ class FluxGenerator:
         del pipe, transformer
         flush_gpu()
         return image
+
+    def unload(self) -> None:
+        """
+        명시적으로 Flux 모델 리소스를 정리합니다.
+
+        현재 Flux는 각 메서드 호출 시마다 로드/언로드하므로
+        별도 정리 작업이 불필요하지만, 인터페이스 통일을 위해 구현합니다.
+        """
+        from services.monitor import log_gpu_memory
+
+        log_gpu_memory("FluxGenerator unload (no-op)")
+        flush_gpu()
+        logger.info("🧹 FluxGenerator unloaded")
 
     def refine_image(
         self,

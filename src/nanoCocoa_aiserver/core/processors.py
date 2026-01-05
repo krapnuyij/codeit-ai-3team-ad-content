@@ -46,19 +46,21 @@ def process_step1_background(
     shared_state["current_step"] = "step1_background"
     shared_state["message"] = "Step 1: Generating Background... (배경 이미지 생성 중)"
 
-    # 입력 확인
+    # 입력 이미지 확인 및 전처리
     input_img_b64 = input_data.get("input_image")
-    if not input_img_b64:
-        raise ValueError(
-            "[Step 1 Error] 'input_image' is required to start from Step 1."
-        )
 
-    # 더미 데이터 체크
     if input_img_b64 == "DUMMY_IMAGE_DATA":
-        # 더미 모드: 간단한 테스트 이미지 생성
+        # 더미 모드: 테스트용 흰색 이미지 생성
         raw_img = Image.new("RGB", (512, 512), "white")
-    else:
+        logger.info("[Step 1] Using dummy white image for testing")
+    elif input_img_b64:
+        # Base64 디코딩하여 PIL 이미지로 변환
         raw_img = base64_to_pil(input_img_b64)
+        logger.info(f"[Step 1] Input image loaded: {raw_img.size}")
+    else:
+        # 입력 이미지 없음: 배경 생성 전용 모드 (상품 없이 배경만 생성)
+        raw_img = Image.new("RGB", (512, 512), "white")
+        logger.info("[Step 1] No input image provided. Generating background only.")
 
     # 1. 누끼 (Segmentation)
     shared_state["sub_step"] = "segmentation"
@@ -189,14 +191,19 @@ def process_step2_text(
     shared_state["system_metrics"] = get_system_metrics()
     text_model_prompt = input_data.get("text_model_prompt")
     negative_prompt = input_data.get("negative_prompt")
+    seed = input_data.get("seed")
     raw_3d_text = engine.run_sdxl_text_gen(
-        canny_map, prompt=text_model_prompt, negative_prompt=negative_prompt
+        canny_map, prompt=text_model_prompt, negative_prompt=negative_prompt, seed=seed
     )
 
     # 3. 배경 제거 (Text Segmentation)
     shared_state["sub_step"] = "text_segmentation"
     shared_state["system_metrics"] = get_system_metrics()
     transparent_text, _ = engine.run_segmentation(raw_3d_text)
+
+    # Step 2 완료 후 Step 1 모델 언로드 (auto_unload 활성화 시)
+    if hasattr(engine, "auto_unload") and engine.auto_unload:
+        engine.unload_step1_models()
 
     return transparent_text
 
@@ -232,6 +239,11 @@ def process_step3_composite(
     from utils import get_system_metrics
 
     shared_state["system_metrics"] = get_system_metrics()
+
+    # Step 3 시작 전 이전 단계 모델 언로드 (auto_unload 활성화 시)
+    if hasattr(engine, "auto_unload") and engine.auto_unload:
+        engine.unload_step1_models()
+        engine.unload_step2_models()
 
     if not step1_result:
         raise ValueError("[Step 3 Error] Missing 'step1_result'. Cannot composite.")

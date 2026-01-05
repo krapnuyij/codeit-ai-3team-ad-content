@@ -117,12 +117,11 @@ async function startGeneration() {
     // Requirement Checks
     if (startStep === 1) {
         const img = document.getElementById('input_image_b64').value;
-        if (!img && !isDummy) {
-            alert("1단계는 입력 이미지가 필수입니다!");
-            return;
-        }
-        if (img) req.input_image = img;
-        else if (isDummy) req.input_image = "DUMMY_IMAGE_DATA";
+        if (isDummy) req.input_image = "DUMMY_IMAGE_DATA";
+        else if (img)
+            req.input_image = img;
+        else
+            req.input_image = null;
     }
 
     if (startStep >= 2) {

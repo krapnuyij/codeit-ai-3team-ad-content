@@ -16,6 +16,8 @@ import torch
 from PIL import Image
 from typing import Literal, Optional
 from config import DEVICE, TORCH_DTYPE, MODEL_IDS, logger
+from transformers import BitsAndBytesConfig
+from diffusers import FluxTransformer2DModel
 
 
 CompositionMode = Literal["overlay", "blend", "behind"]
@@ -40,7 +42,7 @@ class CompositionEngine:
         logger.info(f"CompositionEngine initialized on {device}")
 
     def _load_pipeline(self):
-        """Flux Inpainting 파이프라인 로드"""
+        """Flux Inpainting 파이프라인 로드 (8bit 양자화 적용)"""
         if self.pipe is not None:
             return
 
@@ -49,11 +51,22 @@ class CompositionEngine:
 
             logger.info("🎨 Loading Flux Inpainting pipeline for composition...")
 
+            # 8bit 양자화로 메모리 사용량 감소
+            quant_config = BitsAndBytesConfig(load_in_8bit=True)
+            transformer = FluxTransformer2DModel.from_pretrained(
+                MODEL_IDS["FLUX"],
+                subfolder="transformer",
+                quantization_config=quant_config,
+                torch_dtype=TORCH_DTYPE,
+            )
+
             self.pipe = FluxInpaintPipeline.from_pretrained(
-                MODEL_IDS["FLUX"], torch_dtype=TORCH_DTYPE
+                MODEL_IDS["FLUX"], transformer=transformer, torch_dtype=TORCH_DTYPE
             ).to(self.device)
 
-            logger.info("Flux Inpainting pipeline loaded successfully")
+            logger.info(
+                "Flux Inpainting pipeline loaded successfully with 8bit quantization"
+            )
 
         except Exception as e:
             logger.error(f"Failed to load Flux Inpainting: {e}", exc_info=True)
@@ -61,12 +74,22 @@ class CompositionEngine:
 
     def _unload_pipeline(self):
         """메모리 해제"""
+        from services.monitor import log_gpu_memory
+
         if self.pipe is not None:
+            log_gpu_memory("Before Flux Inpainting unload")
             del self.pipe
             self.pipe = None
             gc.collect()
             torch.cuda.empty_cache()
+            log_gpu_memory("After Flux Inpainting unload")
             logger.info("🧹 Flux Inpainting pipeline unloaded")
+
+    def unload(self) -> None:
+        """
+        명시적으로 Composition Engine 리소스를 정리합니다.
+        """
+        self._unload_pipeline()
 
     def _build_composition_prompt(
         self,
@@ -127,6 +150,7 @@ class CompositionEngine:
         strength: float = 0.4,
         guidance_scale: float = 3.5,
         num_inference_steps: int = 28,
+        seed: Optional[int] = None,
         progress_callback=None,
     ) -> Image.Image:
         """
@@ -143,6 +167,7 @@ class CompositionEngine:
             strength: 변환 강도 (0.0~1.0, 낮을수록 원본 보존)
             guidance_scale: 프롬프트 준수 강도
             num_inference_steps: 추론 스텝 수 (품질 우선: 28~50)
+            seed: 난수 시드 (재현성 보장용, None=랜덤)
             progress_callback: 진행률 콜백
 
         Returns:
@@ -177,7 +202,15 @@ class CompositionEngine:
                 else default_negative
             )
 
-            # 3. Flux Inpainting 실행
+            # 3. Generator 설정 (재현성 보장)
+            generator = None
+            if seed is not None:
+                generator = torch.Generator("cpu").manual_seed(seed)
+                logger.info(f"🎲 Using seed: {seed} for reproducibility")
+            else:
+                logger.info("🎲 Using random seed")
+
+            # 4. Flux Inpainting 실행
             logger.info(
                 f"🔄 Running Flux Inpainting: strength={strength}, guidance={guidance_scale}, steps={num_inference_steps}"
             )
@@ -197,6 +230,7 @@ class CompositionEngine:
                 strength=strength,
                 guidance_scale=guidance_scale,
                 num_inference_steps=num_inference_steps,
+                generator=generator,
                 callback_on_step_end=callback_fn if progress_callback else None,
             ).images[0]
 

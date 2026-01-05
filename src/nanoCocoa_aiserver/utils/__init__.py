@@ -9,23 +9,28 @@
     - stats_manager: 단계별 통계 관리
 """
 
+
 # Lazy import를 위한 __getattr__ 구현
 def __getattr__(name):
     # Image utilities
     if name in ("pil_to_base64", "base64_to_pil", "pil_canny_edge"):
         from utils.images import pil_to_base64, base64_to_pil, pil_canny_edge
+
         return locals()[name]
     # System monitoring
-    elif name in ("flush_gpu", "get_system_metrics"):
-        from services.monitor import flush_gpu, get_system_metrics
+    elif name in ("flush_gpu", "get_system_metrics", "log_gpu_memory"):
+        from services.monitor import flush_gpu, get_system_metrics, log_gpu_memory
+
         return locals()[name]
     # Font management
     elif name in ("get_fonts_dir", "get_available_fonts", "get_font_path"):
         from services.fonts import get_fonts_dir, get_available_fonts, get_font_path
+
         return locals()[name]
     # Stats management
     elif name in ("StepStatsManager", "step_stats_manager"):
         from services.stats import StepStatsManager, step_stats_manager
+
         return locals()[name]
     raise AttributeError(f"module 'utils' has no attribute '{name}'")
 
@@ -38,24 +43,7 @@ __all__ = [
     # System monitoring
     "flush_gpu",
     "get_system_metrics",
-    # Font management
-    "get_fonts_dir",
-    "get_available_fonts",
-    "get_font_path",
-    # Stats management
-    "StepStatsManager",
-    "step_stats_manager",
-]
-
-
-__all__ = [
-    # Image utilities
-    "pil_to_base64",
-    "base64_to_pil",
-    "pil_canny_edge",
-    # System monitoring
-    "flush_gpu",
-    "get_system_metrics",
+    "log_gpu_memory",
     # Font management
     "get_fonts_dir",
     "get_available_fonts",
