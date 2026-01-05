@@ -1,0 +1,11 @@
+{
+  "sdxl_default": {
+    "steps": 30,
+    "guidance": 5.5
+  },
+  "sd15_controlnet_default": {
+    "steps": 28,
+    "guidance": 5.0,
+    "control_scale": 0.45
+  }
+}
