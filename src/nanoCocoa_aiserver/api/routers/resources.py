@@ -2,6 +2,7 @@
 resources.py
 시스템 리소스 및 정적 파일 관련 API 엔드포인트
 """
+
 import sys
 from pathlib import Path
 
@@ -10,8 +11,8 @@ sys.path.insert(0, str(project_root))
 
 import os
 import time
-from FastAPI import APIRouter, HTTPException
-from FastAPI.responses import FileResponse
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import FileResponse
 
 from utils import get_available_fonts, get_system_metrics
 
@@ -31,7 +32,7 @@ def init_shared_state(jobs_dict):
 @router.get(
     "/fonts",
     summary="사용 가능한 폰트 목록 조회 (Get Font List)",
-    response_description="서버에 저장된 TTF/OTF 폰트 파일 목록"
+    response_description="서버에 저장된 TTF/OTF 폰트 파일 목록",
 )
 async def get_fonts():
     """
@@ -47,14 +48,23 @@ async def get_fonts():
 @router.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """파비콘 제공"""
-    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
-    return FileResponse(os.path.join(static_dir, "favicon.ico"))
+    from pathlib import Path
+
+    base_dir = Path(__file__).resolve().parent.parent.parent
+    favicon_path = base_dir / "static" / "favicon.ico"
+
+    if favicon_path.exists():
+        return FileResponse(str(favicon_path))
+    else:
+        from fastapi import Response
+
+        return Response(status_code=204)
 
 
 @router.get(
     "/health",
     summary="서버 상태 체크 (Health Check)",
-    response_description="서버 가용성, GPU 상태, 현재 작업 정보"
+    response_description="서버 가용성, GPU 상태, 현재 작업 정보",
 )
 async def health_check():
     """
@@ -91,7 +101,7 @@ async def health_check():
     if JOBS:
         total_jobs = len(JOBS)
         for state in JOBS.values():
-            if state['status'] in ('running', 'pending'):
+            if state["status"] in ("running", "pending"):
                 active_count += 1
 
     server_status = "busy" if active_count > 0 else "healthy"
@@ -101,7 +111,7 @@ async def health_check():
         "server_time": time.time(),
         "total_jobs": total_jobs,
         "active_jobs": active_count,
-        "system_metrics": metrics
+        "system_metrics": metrics,
     }
 
 
@@ -123,7 +133,7 @@ async def serve_font(font_path: str):
         if os.path.abspath(common_prefix) != os.path.abspath(fonts_dir):
             raise HTTPException(status_code=403, detail="Access denied")
     except ValueError:
-         raise HTTPException(status_code=403, detail="Access denied")
+        raise HTTPException(status_code=403, detail="Access denied")
 
     if not os.path.exists(full_path) or not os.path.isfile(full_path):
         raise HTTPException(status_code=404, detail="Font not found")
