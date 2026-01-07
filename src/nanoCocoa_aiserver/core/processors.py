@@ -9,6 +9,9 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
+import gc
+import torch
+
 from PIL import Image, ImageDraw, ImageFont
 from config import logger
 from utils import (
@@ -205,6 +208,16 @@ def process_step2_text(
     if hasattr(engine, "auto_unload") and engine.auto_unload:
         engine.unload_step1_models()
 
+    # Step 2 완료 후 명시적 GPU 메모리 정리
+    import time
+
+    time.sleep(0.5)  # GPU 작업 완료 대기
+    gc.collect()
+    torch.cuda.synchronize()
+    torch.cuda.empty_cache()
+    if hasattr(torch.cuda, "ipc_collect"):
+        torch.cuda.ipc_collect()  # IPC 메모리 정리
+
     return transparent_text
 
 
@@ -244,6 +257,13 @@ def process_step3_composite(
     if hasattr(engine, "auto_unload") and engine.auto_unload:
         engine.unload_step1_models()
         engine.unload_step2_models()
+
+    # Step 3 시작 전 강제 GPU 메모리 동기화 및 정리
+    torch.cuda.synchronize()  # GPU 작업 완료 대기
+    gc.collect()
+    torch.cuda.empty_cache()
+    if hasattr(torch.cuda, "ipc_collect"):
+        torch.cuda.ipc_collect()  # IPC 메모리 정리
 
     if not step1_result:
         raise ValueError("[Step 3 Error] Missing 'step1_result'. Cannot composite.")

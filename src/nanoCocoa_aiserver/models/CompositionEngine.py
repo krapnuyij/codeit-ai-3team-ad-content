@@ -62,10 +62,13 @@ class CompositionEngine:
 
             self.pipe = FluxInpaintPipeline.from_pretrained(
                 MODEL_IDS["FLUX"], transformer=transformer, torch_dtype=TORCH_DTYPE
-            ).to(self.device)
+            )
+
+            # GPU 메모리 절약을 위한 최적화
+            self.pipe.enable_model_cpu_offload()
 
             logger.info(
-                "Flux Inpainting pipeline loaded successfully with 8bit quantization"
+                "Flux Inpainting pipeline loaded successfully with 8bit quantization and CPU offload"
             )
 
         except Exception as e:

@@ -22,6 +22,9 @@ from core.worker import worker_process
 
 router = APIRouter()
 
+# CUDA 호환성을 위한 spawn context 명시적 사용
+mp_context = multiprocessing.get_context("spawn")
+
 # 전역 상태 (main.py에서 주입됨)
 manager = None
 JOBS = None
@@ -108,7 +111,7 @@ async def generate_ad(req: GenerateRequest, response: Response):
         }
 
     job_id = str(uuid.uuid4())
-    stop_event = multiprocessing.Event()
+    stop_event = mp_context.Event()
     input_data = req.model_dump()
 
     JOBS[job_id] = manager.dict(
@@ -124,7 +127,7 @@ async def generate_ad(req: GenerateRequest, response: Response):
         }
     )
 
-    p = multiprocessing.Process(
+    p = mp_context.Process(
         target=worker_process, args=(job_id, input_data, JOBS[job_id], stop_event)
     )
     p.start()

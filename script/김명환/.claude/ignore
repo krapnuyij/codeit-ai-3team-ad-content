@@ -1,0 +1,10 @@
+logs/
+_layouts/
+_assets/
+_includes
+.env
+.gitignore
+index.md
+script/김명환/ignore
+ignore/
+
