@@ -13,6 +13,15 @@ import multiprocessing
 import time
 from PIL import Image
 
+# CUDA 호환성을 위한 안전장치: spawn 방식 확인
+# main.py에서 이미 설정되었지만, 직접 실행 시를 대비
+try:
+    if multiprocessing.get_start_method(allow_none=True) != "spawn":
+        multiprocessing.set_start_method("spawn", force=True)
+except RuntimeError:
+    # 이미 설정된 경우 무시
+    pass
+
 from config import logger
 from utils import pil_to_base64, base64_to_pil, flush_gpu, step_stats_manager
 from core.engine import AIModelEngine

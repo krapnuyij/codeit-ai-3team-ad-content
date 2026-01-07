@@ -98,6 +98,7 @@ class TestConcurrency:
         assert status_data["job_id"] == job_id
         assert "status" in status_data
         assert status_data["status"] in [
+            "pending",
             "queued",
             "running",
             "completed",

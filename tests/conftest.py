@@ -3,8 +3,26 @@ import os
 import sys
 import datetime
 import logging
+import multiprocessing
 from PIL import Image
 from unittest.mock import MagicMock, patch
+
+# CUDA 멀티프로세싱 호환성을 위해 spawn 방식 설정
+# 반드시 다른 모듈 import 전에 실행되어야 함
+if __name__ != "__main__":
+    # pytest 실행 시 강제로 spawn 방식 설정
+    current_method = multiprocessing.get_start_method(allow_none=True)
+    if current_method != "spawn":
+        try:
+            multiprocessing.set_start_method("spawn", force=True)
+        except RuntimeError:
+            # 이미 설정되었으나 spawn이 아닌 경우 컨텍스트 직접 사용
+            import warnings
+
+            warnings.warn(
+                f"Multiprocessing start method already set to '{current_method}'. "
+                "Tests may fail with CUDA operations."
+            )
 
 # Ensure src is in python path
 SRC_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../src"))
@@ -187,18 +205,19 @@ def flux_gen_model():
         from nanoCocoa_aiserver.models.flux_generator import FluxGenerator
 
         # Patch heavy dependencies
-        with patch(
-            "nanoCocoa_aiserver.models.flux_generator.FluxPipeline"
-        ) as mock_txt2img, patch(
-            "nanoCocoa_aiserver.models.flux_generator.FluxImg2ImgPipeline"
-        ) as mock_img2img, patch(
-            "nanoCocoa_aiserver.models.flux_generator.FluxInpaintPipeline"
-        ) as mock_inpaint, patch(
-            "nanoCocoa_aiserver.models.flux_generator.FluxTransformer2DModel"
-        ), patch(
-            "nanoCocoa_aiserver.models.flux_generator.BitsAndBytesConfig"
-        ), patch(
-            "nanoCocoa_aiserver.models.flux_generator.flush_gpu"
+        with (
+            patch(
+                "nanoCocoa_aiserver.models.flux_generator.FluxPipeline"
+            ) as mock_txt2img,
+            patch(
+                "nanoCocoa_aiserver.models.flux_generator.FluxImg2ImgPipeline"
+            ) as mock_img2img,
+            patch(
+                "nanoCocoa_aiserver.models.flux_generator.FluxInpaintPipeline"
+            ) as mock_inpaint,
+            patch("nanoCocoa_aiserver.models.flux_generator.FluxTransformer2DModel"),
+            patch("nanoCocoa_aiserver.models.flux_generator.BitsAndBytesConfig"),
+            patch("nanoCocoa_aiserver.models.flux_generator.flush_gpu"),
         ):
 
             # Setup mock return values to avoid AttributeError
@@ -228,9 +247,12 @@ def seg_model():
         from nanoCocoa_aiserver.models.segmentation import SegmentationModel
 
         # Patch heavy dependencies
-        with patch(
-            "nanoCocoa_aiserver.models.segmentation.AutoModelForImageSegmentation"
-        ) as mock_seg_model, patch("nanoCocoa_aiserver.models.segmentation.flush_gpu"):
+        with (
+            patch(
+                "nanoCocoa_aiserver.models.segmentation.AutoModelForImageSegmentation"
+            ) as mock_seg_model,
+            patch("nanoCocoa_aiserver.models.segmentation.flush_gpu"),
+        ):
 
             # Mock SegmentationModel.run for simplicity and stability.
             with patch.object(
@@ -281,14 +303,13 @@ def sdxl_gen_model():
         from nanoCocoa_aiserver.models.sdxl_text import SDXLTextGenerator
 
         # Patch heavy dependencies
-        with patch(
-            "nanoCocoa_aiserver.models.sdxl_text.StableDiffusionXLControlNetPipeline"
-        ) as mock_pipeline, patch(
-            "nanoCocoa_aiserver.models.sdxl_text.ControlNetModel"
-        ), patch(
-            "nanoCocoa_aiserver.models.sdxl_text.AutoencoderKL"
-        ), patch(
-            "nanoCocoa_aiserver.models.sdxl_text.flush_gpu"
+        with (
+            patch(
+                "nanoCocoa_aiserver.models.sdxl_text.StableDiffusionXLControlNetPipeline"
+            ) as mock_pipeline,
+            patch("nanoCocoa_aiserver.models.sdxl_text.ControlNetModel"),
+            patch("nanoCocoa_aiserver.models.sdxl_text.AutoencoderKL"),
+            patch("nanoCocoa_aiserver.models.sdxl_text.flush_gpu"),
         ):
 
             # Setup mock return values
