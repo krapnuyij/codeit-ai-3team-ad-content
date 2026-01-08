@@ -193,7 +193,7 @@ async def generate_ad_image(
 
             # 응답 구성
             response = (
-                f"✅ 광고 이미지 생성 완료!\n\n"
+                f"광고 이미지 생성 완료!\n\n"
                 f"작업 ID: {result.job_id}\n"
                 f"소요 시간: {result.elapsed_sec:.1f}초\n"
                 f"진행률: {result.progress_percent}%\n"
@@ -312,7 +312,7 @@ async def check_generation_status(
                     )
 
         if status.status == "completed":
-            response += "\n✅ 작업 완료!"
+            response += "\n작업 완료!"
             if save_result_path:
                 response += f"\n저장 경로: {save_result_path}"
 
@@ -547,7 +547,7 @@ async def generate_background_only(
                 logger.info(f"배경 이미지 저장: {output_path}")
 
             response = (
-                f"✅ 배경 생성 완료!\n"
+                f"배경 생성 완료!\n"
                 f"작업 ID: {result.job_id}\n"
                 f"소요 시간: {result.elapsed_sec:.1f}초\n"
             )
@@ -665,7 +665,7 @@ async def generate_text_asset_only(
                 logger.info(f"3D 텍스트 저장: {output_path}")
 
             response = (
-                f"✅ 3D 텍스트 생성 완료!\n"
+                f"3D 텍스트 생성 완료!\n"
                 f"작업 ID: {result.job_id}\n"
                 f"소요 시간: {result.elapsed_sec:.1f}초\n"
             )
@@ -814,7 +814,7 @@ async def compose_final_image(
                 logger.info(f"최종 이미지 저장: {output_path}")
 
             response = (
-                f"✅ 최종 합성 완료!\n"
+                f"최종 합성 완료!\n"
                 f"작업 ID: {result.job_id}\n"
                 f"소요 시간: {result.elapsed_sec:.1f}초\n"
             )

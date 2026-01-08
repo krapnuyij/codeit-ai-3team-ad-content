@@ -87,4 +87,4 @@ class SegmentationModel:
 
         log_gpu_memory("BiRefNet unload (no-op)")
         flush_gpu()
-        logger.info("🧹 BiRefNet unloaded")
+        logger.info("BiRefNet unloaded")

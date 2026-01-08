@@ -67,18 +67,18 @@ pragma: no-cache
 ## 완료된 작업
 
 ### 2026-01-01
-1. ✅ `conftest.py` 수정
+1. `conftest.py` 수정
    - `--dummy` 옵션 기본값: `False` → `True`
    - `--no-dummy` 옵션 추가
    - docstring 업데이트
 
-2. ✅ `test_api_scenarios.py` 수정
+2. `test_api_scenarios.py` 수정
    - `test_red_rose_generation` 폴링 타임아웃: 5초 → 30초
    - `test_kindergarten_ad_generation` 폴링 타임아웃: 5초 → 30초
    - 완료 상태에 `error` 추가
    - 더 나은 에러 메시지 제공
 
-3. ✅ 테스트 검증
+3. 테스트 검증
    - 전체 테스트 스위트: 41 passed, 1 skipped
    - dummy 모드가 기본으로 정상 작동 확인
 

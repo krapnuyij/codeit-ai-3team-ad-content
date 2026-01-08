@@ -21,7 +21,96 @@ from utils import flush_gpu
 class FluxGenerator:
     """
     FLUX 모델을 사용하여 배경 생성, 이미지 리파인, 지능형 합성을 수행하는 클래스입니다.
+
+    8bit 양자화와 파이프라인 캐싱으로 GPU 메모리를 효율적으로 사용합니다.
     """
+
+    def __init__(self):
+        """파이프라인 인스턴스 초기화 (실제 로딩은 각 메서드 호출 시 수행)"""
+        self.t2i_pipe = None  # Text-to-Image
+        self.i2i_pipe = None  # Img2Img
+        self.inpaint_pipe = None  # Inpaint
+        self.transformer = None  # 공유 Transformer (8bit 양자화)
+        logger.info("FluxGenerator initialized (pipelines will load on demand)")
+
+    def _load_transformer(self):
+        """8bit 양자화된 Transformer 로딩 (모든 파이프라인에서 공유)"""
+        if self.transformer is not None:
+            return self.transformer
+
+        logger.info("[FluxGenerator] Loading 8bit quantized Transformer...")
+        quant_config = BitsAndBytesConfig(load_in_8bit=True)
+        self.transformer = FluxTransformer2DModel.from_pretrained(
+            MODEL_IDS["FLUX"],
+            subfolder="transformer",
+            quantization_config=quant_config,
+            torch_dtype=TORCH_DTYPE,
+        )
+        logger.info("[FluxGenerator] Transformer loaded with 8bit quantization")
+        return self.transformer
+
+    def _load_t2i_pipeline(self):
+        """Text-to-Image 파이프라인 로딩 (캐싱)"""
+        if self.t2i_pipe is not None:
+            return self.t2i_pipe
+
+        logger.info("[FluxGenerator] Loading FLUX Text-to-Image pipeline...")
+        transformer = self._load_transformer()
+        self.t2i_pipe = FluxPipeline.from_pretrained(
+            MODEL_IDS["FLUX"],
+            transformer=transformer,
+            torch_dtype=TORCH_DTYPE,
+        )
+        self.t2i_pipe.enable_model_cpu_offload()
+        self.t2i_pipe.enable_attention_slicing()
+        if hasattr(self.t2i_pipe, "vae") and hasattr(
+            self.t2i_pipe.vae, "enable_slicing"
+        ):
+            self.t2i_pipe.vae.enable_slicing()
+        logger.info("[FluxGenerator] Text-to-Image pipeline ready")
+        return self.t2i_pipe
+
+    def _load_i2i_pipeline(self):
+        """Img2Img 파이프라인 로딩 (캐싱)"""
+        if self.i2i_pipe is not None:
+            return self.i2i_pipe
+
+        logger.info("[FluxGenerator] Loading FLUX Img2Img pipeline...")
+        transformer = self._load_transformer()
+        self.i2i_pipe = FluxImg2ImgPipeline.from_pretrained(
+            MODEL_IDS["FLUX"],
+            transformer=transformer,
+            torch_dtype=TORCH_DTYPE,
+        )
+        self.i2i_pipe.enable_model_cpu_offload()
+        self.i2i_pipe.enable_attention_slicing()
+        if hasattr(self.i2i_pipe, "vae") and hasattr(
+            self.i2i_pipe.vae, "enable_slicing"
+        ):
+            self.i2i_pipe.vae.enable_slicing()
+        logger.info("[FluxGenerator] Img2Img pipeline ready")
+        return self.i2i_pipe
+
+    def _load_inpaint_pipeline(self):
+        """Inpaint 파이프라인 로딩 (캐싱)"""
+        if self.inpaint_pipe is not None:
+            return self.inpaint_pipe
+
+        logger.info("[FluxGenerator] Loading FLUX Inpaint pipeline...")
+        transformer = self._load_transformer()
+        self.inpaint_pipe = FluxInpaintPipeline.from_pretrained(
+            MODEL_IDS["FLUX"],
+            transformer=transformer,
+            torch_dtype=TORCH_DTYPE,
+        )
+        self.inpaint_pipe.enable_model_cpu_offload()
+        self.inpaint_pipe.enable_attention_slicing()
+        if hasattr(self.inpaint_pipe, "vae") and hasattr(
+            self.inpaint_pipe.vae, "enable_slicing"
+        ):
+            self.inpaint_pipe.vae.enable_slicing()
+        logger.info("[FluxGenerator] Inpaint pipeline ready")
+        return self.inpaint_pipe
 
     def generate_background(
         self,
@@ -44,22 +133,10 @@ class FluxGenerator:
         Returns:
             Image.Image: 생성된 이미지
         """
-        print(
-            "[Engine] Loading FLUX (Text-to-Image)... (FLUX 텍스트-이미지 모델 로딩 중)"
-        )
-        flush_gpu()
+        logger.info("[FluxGenerator] Generating background with Text-to-Image...")
 
-        quant_config = BitsAndBytesConfig(load_in_8bit=True)
-        transformer = FluxTransformer2DModel.from_pretrained(
-            MODEL_IDS["FLUX"],
-            subfolder="transformer",
-            quantization_config=quant_config,
-            torch_dtype=TORCH_DTYPE,
-        )
-        pipe = FluxPipeline.from_pretrained(
-            MODEL_IDS["FLUX"], transformer=transformer, torch_dtype=TORCH_DTYPE
-        )
-        pipe.enable_model_cpu_offload()
+        # 캐싱된 파이프라인 사용
+        pipe = self._load_t2i_pipeline()
 
         generator = None
         if seed is not None:
@@ -83,22 +160,40 @@ class FluxGenerator:
             callback_on_step_end=callback_fn if progress_callback else None,
         ).images[0]
 
-        del pipe, transformer
-        flush_gpu()
+        logger.info("[FluxGenerator] Background generation completed")
         return image
 
     def unload(self) -> None:
         """
         명시적으로 Flux 모델 리소스를 정리합니다.
 
-        현재 Flux는 각 메서드 호출 시마다 로드/언로드하므로
-        별도 정리 작업이 불필요하지만, 인터페이스 통일을 위해 구현합니다.
+        캐싱된 모든 파이프라인과 Transformer를 삭제하여 GPU 메모리를 해제합니다.
         """
         from services.monitor import log_gpu_memory
 
-        log_gpu_memory("FluxGenerator unload (no-op)")
+        log_gpu_memory("FluxGenerator unload (before)")
+
+        # 모든 파이프라인 삭제
+        if self.t2i_pipe is not None:
+            del self.t2i_pipe
+            self.t2i_pipe = None
+
+        if self.i2i_pipe is not None:
+            del self.i2i_pipe
+            self.i2i_pipe = None
+
+        if self.inpaint_pipe is not None:
+            del self.inpaint_pipe
+            self.inpaint_pipe = None
+
+        # Transformer 삭제
+        if self.transformer is not None:
+            del self.transformer
+            self.transformer = None
+
         flush_gpu()
-        logger.info("🧹 FluxGenerator unloaded")
+        log_gpu_memory("FluxGenerator unload (after)")
+        logger.info("FluxGenerator unloaded (all pipelines cleared)")
 
     def refine_image(
         self,
@@ -125,22 +220,10 @@ class FluxGenerator:
         Returns:
             Image.Image: 리터칭된 배경 합성 이미지
         """
-        print(
-            "[Engine] Loading FLUX (Img-to-Img for Background Composition)... (FLUX 배경 합성 모델 로딩 중)"
-        )
-        flush_gpu()
+        logger.info("[FluxGenerator] Refining image with Img2Img...")
 
-        quant_config = BitsAndBytesConfig(load_in_8bit=True)
-        transformer = FluxTransformer2DModel.from_pretrained(
-            MODEL_IDS["FLUX"],
-            subfolder="transformer",
-            quantization_config=quant_config,
-            torch_dtype=TORCH_DTYPE,
-        )
-        pipe = FluxImg2ImgPipeline.from_pretrained(
-            MODEL_IDS["FLUX"], transformer=transformer, torch_dtype=TORCH_DTYPE
-        )
-        pipe.enable_model_cpu_offload()
+        # 캐싱된 파이프라인 사용
+        pipe = self._load_i2i_pipeline()
 
         default_prompt = (
             "A photorealistic close-up shot of a product lying naturally on a surface. "
@@ -178,8 +261,7 @@ class FluxGenerator:
             callback_on_step_end=callback_fn if progress_callback else None,
         ).images[0]
 
-        del pipe, transformer
-        flush_gpu()
+        logger.info("[FluxGenerator] Image refinement completed")
         return refined_image
 
     def inject_features_via_inpaint(
@@ -220,22 +302,11 @@ class FluxGenerator:
         Returns:
             Image.Image: 특성이 주입된 최종 이미지
         """
-        logger.info("[FluxGenerator] Loading FLUX Inpainting for feature injection...")
-        flush_gpu()
+        logger.info("[FluxGenerator] Injecting features via Inpainting...")
 
         try:
-            # Flux Inpainting 파이프라인 로드
-            quant_config = BitsAndBytesConfig(load_in_8bit=True)
-            transformer = FluxTransformer2DModel.from_pretrained(
-                MODEL_IDS["FLUX"],
-                subfolder="transformer",
-                quantization_config=quant_config,
-                torch_dtype=TORCH_DTYPE,
-            )
-            pipe = FluxInpaintPipeline.from_pretrained(
-                MODEL_IDS["FLUX"], transformer=transformer, torch_dtype=TORCH_DTYPE
-            )
-            pipe.enable_model_cpu_offload()
+            # 캐싱된 파이프라인 사용
+            pipe = self._load_inpaint_pipeline()
 
             # 초안 이미지 생성 (상품을 배경에 임시 배치)
             draft = background.copy().convert("RGBA")
@@ -275,17 +346,12 @@ class FluxGenerator:
             ).images[0]
 
             logger.info("[FluxGenerator] Feature injection completed")
-
-            del pipe, transformer
-            flush_gpu()
-
             return result
 
         except Exception as e:
             logger.error(
                 f"[FluxGenerator] Feature injection failed: {e}", exc_info=True
             )
-            flush_gpu()
             raise
 
     def inpaint_composite(
@@ -317,22 +383,11 @@ class FluxGenerator:
         Returns:
             Image.Image: 합성된 최종 이미지
         """
-        logger.info("[FluxGenerator] Loading FLUX Inpainting for composition...")
-        flush_gpu()
+        logger.info("[FluxGenerator] Compositing via Inpainting...")
 
         try:
-            # Flux Inpainting 파이프라인 로드
-            quant_config = BitsAndBytesConfig(load_in_8bit=True)
-            transformer = FluxTransformer2DModel.from_pretrained(
-                MODEL_IDS["FLUX"],
-                subfolder="transformer",
-                quantization_config=quant_config,
-                torch_dtype=TORCH_DTYPE,
-            )
-            pipe = FluxInpaintPipeline.from_pretrained(
-                MODEL_IDS["FLUX"], transformer=transformer, torch_dtype=TORCH_DTYPE
-            )
-            pipe.enable_model_cpu_offload()
+            # 캐싱된 파이프라인 사용
+            pipe = self._load_inpaint_pipeline()
 
             # 초안 합성 (텍스트를 배경에 배치)
             draft = background.copy().convert("RGBA")
@@ -372,13 +427,8 @@ class FluxGenerator:
             ).images[0]
 
             logger.info("[FluxGenerator] Inpainting composition completed")
-
-            del pipe, transformer
-            flush_gpu()
-
             return result
 
         except Exception as e:
             logger.error(f"[FluxGenerator] Inpainting failed: {e}", exc_info=True)
-            flush_gpu()
             raise

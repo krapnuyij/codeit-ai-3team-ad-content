@@ -189,6 +189,7 @@ function pollStatus(jobId, startStep) {
             const res = await fetch(`/status/${jobId}`);
             if (res.status === 404) {
                 clearInterval(pollingInterval);
+                showMessage('서버가 재시작되어 작업 정보를 찾을 수 없습니다. 페이지를 새로고침하여 새 작업을 시작하세요.', 'error');
                 return;
             }
             const data = await res.json();

@@ -9,7 +9,7 @@ synthesizer = ObjectSynthesizer(enable_ip_adapter=True)
 result = synthesizer.fill_in_object(
     background=bg_image,
     mask=mask_image,
-    reference=clean_product,  # ✅ 참조 이미지 반영!
+    reference=clean_product,  # 참조 이미지 반영!
     prompt="...",
     use_two_stage=True,  # IP-Adapter 활성화
     use_4bit=True,       # 4bit 양자화 (메모리 ~12-14GB)
@@ -26,10 +26,10 @@ result = synthesizer.fill_in_object(
 - **L4 GPU(22GB)에서 실행 불가능** (OOM 발생)
 
 ### After (해결책)
-- ✅ **4bit NF4 양자화 도입**
-- ✅ 메모리 사용량 **~12-14GB로 감소**
-- ✅ **L4 GPU에서 실행 가능!**
-- ✅ 품질 저하 미미
+- **4bit NF4 양자화 도입**
+- 메모리 사용량 **~12-14GB로 감소**
+- **L4 GPU에서 실행 가능!**
+- 품질 저하 미미
 
 ## 주요 변경사항
 
@@ -84,10 +84,10 @@ final_image = synthesizer.fill_in_object(
 
 | 설정 | 메모리 | IP-Adapter | L4 지원 | 추천 |
 |-----|--------|-----------|---------|------|
-| `use_two_stage=True, use_4bit=True` | ~12-14GB | ✅ | ✅ | ⭐⭐⭐ |
-| `use_two_stage=True, use_4bit=False` | ~18-20GB | ✅ | ⚠️ | ⭐ |
-| `use_two_stage=False, use_4bit=True` | ~7-8GB | ❌ | ✅ | ⭐⭐ |
-| `use_two_stage=False, use_4bit=False` | ~11GB | ❌ | ✅ | ⭐ |
+| `use_two_stage=True, use_4bit=True` | ~12-14GB | | | ⭐⭐⭐ |
+| `use_two_stage=True, use_4bit=False` | ~18-20GB | | ⚠️ | ⭐ |
+| `use_two_stage=False, use_4bit=True` | ~7-8GB | ❌ | | ⭐⭐ |
+| `use_two_stage=False, use_4bit=False` | ~11GB | ❌ | | ⭐ |
 
 ## 메모리 절감 효과
 
@@ -126,10 +126,10 @@ python test_4bit_quantization.py
 
 **예상 출력:**
 ```
-✅ ObjectSynthesizer supports 4bit quantization
-✅ use_4bit parameter added to fill_in_object()
-✅ Default: use_4bit=True (4bit enabled)
-✅ BitsAndBytesConfig supports NF4 quantization
+ObjectSynthesizer supports 4bit quantization
+use_4bit parameter added to fill_in_object()
+Default: use_4bit=True (4bit enabled)
+BitsAndBytesConfig supports NF4 quantization
 
 Recommended usage for L4 GPU (22GB):
   synthesizer.fill_in_object(..., use_two_stage=True, use_4bit=True)

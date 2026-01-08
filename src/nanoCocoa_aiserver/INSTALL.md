@@ -6,8 +6,8 @@
 
 | 파일 | 용도 | OS 지원 |
 |------|------|---------|
-| `environment.yml` | Conda 환경 설정 (권장) | ✅ Windows/Linux/macOS |
-| `requirements.txt` | pip 패키지 목록 | ✅ Windows/Linux/macOS |
+| `environment.yml` | Conda 환경 설정 (권장) | Windows/Linux/macOS |
+| `requirements.txt` | pip 패키지 목록 | Windows/Linux/macOS |
 
 ## 🚀 방법 1: Conda 사용 (권장)
 
@@ -65,12 +65,12 @@ CUDA 시스템인지에 따라 선택:
 #### CUDA 있는 경우 (GPU)
 ```bash
 # CUDA 12.8
-pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cu128
+pip install torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0 --index-url https://download.pytorch.org/whl/cu128
 ```
 
 #### CUDA 없는 경우 (CPU only)
 ```bash
-pip install torch==2.9.1 torchvision==0.24.1 --index-url https://download.pytorch.org/whl/cpu
+pip install torch==2.9.0 torchvision==0.24.0 torchaudio==2.9.0 --index-url https://download.pytorch.org/whl/cpu
 ```
 
 ### 3단계: 나머지 패키지 설치
@@ -82,23 +82,25 @@ pip install -r requirements.txt
 
 ### Windows 사용자
 
-다음 패키지들은 Windows에서 공식 지원되지 않으므로 주석 처리되어 있습니다:
+다음 패키지들은 플랫폼 조건으로 자동 제외됩니다:
 
-- **triton** ([requirements.txt:17](requirements.txt#L17)) - Linux 전용
-- **bitsandbytes** ([requirements.txt:23](requirements.txt#L23)) - 필요시 비공식 빌드 사용:
-  ```bash
-  pip install bitsandbytes-windows
-  ```
-- **kornia_rs** ([requirements.txt:22](requirements.txt#L22)) - 설치 문제 발생 가능
+- **triton==3.5.0** - Linux 전용 (`sys_platform == "linux"`)
+- **kornia_rs==0.1.10** - Linux 전용
+- **bitsandbytes==0.49.0** - Linux 전용 (Windows는 비공식 빌드 필요)
+
+Windows에서 bitsandbytes가 필요한 경우:
+```bash
+pip install bitsandbytes-windows
+```
 
 ### Linux 사용자
 
-모든 패키지가 정상 작동합니다. 필요시 주석 처리된 패키지를 활성화:
+모든 패키지가 자동으로 설치됩니다. 플랫폼 조건이 자동 적용됨:
 ```bash
-# requirements.txt에서 주석 제거
-triton==3.5.1
-bitsandbytes==0.49.0
-kornia_rs==0.1.10
+# requirements.txt에 이미 포함 (조건부)
+triton==3.5.0; sys_platform == "linux"
+kornia_rs==0.1.10; sys_platform == "linux"
+bitsandbytes==0.49.0; sys_platform == "linux"
 ```
 
 ### macOS (Apple Silicon - M1/M2/M3)
@@ -115,7 +117,7 @@ python -c "import torch; print(f'MPS Available: {torch.backends.mps.is_available
 python --version  # Python 3.11.x 여야 함
 
 # 주요 패키지 확인
-python -c "import torch, transformers, FastAPI, gradio; print('✅ All imports successful!')"
+python -c "import torch, transformers, FastAPI, gradio; print('All imports successful!')"
 
 # CUDA 확인 (GPU 사용 시)
 python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}'); print(f'Device: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else \"CPU\"}')"
@@ -185,21 +187,28 @@ pip install -r requirements.txt --upgrade
 
 ## 📚 주요 변경 사항
 
-### ✅ 수정된 문제점
+### 수정된 문제점
 
-1. ✅ **python-multipart 중복 제거**
-2. ✅ **Windows 비호환 패키지 주석 처리** (triton, bitsandbytes, kornia_rs)
-3. ✅ **모든 패키지에 최소 버전 명시**
-4. ✅ **ImageIO 대소문자 수정** (ImageIO → imageio)
-5. ✅ **environment.yml과 requirements.txt 동기화**
+1. **python-multipart 중복 제거**
+2. **Windows 비호환 패키지 주석 처리** (triton, bitsandbytes, kornia_rs)
+3. **모든 패키지에 최소 버전 명시**
+4. **ImageIO 대소문자 수정** (ImageIO → imageio)
+5. **environment.yml과 requirements.txt 동기화**
 
 ### 📦 권장 설치 방법
 
-| 환경 | 권장 방법 | 명령어 |
-|------|----------|--------|
-| 개발 환경 (모든 기능) | Conda | `conda env create -f environment.yml` |
-| 배포 환경 (경량화) | pip | `pip install -r requirements.txt` |
-| Docker | pip | `FROM python:3.11` + `pip install` |
+| 환경 | 권장 방법 | 파일 | 명령어 |
+|------|----------|------|--------|
+| 개발 환경 (모든 기능) | Conda | `environment.yml` | `conda env create -f environment.yml` |
+| 로컬 배포 (pip) | pip | `requirements.txt` | `pip install -r requirements.txt` |
+| Docker 컨테이너 | pip | `requirements-docker.txt` | `pip install -r requirements-docker.txt` |
+
+**Docker 사용 시**: `requirements-docker.txt`는 경량화되어 있으며 헤드리스 패키지만 포함합니다.
+
+```dockerfile
+FROM nvidia/cuda:12.8.0-cudnn9-runtime-ubuntu22.04
+RUN pip install -r requirements-docker.txt
+```
 
 ## 🎯 빠른 시작
 

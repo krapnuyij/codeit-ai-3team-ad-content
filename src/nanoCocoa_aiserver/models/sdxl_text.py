@@ -114,4 +114,4 @@ class SDXLTextGenerator:
         flush_gpu()
         from config import logger
 
-        logger.info("🧹 SDXLTextGenerator unloaded")
+        logger.info("SDXLTextGenerator unloaded")

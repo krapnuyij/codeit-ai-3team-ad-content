@@ -58,7 +58,7 @@ def unload(self) -> None:
     from services.monitor import log_gpu_memory
     log_gpu_memory("BiRefNet unload (no-op)")
     flush_gpu()
-    logger.info("🧹 BiRefNet unloaded")
+    logger.info("BiRefNet unloaded")
 ```
 
 #### 2.4.2 FluxGenerator (models/flux_generator.py)
@@ -69,7 +69,7 @@ def unload(self) -> None:
     from services.monitor import log_gpu_memory
     log_gpu_memory("FluxGenerator unload (no-op)")
     flush_gpu()
-    logger.info("🧹 FluxGenerator unloaded")
+    logger.info("FluxGenerator unloaded")
 ```
 
 #### 2.4.3 SDXLTextGenerator (models/sdxl_text.py)
@@ -80,7 +80,7 @@ def unload(self) -> None:
     from services.monitor import log_gpu_memory
     log_gpu_memory("SDXLTextGenerator unload (no-op)")
     flush_gpu()
-    logger.info("🧹 SDXLTextGenerator unloaded")
+    logger.info("SDXLTextGenerator unloaded")
 ```
 
 #### 2.4.4 CompositionEngine (models/CompositionEngine.py)
@@ -97,7 +97,7 @@ def _unload_pipeline(self):
         gc.collect()
         torch.cuda.empty_cache()
         log_gpu_memory("After Flux Inpainting unload")
-        logger.info("🧹 Flux Inpainting pipeline unloaded")
+        logger.info("Flux Inpainting pipeline unloaded")
 
 def unload(self) -> None:
     """명시적 리소스 정리"""
@@ -125,7 +125,7 @@ def unload_step1_models(self) -> None:
     log_gpu_memory("Before Step1 models unload")
     self.flux_gen.unload()
     log_gpu_memory("After Step1 models unload")
-    logger.info("✅ Step 1 models unloaded")
+    logger.info("Step 1 models unloaded")
 
 def unload_step2_models(self) -> None:
     """Step 2 모델 언로드 (SDXL, BiRefNet)"""
@@ -134,7 +134,7 @@ def unload_step2_models(self) -> None:
     self.sdxl_gen.unload()
     self.segmenter.unload()
     log_gpu_memory("After Step2 models unload")
-    logger.info("✅ Step 2 models unloaded")
+    logger.info("Step 2 models unloaded")
 ```
 
 #### 2.5.3 Step 3 완료 후 자동 언로드
@@ -211,21 +211,21 @@ engine = AIModelEngine(
 ```
 [Before Step1 models unload] GPU Memory: allocated=21.75GB, reserved=22.00GB
 [FluxGenerator unload (no-op)] GPU Memory: allocated=12.30GB, reserved=13.00GB
-🧹 FluxGenerator unloaded
+FluxGenerator unloaded
 [After Step1 models unload] GPU Memory: allocated=12.30GB, reserved=13.00GB
-✅ Step 1 models unloaded
+Step 1 models unloaded
 
 [Before Step2 models unload] GPU Memory: allocated=18.20GB, reserved=19.00GB
 [SDXLTextGenerator unload (no-op)] GPU Memory: allocated=12.50GB, reserved=13.50GB
-🧹 SDXLTextGenerator unloaded
+SDXLTextGenerator unloaded
 [BiRefNet unload (no-op)] GPU Memory: allocated=10.20GB, reserved=11.00GB
-🧹 BiRefNet unloaded
+BiRefNet unloaded
 [After Step2 models unload] GPU Memory: allocated=10.20GB, reserved=11.00GB
-✅ Step 2 models unloaded
+Step 2 models unloaded
 
 [Before Flux Inpainting unload] GPU Memory: allocated=21.50GB, reserved=22.00GB
 [After Flux Inpainting unload] GPU Memory: allocated=0.50GB, reserved=2.00GB
-🧹 Flux Inpainting pipeline unloaded
+Flux Inpainting pipeline unloaded
 ```
 
 ## 5. API 사용 예시

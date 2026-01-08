@@ -17,7 +17,7 @@ L4 GPU(22GB VRAM)에서 IP-Adapter를 사용한 2단계 파이프라인을 실�
 |------------|-------------|-----------|
 | 없음 | ~22GB+ | ❌ (불가능) |
 | 8bit | ~18-20GB | ⚠️ (빠듯) |
-| **4bit** | **~12-14GB** | **✅ (권장!)** |
+| **4bit** | **~12-14GB** | **(권장!)** |
 
 #### 단일 파이프라인 (텍스트만)
 | 양자화 방식 | 메모리 사용량 |
@@ -105,9 +105,9 @@ result = synthesizer.fill_in_object(
 ```
 
 **장점:**
-- ✅ 참조 이미지의 시각적 특징 반영
-- ✅ L4 GPU(22GB)에서 실행 가능
-- ✅ 메모리 효율적 (~12-14GB)
+- 참조 이미지의 시각적 특징 반영
+- L4 GPU(22GB)에서 실행 가능
+- 메모리 효율적 (~12-14GB)
 
 **단점:**
 - ⚠️ 2개 모델 순차 로드로 시간 소요
@@ -128,8 +128,8 @@ result = synthesizer.fill_in_object(
 ```
 
 **장점:**
-- ✅ 메모리 최소 (~7-8GB)
-- ✅ 빠른 실행 (1개 모델만)
+- 메모리 최소 (~7-8GB)
+- 빠른 실행 (1개 모델만)
 
 **단점:**
 - ❌ 참조 이미지 무시 (텍스트 프롬프트만 사용)
@@ -164,7 +164,7 @@ result = synthesizer.fill_in_object(
 - 하지만 대부분의 경우 시각적 차이 미미
 - L4 GPU에서 IP-Adapter 사용 가능한 것이 더 큰 장점!
 
-## ✅ Verification
+## Verification
 
 간단한 테스트:
 ```python
@@ -185,16 +185,16 @@ print(f"GPU Memory: {torch.cuda.memory_allocated() / 1024**3:.2f}GB")
 | 2-stage + No Quant | ~22GB+ | Baseline | Best | ❌ |
 | 2-stage + 8bit | ~18-20GB | 0.9x | Very Good | ⚠️ |
 | **2-stage + 4bit** | **~12-14GB** | **0.8x** | **Good** | **✅** |
-| 1-stage + 8bit | ~11GB | 0.5x | Good | ✅ |
-| 1-stage + 4bit | ~7-8GB | 0.4x | Good | ✅ |
+| 1-stage + 8bit | ~11GB | 0.5x | Good | |
+| 1-stage + 4bit | ~7-8GB | 0.4x | Good | |
 
 ## 🎉 Conclusion
 
 4bit 양자화를 사용하면:
-1. ✅ L4 GPU에서 IP-Adapter 사용 가능!
-2. ✅ 메모리 사용량 50% 이상 감소
-3. ✅ 품질 저하 미미
-4. ✅ 유연한 설정 (4bit/8bit 선택 가능)
+1. L4 GPU에서 IP-Adapter 사용 가능!
+2. 메모리 사용량 50% 이상 감소
+3. 품질 저하 미미
+4. 유연한 설정 (4bit/8bit 선택 가능)
 
 **권장 설정:**
 ```python

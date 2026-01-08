@@ -318,7 +318,7 @@ class AIModelEngine:
         self.flux_gen.unload()
 
         log_gpu_memory("After Step1 models unload")
-        logger.info("✅ Step 1 models unloaded")
+        logger.info("Step 1 models unloaded")
 
     def unload_step2_models(self) -> None:
         """
@@ -336,4 +336,4 @@ class AIModelEngine:
         self.segmenter.unload()
 
         log_gpu_memory("After Step2 models unload")
-        logger.info("✅ Step 2 models unloaded")
+        logger.info("Step 2 models unloaded")

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  nanococoa-aiserver:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: nanococoa-aiserver:latest
+    container_name: nanococoa-aiserver
+    
+    # GPU 설정
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    
+    # 포트 매핑
+    ports:
+      - "8000:8000"
+    
+    # 볼륨 마운트
+    volumes:
+      # HuggingFace 캐시 (외부 스토리지)
+      - /opt/huggingface:/root/.cache/huggingface
+      # 업로드/결과 파일 (영구 저장)
+      - ./static/uploads:/app/static/uploads
+      - ./static/results:/app/static/results
+      # 로그 (영구 저장)
+      - ./logs:/app/logs
+    
+    # 환경 변수
+    env_file:
+      - .env
+    environment:
+      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      - HF_HOME=/root/.cache/huggingface
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers
+      - HF_HUB_CACHE=/root/.cache/huggingface/hub
+      - DEVICE=cuda
+      - AUTO_UNLOAD_DEFAULT=true
+    
+    # 재시작 정책
+    restart: unless-stopped
+    
+    # 로깅 설정
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # 헬스체크
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  default:
+    name: nanococoa-network

@@ -1,8 +1,9 @@
 # Codeit AI 3팀 - 생성형 AI 기반 소상공인을 위한 광고 콘텐츠 제작 서비스 
 
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-1.28-red)
-![PyTorch](https://img.shields.io/badge/PyTorch-2.0-orange)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.128-red)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.9.0-orange)
+![CUDA](https://img.shields.io/badge/CUDA-12.8-green)
 ![GCP](https://img.shields.io/badge/GCP-L4%20GPU-green)
 
 
@@ -181,13 +182,21 @@ sequenceDiagram
 ---
 
 ## 기술 스택
-- Frontend: FastAPI
-- Backend: FastAPI (선택), LLM 연동
-- Model: HuggingFace (Stable Diffusion 계열), OpenAI API (프롬프트 엔지니어링)
+- **Python**: 3.11
+- **AI/ML**: PyTorch 2.9.0, Transformers 4.57, Diffusers 0.36, vLLM 0.13
+- **Frontend**: FastAPI 0.128, Gradio 6.2
+- **Backend**: FastAPI, OpenAI API (프롬프트 엔지니어링)
+- **Models**: HuggingFace (BiRefNet, FLUX.1, SDXL ControlNet)
 - **MCP Server**: FastMCP (Model Context Protocol) - AI 서버 제어용 도구 인터페이스
-- Infra: GCP VM (L4 GPU, 34.44.205.198, us-central1)
-- Storage: OS 20GB + 데이터 200GB (바인드 마운트)
-- Collaboration: GitHub, Discord, Notion
+- **Infra**: GCP VM (L4 GPU 24GB, CUDA 12.8, us-central1)
+- **Storage**: OS 20GB + 데이터 200GB (바인드 마운트)
+- **Containerization**: Docker (requirements-docker.txt 제공)
+- **Collaboration**: GitHub, Discord, Notion
+
+### 환경 설정 파일
+- `environment.yml`: Conda 환경 (권장, CUDA Toolkit 포함)
+- `requirements.txt`: pip 전용 (conda 없이 설치 가능, 플랫폼 조건 포함)
+- `src/nanoCocoa_aiserver/requirements-docker.txt`: Docker 최적화 버전
 
 ---
 

@@ -86,7 +86,7 @@ class CompositionEngine:
             gc.collect()
             torch.cuda.empty_cache()
             log_gpu_memory("After Flux Inpainting unload")
-            logger.info("🧹 Flux Inpainting pipeline unloaded")
+            logger.info("Flux Inpainting pipeline unloaded")
 
     def unload(self) -> None:
         """

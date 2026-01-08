@@ -89,7 +89,7 @@ USE_TWO_STAGE = False  # True: IP-Adapter (메모리 ~22GB+), False: 텍스트�
 if USE_TWO_STAGE:
     logger.debug("⚠️  2단계 파이프라인 실행 - IP-Adapter 사용")
 else:
-    logger.debug("✅ 단일 파이프라인 실행 - 텍스트만 사용")
+    logger.debug("단일 파이프라인 실행 - 텍스트만 사용")
 ```
 
 ## Usage Guide
