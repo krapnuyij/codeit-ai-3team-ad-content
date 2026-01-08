@@ -33,12 +33,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxrender-dev \
     libgomp1 \
     ca-certificates \
-    software-properties-common \
-    && add-apt-repository ppa:ubuntu-toolchain-r/test -y \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends gcc-13 g++-13 libstdc++6 \
-    && update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 \
-    && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 \
+    build-essential \
+    gcc \
+    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 # Python 3.11을 기본으로 설정
@@ -53,7 +50,15 @@ WORKDIR /app
 
 # requirements 복사 및 설치
 COPY requirements-docker.txt .
-RUN pip install --no-cache-dir -r requirements-docker.txt
+
+# PyTorch는 별도 인덱스에서 설치 (CUDA 12.8 호환)
+RUN pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cu128 \
+    torch==2.9.0+cu128 torchvision==0.24.0+cu128 torchaudio==2.9.0+cu128
+
+# 나머지 패키지 설치 (torch 관련 제외)
+RUN grep -v "^torch" requirements-docker.txt | grep -v "^--index-url" > /tmp/requirements-no-torch.txt && \
+    pip install --no-cache-dir -r /tmp/requirements-no-torch.txt
 
 # 애플리케이션 코드 복사
 COPY . .
