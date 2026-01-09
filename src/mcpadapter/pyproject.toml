@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcpadapter"
+version = "1.0.0"
+description = "MCP client adapter for nanoCocoa AI advertisement generation"
+authors = [
+    {name = "CodeIt Team 3"},
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+dependencies = [
+    # HTTP Client
+    "httpx>=0.27.0",
+    
+    # LLM Integration
+    "openai>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+    
+    # Code quality
+    "black>=24.0.0",
+    "ruff>=0.3.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mcpadapter*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.md"]
+
+# Black 설정
+[tool.black]
+line-length = 88
+target-version = ['py310']
+
+# Ruff 설정
+[tool.ruff]
+line-length = 88
+target-version = "py310"

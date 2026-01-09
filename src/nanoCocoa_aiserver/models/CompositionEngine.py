@@ -49,7 +49,7 @@ class CompositionEngine:
         try:
             from diffusers import FluxInpaintPipeline
 
-            logger.info("🎨 Loading Flux Inpainting pipeline for composition...")
+            logger.info("Loading Flux Inpainting pipeline for composition...")
 
             # 8bit 양자화로 메모리 사용량 감소
             quant_config = BitsAndBytesConfig(load_in_8bit=True)
@@ -180,9 +180,7 @@ class CompositionEngine:
 
         try:
             # 1. 초안 합성 (텍스트를 배경에 배치)
-            logger.info(
-                f"🎨 Creating composition draft: mode={mode}, position={position}"
-            )
+            logger.info(f"Creating composition draft: mode={mode}, position={position}")
 
             draft = background.copy().convert("RGBA")
             text_resized = text_asset.resize(draft.size, Image.LANCZOS)
@@ -209,13 +207,13 @@ class CompositionEngine:
             generator = None
             if seed is not None:
                 generator = torch.Generator("cpu").manual_seed(seed)
-                logger.info(f"🎲 Using seed: {seed} for reproducibility")
+                logger.info(f"Using seed: {seed} for reproducibility")
             else:
-                logger.info("🎲 Using random seed")
+                logger.info("Using random seed")
 
             # 4. Flux Inpainting 실행
             logger.info(
-                f"🔄 Running Flux Inpainting: strength={strength}, guidance={guidance_scale}, steps={num_inference_steps}"
+                f"Running Flux Inpainting: strength={strength}, guidance={guidance_scale}, steps={num_inference_steps}"
             )
 
             def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
