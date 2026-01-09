@@ -264,13 +264,17 @@ async def get_all_jobs():
     failed_count = 0
 
     for job_id, state in JOBS.items():
+        start_time = state.get("start_time")
+        elapsed_sec = round(time.time() - start_time, 1) if start_time else 0.0
+
         job_info = {
             "job_id": job_id,
             "status": state["status"],
             "progress_percent": state["progress_percent"],
             "current_step": state["current_step"],
             "message": state["message"],
-            "start_time": state.get("start_time"),
+            "start_time": start_time,
+            "elapsed_sec": elapsed_sec,
         }
         jobs_list.append(job_info)
 

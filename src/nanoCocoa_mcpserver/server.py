@@ -14,12 +14,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 # 프로젝트 루트 경로 추가 (직접 실행 시에도 임포트 가능하도록)
-project_root = Path(__file__).resolve().parents[2]
-src_path = Path(__file__).resolve().parent.parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-if str(src_path) not in sys.path:
-    sys.path.insert(0, str(src_path))
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
 
 from config import (
     MCP_SERVER_NAME,

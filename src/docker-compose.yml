@@ -76,8 +76,8 @@ services:
     
     # 볼륨 마운트 (이미지 파일 공유)
     volumes:
-      - ./nanoCocoa_aiserver/static/uploads:/app/static/uploads:ro
-      - ./nanoCocoa_aiserver/static/results:/app/static/results:ro
+      - ./nanoCocoa_aiserver/static/uploads:/app/static/uploads
+      - ./nanoCocoa_aiserver/static/results:/app/static/results
     
     # 환경 변수
     environment:

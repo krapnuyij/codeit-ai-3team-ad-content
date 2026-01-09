@@ -17,10 +17,7 @@ COPY requirements-mcpserver.txt .
 RUN pip install --no-cache-dir -r requirements-mcpserver.txt
 
 # 애플리케이션 소스 복사
-COPY . /app/nanoCocoa_mcpserver
-
-# Python 경로 설정
-ENV PYTHONPATH=/app:$PYTHONPATH
+COPY . /app
 
 # 환경 변수 기본값
 ENV MCP_TRANSPORT=sse \
@@ -37,4 +34,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/health || exit 1
 
 # 실행 명령
-CMD ["python", "-m", "nanoCocoa_mcpserver.server"]
+CMD ["python", "server.py"]
