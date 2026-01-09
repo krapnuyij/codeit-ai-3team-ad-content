@@ -3,7 +3,7 @@ version: '3.8'
 services:
   nanococoa-aiserver:
     build:
-      context: .
+      context: ./nanoCocoa_aiserver
       dockerfile: Dockerfile
     image: nanococoa-aiserver:latest
     container_name: nanococoa-aiserver
@@ -26,10 +26,10 @@ services:
       # HuggingFace 캐시 (외부 스토리지)
       - /opt/huggingface:/root/.cache/huggingface
       # 업로드/결과 파일 (영구 저장)
-      - ./static/uploads:/app/static/uploads
-      - ./static/results:/app/static/results
+      - ./nanoCocoa_aiserver/static/uploads:/app/static/uploads
+      - ./nanoCocoa_aiserver/static/results:/app/static/results
       # 로그 (영구 저장)
-      - ./logs:/app/logs
+      - ./nanoCocoa_aiserver/logs:/app/logs
     
     # 환경 변수
     env_file:
@@ -65,7 +65,7 @@ services:
 
   nanococoa-mcpserver:
     build:
-      context: ../nanoCocoa_mcpserver
+      context: ./nanoCocoa_mcpserver
       dockerfile: Dockerfile
     image: nanococoa-mcpserver:latest
     container_name: nanococoa-mcpserver
@@ -76,8 +76,8 @@ services:
     
     # 볼륨 마운트 (이미지 파일 공유)
     volumes:
-      - ./static/uploads:/app/static/uploads:ro
-      - ./static/results:/app/static/results:ro
+      - ./nanoCocoa_aiserver/static/uploads:/app/static/uploads:ro
+      - ./nanoCocoa_aiserver/static/results:/app/static/results:ro
     
     # 환경 변수
     environment:

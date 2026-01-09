@@ -95,6 +95,17 @@ def create_app() -> FastAPI:
     logger.info(f"static_dir: {static_dir}")
     logger.info(f"fonts_dir: {fonts_dir}")
 
+    # 라우터에 전역 상태 주입
+    generation.init_shared_state(manager, JOBS, PROCESSES, STOP_EVENTS)
+    resources.init_shared_state(JOBS)
+
+    # 라우터 등록 (StaticFiles보다 먼저!)
+    app.include_router(generation.router, tags=["Generation"])
+    app.include_router(resources.router, tags=["Resources"])
+    app.include_router(help.router, tags=["Help & Documentation"])
+    app.include_router(dev_dashboard.router, tags=["Development"])
+
+    # Static files (라우터 등록 후!)
     if os.path.exists(static_dir):
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
     else:
@@ -104,16 +115,6 @@ def create_app() -> FastAPI:
         app.mount("/fonts", StaticFiles(directory=fonts_dir), name="fonts")
     else:
         logger.warning(f"Fonts directory not found: {fonts_dir}")
-
-    # 라우터에 전역 상태 주입
-    generation.init_shared_state(manager, JOBS, PROCESSES, STOP_EVENTS)
-    resources.init_shared_state(JOBS)
-
-    # 라우터 등록
-    app.include_router(generation.router, tags=["Generation"])
-    app.include_router(resources.router, tags=["Resources"])
-    app.include_router(help.router, tags=["Help & Documentation"])
-    app.include_router(dev_dashboard.router, tags=["Development"])
 
     # Root endpoint
     @app.get("/", include_in_schema=False)

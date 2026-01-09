@@ -15,17 +15,20 @@ from pydantic import BaseModel, Field
 
 # 프로젝트 루트 경로 추가 (직접 실행 시에도 임포트 가능하도록)
 project_root = Path(__file__).resolve().parents[2]
+src_path = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
+if str(src_path) not in sys.path:
+    sys.path.insert(0, str(src_path))
 
-from nanoCocoa_mcpserver.config import (
+from config import (
     MCP_SERVER_NAME,
     MCP_SERVER_VERSION,
     MCP_SERVER_DESCRIPTION,
 )
-from nanoCocoa_mcpserver.client.api_client import AIServerClient, AIServerError
-from nanoCocoa_mcpserver.schemas.api_models import GenerateRequest
-from nanoCocoa_mcpserver.utils.image_utils import (
+from client.api_client import AIServerClient, AIServerError
+from schemas.api_models import GenerateRequest
+from utils.image_utils import (
     image_file_to_base64,
     base64_to_image_file,
     ImageProcessingError,
@@ -226,11 +229,11 @@ async def generate_ad_image(
 
     except ImageProcessingError as e:
         logger.error(f"이미지 처리 에러: {e}")
-        return f"이미지 처리 에러: {e.message}"
+        return f"이미지 처리 에러: {str(e)}"
 
     except AIServerError as e:
         logger.error(f"AI 서버 에러: {e}")
-        error_msg = f"AI 서버 에러: {e.message}"
+        error_msg = f"AI 서버 에러: {str(e)}"
         if e.detail:
             error_msg += f"\n상세: {e.detail}"
         if e.retry_after:
@@ -331,7 +334,7 @@ async def check_generation_status(
 
     except AIServerError as e:
         logger.error(f"AI 서버 에러: {e}")
-        return f"AI 서버 에러: {e.message}"
+        return f"AI 서버 에러: {str(e)}"
 
 
 async def stop_generation(job_id: str) -> str:
@@ -363,7 +366,7 @@ async def stop_generation(job_id: str) -> str:
         return f"작업 중단 요청 완료\n작업 ID: {result.job_id}\n상태: {result.status}"
 
     except AIServerError as e:
-        return f"AI 서버 에러: {e.message}"
+        return f"AI 서버 에러: {str(e)}"
 
 
 async def list_available_fonts() -> str:
@@ -402,7 +405,326 @@ async def list_available_fonts() -> str:
         return response
 
     except AIServerError as e:
-        return f"AI 서버 에러: {e.message}"
+        return f"AI 서버 에러: {str(e)}"
+
+
+async def get_fonts_metadata() -> str:
+    """
+    AI 서버에서 사용 가능한 폰트의 상세 메타데이터를 조회합니다.
+
+    각 폰트의 스타일, 굵기, 적합한 용도, 톤앤매너 정보를 포함하여
+    LLM이 광고 콘텐츠에 적합한 폰트를 자동으로 선택할 수 있도록 합니다.
+
+    반환 정보:
+    - name: 폰트 파일 경로
+    - style: 폰트 스타일 (gothic/serif/handwriting/mono)
+    - weight: 굵기 (light/regular/bold/extrabold/heavy)
+    - usage: 적합한 용도 (title/body/promotion/sale/premium/accent/casual/code/technical)
+    - tone: 톤앤매너 (modern/clean/professional/energetic/elegant/traditional/sophisticated/friendly/warm/personal/tech)
+
+    사용 시나리오:
+    - 광고 텍스트와 브랜드 톤에 맞는 폰트 자동 선택
+    - "세일 광고에 어울리는 굵고 임팩트 있는 폰트"처럼 조건에 맞는 폰트 추천
+    - "우아하고 고급스러운 느낌의 폰트"같은 톤앤매너 기반 선택
+    - 한글 텍스트 사용 시 한글 지원 폰트 필터링
+
+    Returns:
+        폰트 메타데이터 목록 (JSON 형식 문자열)
+
+    사용 예시:
+        1. metadata = get_fonts_metadata()
+        2. 조건에 맞는 폰트 선택 (예: style="gothic", weight="bold", "sale" in usage)
+        3. generate_ad_image(..., font_name=selected_font)
+    """
+    try:
+        client = await get_api_client()
+        metadata = await client.get_fonts_metadata()
+
+        import json
+
+        return json.dumps(metadata, ensure_ascii=False, indent=2)
+
+    except AIServerError as e:
+        return f"AI 서버 에러: {str(e)}"
+
+
+async def recommend_font_for_ad(
+    text_content: str,
+    ad_type: str = "general",
+    tone: Optional[str] = None,
+    weight_preference: Optional[str] = None,
+) -> str:
+    """
+    광고 콘텐츠에 적합한 폰트를 자동으로 추천합니다.
+
+    광고 텍스트, 광고 유형, 원하는 톤앤매너를 기반으로
+    가장 적합한 폰트를 선택하여 반환합니다.
+
+    Args:
+        text_content: 광고에 사용할 텍스트 (한글/영문 구분용)
+        ad_type: 광고 유형
+            - "sale": 세일/할인 (굵고 임팩트 있는 폰트)
+            - "premium": 프리미엄/고급 (우아하고 세련된 폰트)
+            - "casual": 캐주얼/친근 (손글씨 스타일)
+            - "promotion": 일반 프로모션 (깔끔한 고딕체)
+            - "general": 일반 광고 (기본 폰트)
+        tone: 원하는 톤앤매너 (선택사항)
+            - "energetic": 활동적/역동적
+            - "elegant": 우아한/고급스러운
+            - "friendly": 친근한/따뜻한
+            - "modern": 현대적/깔끔한
+            - "traditional": 전통적/클래식
+        weight_preference: 선호하는 굵기 (선택사항)
+            - "light": 얇은 폰트
+            - "bold": 굵은 폰트
+            - "heavy": 매우 굵은 폰트
+
+    Returns:
+        추천 폰트 이름과 선택 이유
+
+    사용 예시:
+        1. font = recommend_font_for_ad("50% 할인", ad_type="sale", weight_preference="bold")
+        2. generate_ad_image(..., font_name=font)
+    """
+    try:
+        client = await get_api_client()
+        metadata = await client.get_fonts_metadata()
+
+        if not metadata:
+            return "폰트 메타데이터를 가져올 수 없습니다."
+
+        # 한글 텍스트 판별
+        has_korean = any("\uac00" <= char <= "\ud7a3" for char in text_content)
+
+        # 필터링: 영문 전용 폰트 제외 (한글 텍스트인 경우)
+        if has_korean:
+            # 코딩 폰트(D2Coding) 제외
+            candidates = [f for f in metadata if "d2coding" not in f["name"].lower()]
+        else:
+            candidates = metadata
+
+        if not candidates:
+            return "조건에 맞는 폰트를 찾을 수 없습니다."
+
+        # 광고 유형별 필터링
+        if ad_type == "sale":
+            # 세일: 굵고 임팩트 있는 gothic
+            candidates = [
+                f
+                for f in candidates
+                if f["style"] == "gothic"
+                and f["weight"] in ["bold", "extrabold", "heavy"]
+                and "sale" in f["usage"]
+            ]
+        elif ad_type == "premium":
+            # 프리미엄: 세리프 또는 가벼운 폰트
+            candidates = [
+                f
+                for f in candidates
+                if (f["style"] == "serif" or f["weight"] in ["light", "regular"])
+                and "premium" in f["usage"]
+            ]
+        elif ad_type == "casual":
+            # 캐주얼: 손글씨
+            candidates = [f for f in candidates if f["style"] == "handwriting"]
+        elif ad_type == "promotion":
+            # 프로모션: 깔끔한 고딕
+            candidates = [
+                f
+                for f in candidates
+                if f["style"] == "gothic" and "promotion" in f["usage"]
+            ]
+
+        # 톤앤매너 필터링
+        if tone and candidates:
+            tone_filtered = [f for f in candidates if tone in f["tone"]]
+            if tone_filtered:
+                candidates = tone_filtered
+
+        # 굵기 선호도 필터링
+        if weight_preference and candidates:
+            weight_filtered = [
+                f for f in candidates if f["weight"] == weight_preference
+            ]
+            if weight_filtered:
+                candidates = weight_filtered
+
+        # 최종 선택
+        if not candidates:
+            # 필터 조건에 맞는 폰트가 없으면 기본 추천
+            if has_korean:
+                default_fonts = [
+                    f
+                    for f in metadata
+                    if "gothic" in f["name"].lower() or "고딕" in f["name"]
+                ]
+                if default_fonts:
+                    selected = default_fonts[0]
+                else:
+                    selected = metadata[0]
+            else:
+                selected = metadata[0]
+            reason = "조건에 정확히 맞는 폰트가 없어 기본 폰트를 선택했습니다."
+        else:
+            # 첫 번째 후보 선택
+            selected = candidates[0]
+            reason = f"광고 유형({ad_type}), 스타일({selected['style']}), 굵기({selected['weight']})를 고려하여 선택했습니다."
+
+        return (
+            f"추천 폰트: {selected['name']}\n"
+            f"스타일: {selected['style']}\n"
+            f"굵기: {selected['weight']}\n"
+            f"용도: {', '.join(selected['usage'])}\n"
+            f"톤: {', '.join(selected['tone'])}\n"
+            f"선택 이유: {reason}"
+        )
+
+    except AIServerError as e:
+        return f"AI 서버 에러: {str(e)}"
+    except Exception as e:
+        logger.exception(f"폰트 추천 중 에러: {e}")
+        return f"폰트 추천 중 에러 발생: {str(e)}"
+
+
+async def get_all_jobs() -> str:
+    """
+    AI 서버에 등록된 모든 작업 목록을 조회합니다.
+
+    사용 시나리오:
+    - 현재 실행 중인 작업 확인
+    - 대기 중인 작업 확인
+    - 완료/실패한 작업 이력 조회
+    - 작업 정리 전 확인
+
+    Returns:
+        전체 작업 목록 및 각 작업의 상태 (pending/running/completed/failed)
+    """
+    try:
+        client = await get_api_client()
+        jobs = await client.list_jobs()
+
+        if not jobs.jobs:
+            return "등록된 작업이 없습니다."
+
+        response = f"전체 작업 수: {len(jobs.jobs)}개\n\n"
+        for job in jobs.jobs:
+            response += (
+                f"작업 ID: {job.job_id}\n"
+                f"  상태: {job.status}\n"
+                f"  진행률: {job.progress}%\n"
+                f"  생성 시각: {job.created_at}\n"
+            )
+            if job.completed_at:
+                response += f"  완료 시각: {job.completed_at}\n"
+            if job.error:
+                response += f"  에러: {job.error}\n"
+            response += "\n"
+
+        return response
+
+    except AIServerError as e:
+        return f"AI 서버 에러: {str(e)}"
+    except Exception as e:
+        logger.exception(f"작업 목록 조회 중 에러: {e}")
+        return f"작업 목록 조회 중 에러 발생: {str(e)}"
+
+
+async def delete_all_jobs() -> str:
+    """
+    완료되었거나 실패한 모든 작업을 삭제합니다.
+    실행 중(running)이거나 대기 중(pending)인 작업은 삭제하지 않습니다.
+
+    사용 시나리오:
+    - 테스트 후 작업 이력 정리
+    - 완료된 작업 목록 초기화
+    - 서버 메모리 정리
+
+    주의사항:
+    - 실행/대기 중인 작업은 자동으로 건너뜁니다
+    - 삭제된 작업은 복구할 수 없습니다
+    - 이미지 파일은 삭제되지 않고 작업 기록만 삭제됩니다
+
+    Returns:
+        삭제된 작업 수 및 건너뛴 작업 정보
+    """
+    try:
+        client = await get_api_client()
+        jobs = await client.list_jobs()
+
+        if not jobs.jobs:
+            return "삭제할 작업이 없습니다."
+
+        deleted_count = 0
+        skipped_count = 0
+        errors = []
+
+        for job in jobs.jobs:
+            # 실행/대기 중인 작업은 건너뛰기
+            if job.status in ["pending", "running"]:
+                skipped_count += 1
+                logger.info(
+                    f"실행/대기 중인 작업 건너뜀: {job.job_id} (상태: {job.status})"
+                )
+                continue
+
+            try:
+                await client.delete_job(job.job_id)
+                deleted_count += 1
+                logger.info(f"작업 삭제 완료: {job.job_id}")
+            except Exception as e:
+                errors.append(f"{job.job_id}: {str(e)}")
+                logger.error(f"작업 삭제 실패: {job.job_id}, 에러: {e}")
+
+        response = f"작업 정리 완료\n"
+        response += f"  삭제됨: {deleted_count}개\n"
+        response += f"  건너뜀 (실행/대기 중): {skipped_count}개\n"
+
+        if errors:
+            response += f"\n삭제 실패:\n"
+            for error in errors:
+                response += f"  - {error}\n"
+
+        return response
+
+    except AIServerError as e:
+        return f"AI 서버 에러: {str(e)}"
+    except Exception as e:
+        logger.exception(f"작업 삭제 중 에러: {e}")
+        return f"작업 삭제 중 에러 발생: {str(e)}"
+
+
+async def delete_job(job_id: str) -> str:
+    """
+    특정 작업을 삭제합니다.
+
+    완료되었거나 실패한 작업만 삭제할 수 있습니다.
+    실행 중이거나 대기 중인 작업은 먼저 중단해야 합니다.
+
+    사용 시나리오:
+    - 특정 작업의 결과를 다운로드한 후 메모리 정리
+    - 실패한 작업 기록 제거
+    - 불필요한 작업 개별 삭제
+
+    주의사항:
+    - 실행/대기 중인 작업은 삭제할 수 없습니다
+    - 삭제된 작업은 복구할 수 없습니다
+
+    Args:
+        job_id: 삭제할 작업의 고유 ID
+
+    Returns:
+        삭제 결과 메시지
+    """
+    try:
+        client = await get_api_client()
+        result = await client.delete_job(job_id)
+        return f"작업 삭제 완료\n작업 ID: {job_id}\n상태: {result.get('status', 'deleted')}"
+
+    except AIServerError as e:
+        return f"AI 서버 에러: {str(e)}"
+    except Exception as e:
+        logger.exception(f"작업 삭제 중 에러: {e}")
+        return f"작업 삭제 중 에러 발생: {str(e)}"
 
 
 async def check_server_health() -> str:
@@ -461,7 +783,7 @@ async def check_server_health() -> str:
         return response
 
     except AIServerError as e:
-        return f"AI 서버 에러: {e.message}"
+        return f"AI 서버 에러: {str(e)}"
 
 
 async def generate_background_only(
@@ -939,9 +1261,65 @@ TOOL_SCHEMAS = [
         "parameters": {"type": "object", "properties": {}},
     },
     {
+        "name": "get_fonts_metadata",
+        "description": "폰트별 상세 메타데이터(스타일, 굵기, 용도, 톤앤매너)를 조회하여 광고 콘텐츠에 적합한 폰트를 선택할 수 있습니다.",
+        "parameters": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "recommend_font_for_ad",
+        "description": "광고 콘텐츠와 유형에 따라 적합한 폰트를 자동으로 추천합니다.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "text_content": {
+                    "type": "string",
+                    "description": "광고에 사용할 텍스트 (한글/영문 구분용)",
+                },
+                "ad_type": {
+                    "type": "string",
+                    "description": "광고 유형 (sale/premium/casual/promotion/general)",
+                    "default": "general",
+                },
+                "tone": {
+                    "type": "string",
+                    "description": "원하는 톤앤매너 (energetic/elegant/friendly/modern/traditional)",
+                },
+                "weight_preference": {
+                    "type": "string",
+                    "description": "선호하는 굵기 (light/bold/heavy)",
+                },
+            },
+            "required": ["text_content"],
+        },
+    },
+    {
         "name": "check_server_health",
         "description": "AI 서버의 현재 상태와 시스템 리소스 사용량을 확인합니다.",
         "parameters": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "get_all_jobs",
+        "description": "AI 서버에 등록된 모든 작업 목록을 조회합니다.",
+        "parameters": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "delete_all_jobs",
+        "description": "완료되었거나 실패한 모든 작업을 삭제합니다. 실행/대기 중인 작업은 건너뜁니다.",
+        "parameters": {"type": "object", "properties": {}},
+    },
+    {
+        "name": "delete_job",
+        "description": "특정 작업을 삭제합니다. 완료/실패한 작업만 삭제 가능합니다.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "job_id": {
+                    "type": "string",
+                    "description": "삭제할 작업의 고유 ID",
+                }
+            },
+            "required": ["job_id"],
+        },
     },
     {
         "name": "generate_background_only",
@@ -1072,7 +1450,12 @@ TOOL_FUNCTIONS = {
     "check_generation_status": check_generation_status,
     "stop_generation": stop_generation,
     "list_available_fonts": list_available_fonts,
+    "get_fonts_metadata": get_fonts_metadata,
+    "recommend_font_for_ad": recommend_font_for_ad,
     "check_server_health": check_server_health,
+    "get_all_jobs": get_all_jobs,
+    "delete_all_jobs": delete_all_jobs,
+    "delete_job": delete_job,
     "generate_background_only": generate_background_only,
     "generate_text_asset_only": generate_text_asset_only,
     "compose_final_image": compose_final_image,

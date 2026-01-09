@@ -13,7 +13,10 @@ from typing import Optional
 from PIL import Image
 from pathlib import Path
 
-from ..config import MAX_IMAGE_SIZE_MB, SUPPORTED_IMAGE_FORMATS
+try:
+    from ..config import MAX_IMAGE_SIZE_MB, SUPPORTED_IMAGE_FORMATS
+except ImportError:
+    from config import MAX_IMAGE_SIZE_MB, SUPPORTED_IMAGE_FORMATS
 
 # MCP stdio 프로토콜은 stdout을 사용하므로 stderr로만 로깅
 logging.basicConfig(

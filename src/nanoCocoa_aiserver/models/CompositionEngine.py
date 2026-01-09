@@ -191,7 +191,7 @@ class CompositionEngine:
             composition_prompt = self._build_composition_prompt(
                 mode, position, user_prompt
             )
-            logger.info(f"📝 Composition prompt: {composition_prompt}")
+            logger.info(f"Composition prompt: {composition_prompt}")
 
             # 네거티브 프롬프트 설정
             default_negative = (
