@@ -45,27 +45,37 @@ pip install -r requirements.txt
 
 **장점**: 재현성, 격리된 환경
 
+#### docker-compose 사용 (권장)
+
 ```bash
 cd src/nanoCocoa_aiserver
 
-# Dockerfile 생성 후
+# 빌드 및 백그라운드 실행
+sudo docker-compose up -d --build
+
+# 로그 확인
+sudo docker-compose logs -f
+
+# 중지
+sudo docker-compose down
+
+# 재시작
+sudo docker-compose restart
+```
+
+#### Docker 명령어 직접 사용
+
+```bash
+cd src/nanoCocoa_aiserver
+
+# 이미지 빌드
 docker build -t nanococoa-aiserver .
+
+# 컨테이너 실행
 docker run --gpus all -p 8000:8000 nanococoa-aiserver
 ```
 
-**Dockerfile 예시**:
-```dockerfile
-FROM nvidia/cuda:12.9.1-cudnn-runtime-ubuntu22.04
-
-RUN apt-get update && apt-get install -y python3.11 python3-pip
-WORKDIR /app
-
-COPY requirements-docker.txt .
-RUN pip install --no-cache-dir -r requirements-docker.txt
-
-COPY . .
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
+**상세 가이드**: [src/nanoCocoa_aiserver/DOCKER.md](src/nanoCocoa_aiserver/DOCKER.md)
 
 ---
 

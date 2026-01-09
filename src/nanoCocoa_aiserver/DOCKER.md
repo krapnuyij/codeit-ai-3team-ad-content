@@ -19,7 +19,7 @@ sudo apt-get install -y nvidia-container-toolkit
 sudo systemctl restart docker
 
 # 설치 확인
-docker run --rm --gpus all nvidia/cuda:12.9.1-base-ubuntu22.04 nvidia-smi
+sudo docker run --rm --gpus all nvidia/cuda:12.9.1-base-ubuntu22.04 nvidia-smi
 ```
 
 ### 2. HuggingFace 캐시 디렉토리 생성
@@ -40,26 +40,26 @@ sudo chown -R $USER:$USER /opt/huggingface
 cd /home/spai0433/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver
 
 # 빌드 및 실행
-docker-compose up -d --build
+sudo docker-compose up -d --build
 
 # 로그 확인
-docker-compose logs -f
+sudo docker-compose logs -f
 
 # 중지
-docker-compose down
+sudo docker-compose down
 
 # 재시작
-docker-compose restart
+sudo docker-compose restart
 ```
 
 ### 방법 2: Docker 명령어 직접 사용
 
 ```bash
 # 이미지 빌드
-docker build -t nanococoa-aiserver:latest .
+sudo docker build -t nanococoa-aiserver:latest .
 
 # 컨테이너 실행
-docker run -d \
+sudo docker run -d \
   --name nanococoa-aiserver \
   --gpus all \
   -p 8000:8000 \
@@ -73,11 +73,11 @@ docker run -d \
   nanococoa-aiserver:latest
 
 # 로그 확인
-docker logs -f nanococoa-aiserver
+sudo docker logs -f nanococoa-aiserver
 
 # 중지 및 삭제
-docker stop nanococoa-aiserver
-docker rm nanococoa-aiserver
+sudo docker stop nanococoa-aiserver
+sudo docker rm nanococoa-aiserver
 ```
 
 ---
@@ -116,32 +116,32 @@ curl http://localhost:8000/health
 
 ```bash
 # 컨테이너 상태
-docker ps
+sudo docker ps
 
 # 리소스 사용량 (실시간)
-docker stats nanococoa-aiserver
+sudo docker stats nanococoa-aiserver
 
 # GPU 사용량
 nvidia-smi
 
 # 컨테이너 내부 접속
-docker exec -it nanococoa-aiserver bash
+sudo docker exec -it nanococoa-aiserver bash
 ```
 
 ### 로그 확인
 
 ```bash
 # 전체 로그
-docker logs nanococoa-aiserver
+sudo docker logs nanococoa-aiserver
 
 # 실시간 로그 (tail -f)
-docker logs -f nanococoa-aiserver
+sudo docker logs -f nanococoa-aiserver
 
 # 최근 100줄
-docker logs --tail 100 nanococoa-aiserver
+sudo docker logs --tail 100 nanococoa-aiserver
 
 # 특정 시간 이후 로그
-docker logs --since 10m nanococoa-aiserver
+sudo docker logs --since 10m nanococoa-aiserver
 ```
 
 ---
@@ -155,7 +155,7 @@ docker logs --since 10m nanococoa-aiserver
 sudo systemctl restart docker
 
 # GPU 테스트
-docker run --rm --gpus all nvidia/cuda:12.9.1-base-ubuntu22.04 nvidia-smi
+sudo docker run --rm --gpus all nvidia/cuda:12.9.1-base-ubuntu22.04 nvidia-smi
 ```
 
 ### 2. 포트가 이미 사용 중
@@ -166,14 +166,14 @@ sudo lsof -i :8000
 sudo netstat -tulpn | grep :8000
 
 # 다른 포트로 변경 (예: 8001)
-docker run -p 8001:8000 ...
+sudo docker run -p 8001:8000 ...
 ```
 
 ### 3. 디스크 용량 부족
 
 ```bash
 # 사용하지 않는 Docker 이미지/컨테이너 정리
-docker system prune -a
+sudo docker system prune -a
 
 # 볼륨 확인
 df -h /opt/huggingface
@@ -186,21 +186,21 @@ rm -rf /opt/huggingface/hub/*
 
 ```bash
 # HuggingFace 토큰 설정 (선택)
-docker run -e HF_TOKEN=your_token_here ...
+sudo docker run -e HF_TOKEN=your_token_here ...
 
 # 또는 .env 파일 생성
 echo "HF_TOKEN=your_token_here" > .env
-docker-compose up -d
+sudo docker-compose up -d
 ```
 
 ### 5. 컨테이너가 계속 재시작됨
 
 ```bash
 # 에러 로그 확인
-docker logs nanococoa-aiserver
+sudo docker logs nanococoa-aiserver
 
 # 헬스체크 비활성화 후 재시작
-docker run --no-healthcheck ...
+sudo docker run --no-healthcheck ...
 ```
 
 ---
@@ -254,11 +254,11 @@ tar -czf results_backup.tar.gz ./static/results
 git pull origin main
 
 # 이미지 재빌드
-docker-compose up -d --build
+sudo docker-compose up -d --build
 
 # 또는
-docker-compose build --no-cache
-docker-compose up -d
+sudo docker-compose build --no-cache
+sudo docker-compose up -d
 ```
 
 ### 3. 스케일링 (다중 인스턴스)
@@ -332,16 +332,16 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
 
 ```bash
 # 빌드 및 실행
-docker-compose up -d --build
+sudo docker-compose up -d --build
 
 # 로그 확인
-docker-compose logs -f
+sudo docker-compose logs -f
 
 # 중지
-docker-compose down
+sudo docker-compose down
 
 # 재시작
-docker-compose restart
+sudo docker-compose restart
 
 # 상태 확인
 curl http://localhost:8000/health
@@ -350,5 +350,5 @@ curl http://localhost:8000/health
 nvidia-smi
 
 # 컨테이너 내부 접속
-docker exec -it nanococoa-aiserver bash
+sudo docker exec -it nanococoa-aiserver bash
 ```

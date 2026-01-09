@@ -47,6 +47,21 @@
 
 ---
 
+## 빠른 시작
+
+### Docker로 실행 (권장)
+
+```bash
+cd src/nanoCocoa_aiserver
+sudo docker-compose up -d --build
+```
+
+서버 접속: `http://localhost:8000`
+
+상세 가이드: [QUICKSTART.md](QUICKSTART.md)
+
+---
+
 ## 프로젝트 기간
 **2025.12.29(월) ~ 2026.01.28(수)**
 

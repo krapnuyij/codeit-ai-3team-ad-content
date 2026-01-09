@@ -1,12 +1,62 @@
 ---
 layout: default
-title: "코드잇 AI 4기 3팀 고급 프로젝트 - api"
-description: "코드잇 AI 4기 3팀 고급 프로젝트 - api"
-date: 2025-12-28
+title: "코드잇 AI 4기 3팀 고급 프로젝트 - API"
+description: "코드잇 AI 4기 3팀 고급 프로젝트 - API 문서"
+date: 2025-01-08
 cache-control: no-cache
 expires: 0
 pragma: no-cache
 author: "김명환"
+---
+
+# API 문서
+
+nanoCocoa 프로젝트의 API 문서입니다.
+
+## 목차
+
+### 1. [nanoCocoa AI Server REST API](./nanoCocoa_aiserver_REST_API.md)
+
+AI 광고 생성 서버의 REST API 문서입니다.
+
+- **서버 정보**: L4 Optimized AI Ad Generator v2.0.0
+- **주요 기능**: 
+  - 배경 생성 및 합성 (BiRefNet, Flux)
+  - 3D 텍스트 생성 (SDXL ControlNet)
+  - 최종 합성 (Intelligent Composition)
+- **API 카테고리**:
+  - Generation API (광고 생성, 상태 조회, 작업 관리)
+  - Resources API (폰트, 서버 상태)
+  - Help & Documentation API (사용 가이드, 파라미터 레퍼런스)
+- **클라이언트 예시**: Python, JavaScript, cURL
+
+---
+
+## API 빠른 참조
+
+### nanoCocoa AI Server
+
+| 엔드포인트 | 메서드 | 설명 |
+|-----------|--------|------|
+| `/generate` | POST | 광고 생성 작업 시작 |
+| `/status/{job_id}` | GET | 작업 상태 및 결과 조회 |
+| `/stop/{job_id}` | POST | 작업 강제 중단 |
+| `/jobs` | GET | 모든 작업 목록 조회 |
+| `/jobs/{job_id}` | DELETE | 작업 삭제 |
+| `/fonts` | GET | 사용 가능한 폰트 목록 조회 |
+| `/health` | GET | 서버 상태 체크 |
+| `/help` | GET | 전체 API 사용 가이드 |
+| `/help/parameters` | GET | 파라미터 레퍼런스 |
+
+---
+
+## 개발 리소스
+
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+- **OpenAPI Schema**: `http://localhost:8000/openapi.json`
+- **개발자 대시보드**: `http://localhost:8000/example_generation`
+
 ---
 
 # api

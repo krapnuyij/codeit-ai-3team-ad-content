@@ -2,6 +2,19 @@
 
 ## 테스트 구성
 
+### 0. **Docker 서버 자동 감지**
+
+모든 Docker 관련 테스트는 Docker 서버가 실행 중인지 자동으로 확인합니다.
+- Docker 서버가 실행 중이면: 테스트 실행
+- Docker 서버가 실행 중이지 않으면: 테스트 자동 skip
+
+관련 fixture: `conftest.py`의 `docker_server_running`, `require_docker_server`
+
+**Docker 서버 확인 방법:**
+```bash
+docker ps | grep nanococoa
+```
+
 ### 1. **단위 테스트 (Unit Tests)**
 
 #### test_image_utils.py
@@ -56,6 +69,34 @@ python -m uvicorn nanoCocoa_aiserver.main:app --host 0.0.0.0 --port 8000
 
 # 통합 테스트 실행 (별도 터미널)
 RUN_INTEGRATION_TESTS=true pytest tests/nanoCocoa_mcpserver/test_integration.py -v
+```
+
+#### test_docker_integration.py
+- Docker 환경에서 MCP 서버 통합 테스트
+- 전체 워크플로우 테스트 (Docker 컨테이너)
+- 단계별 광고 생성 (Step 1→2→3)
+- 동시 요청 처리
+- Docker 서버가 실행 중이지 않으면 자동 skip
+
+**실행:**
+```bash
+# Docker 서버가 실행 중이어야 함
+docker ps | grep nanococoa
+
+# 테스트 실행 (Docker 서버가 없으면 자동 skip)
+pytest tests/nanoCocoa_mcpserver/test_docker_integration.py -v
+```
+
+#### test_docker_simple.py
+- Docker 환경 기본 검증
+- AI 서버 헬스체크
+- MCP 서버 SSE 엔드포인트 확인
+- 폰트 목록 조회
+- Docker 서버가 실행 중이지 않으면 자동 skip
+
+**실행:**
+```bash
+pytest tests/nanoCocoa_mcpserver/test_docker_simple.py -v
 ```
 
 ## 전체 테스트 실행

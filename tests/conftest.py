@@ -4,6 +4,7 @@ import sys
 import datetime
 import logging
 import multiprocessing
+import subprocess
 from PIL import Image
 from unittest.mock import MagicMock, patch
 
@@ -70,6 +71,39 @@ def dummy_mode(request):
     기본값: True (dummy 모드)
     """
     return request.config.getoption("dummy")
+
+
+@pytest.fixture(scope="session")
+def docker_server_running():
+    """
+    Docker 서버(aiserver, mcpserver) 실행 여부 확인
+    실행 중이면 True, 아니면 False 반환
+    """
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+
+        containers = result.stdout.strip().split("\n")
+        aiserver_running = any("nanococoa-aiserver" in c for c in containers)
+        mcpserver_running = any("nanococoa-mcpserver" in c for c in containers)
+
+        return aiserver_running and mcpserver_running
+
+    except Exception:
+        return False
+
+
+@pytest.fixture(scope="session")
+def require_docker_server(docker_server_running):
+    """
+    Docker 서버가 실행 중이지 않으면 테스트 skip
+    """
+    if not docker_server_running:
+        pytest.skip("Docker server is not running")
 
 
 # Configuration for Report

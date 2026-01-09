@@ -59,7 +59,61 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    
+    networks:
+      - nanococoa-network
+
+  nanococoa-mcpserver:
+    build:
+      context: ../nanoCocoa_mcpserver
+      dockerfile: Dockerfile
+    image: nanococoa-mcpserver:latest
+    container_name: nanococoa-mcpserver
+    
+    # 포트 매핑
+    ports:
+      - "3000:3000"
+    
+    # 볼륨 마운트 (이미지 파일 공유)
+    volumes:
+      - ./static/uploads:/app/static/uploads:ro
+      - ./static/results:/app/static/results:ro
+    
+    # 환경 변수
+    environment:
+      - MCP_TRANSPORT=sse
+      - MCP_PORT=3000
+      - MCP_HOST=0.0.0.0
+      - AISERVER_BASE_URL=http://nanococoa-aiserver:8000
+      - LOG_LEVEL=INFO
+    
+    # 의존성
+    depends_on:
+      nanococoa-aiserver:
+        condition: service_healthy
+    
+    # 재시작 정책
+    restart: unless-stopped
+    
+    # 로깅 설정
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # 헬스체크
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    networks:
+      - nanococoa-network
 
 networks:
-  default:
+  nanococoa-network:
     name: nanococoa-network
+    driver: bridge

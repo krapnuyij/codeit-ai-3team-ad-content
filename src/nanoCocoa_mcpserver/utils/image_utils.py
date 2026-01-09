@@ -13,11 +13,7 @@ from typing import Optional
 from PIL import Image
 from pathlib import Path
 
-project_root = Path.cwd().parent
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
-from src.nanoCocoa_mcpserver.config import MAX_IMAGE_SIZE_MB, SUPPORTED_IMAGE_FORMATS
+from ..config import MAX_IMAGE_SIZE_MB, SUPPORTED_IMAGE_FORMATS
 
 # MCP stdio 프로토콜은 stdout을 사용하므로 stderr로만 로깅
 logging.basicConfig(

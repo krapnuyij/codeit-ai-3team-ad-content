@@ -79,6 +79,7 @@ Windows 사용자명과 다른 ID(`spai0433`)를 VM에서 사용하기 위해, C
 ```powershell
 gcloud compute ssh spai0433@codeit-ai-part4-3team-vm --zone us-central1-c
 
+gcloud compute ssh spai0433@codeit-ai-part4-3team-vm --zone=us-central1-c --ssh-flag="-L 3000:localhost:3000"
 ```
 
 1. SSH 키 생성 여부를 묻는 경우 `Y`를 입력합니다.
