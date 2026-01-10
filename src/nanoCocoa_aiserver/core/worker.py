@@ -206,7 +206,9 @@ def worker_process(
 
                 if step1_result:
                     shared_state["images"]["step1_result"] = pil_to_base64(step1_result)
-                    shared_state["progress_percent"] = (step1_count / total_time) * 100
+                    shared_state["progress_percent"] = int(
+                        (step1_count / total_time) * 100
+                    )
                 else:
                     raise ValueError("Step 1 returned None - 배경 생성 실패")
 
@@ -270,7 +272,9 @@ def worker_process(
 
                 if step2_result:
                     shared_state["images"]["step2_result"] = pil_to_base64(step2_result)
-                    shared_state["progress_percent"] = (step2_count / total_time) * 100
+                    shared_state["progress_percent"] = int(
+                        (step2_count / total_time) * 100
+                    )
                 else:
                     raise ValueError("Step 2 returned None - 텍스트 생성 실패")
 
@@ -345,7 +349,9 @@ def worker_process(
 
                 if final_result:
                     shared_state["images"]["final_result"] = pil_to_base64(final_result)
-                    shared_state["progress_percent"] = (step3_count / total_time) * 100
+                    shared_state["progress_percent"] = int(
+                        (step3_count / total_time) * 100
+                    )
                 else:
                     raise ValueError("Step 3 returned None - 합성 실패")
 
