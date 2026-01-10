@@ -41,8 +41,39 @@ GPU 기반 AI 모델 (FLUX, SDXL 등)
 ### 요구사항
 - Python 3.10 이상
 - nanoCocoa_aiserver 실행 중 (http://localhost:8000)
+- Docker 및 Docker Compose (컨테이너 배포 시)
 
 ### 설치 방법
+
+#### 방법 1: Docker Compose로 실행 (권장)
+
+Docker Compose를 사용하면 AI 서버와 MCP 서버를 함께 자동으로 배포할 수 있습니다.
+
+```bash
+# src 디렉토리로 이동
+cd codeit-ai-3team-ad-content/src
+
+# 모든 서비스 시작 (AI 서버 + MCP 서버)
+sudo docker-compose up -d --build
+
+# 서비스 상태 확인
+docker-compose ps
+
+# MCP 서버 로그 확인
+docker-compose logs -f nanococoa-mcpserver
+
+# 서비스 중지
+sudo docker-compose down
+```
+
+**배포되는 서비스**:
+- `nanococoa-aiserver`: AI 모델 서빙 서버 (포트 8000)
+- `nanococoa-mcpserver`: MCP 프로토콜 브릿지 서버 (포트 3000)
+
+**Docker 네트워크**:
+- MCP 서버는 내부 네트워크를 통해 `http://nanococoa-aiserver:8000`으로 AI 서버에 접근
+
+#### 방법 2: 직접 설치 (개발 환경)
 
 ```bash
 # 프로젝트 루트에서
@@ -58,6 +89,24 @@ pip install -e ".[dev]"
 ## 사용 방법
 
 ### 1. MCP 서버 실행
+
+#### Docker Compose 사용 (권장)
+
+```bash
+# src 디렉토리에서
+cd codeit-ai-3team-ad-content/src
+
+# 모든 서비스 시작
+sudo docker-compose up -d
+
+# MCP 서버 상태 확인
+curl http://localhost:3000/health
+
+# 로그 모니터링
+docker-compose logs -f nanococoa-mcpserver
+```
+
+#### 직접 실행
 
 ```bash
 # MCP 서버 시작
@@ -150,11 +199,26 @@ async def step_workflow():
 
 ## 환경 변수 설정
 
+### Docker Compose 환경 변수
+
+Docker Compose로 실행 시 환경 변수는 `docker-compose.yml`에서 자동으로 설정됩니다:
+
+```yaml
+environment:
+  - MCP_TRANSPORT=sse
+  - MCP_PORT=3000
+  - MCP_HOST=0.0.0.0
+  - AISERVER_BASE_URL=http://nanococoa-aiserver:8000  # 내부 네트워크 주소
+  - LOG_LEVEL=INFO
+```
+
+### 직접 실행 시 환경 변수
+
 `.env` 파일을 생성하여 설정을 커스터마이즈할 수 있습니다.
 
 ```bash
 # AI 서버 연결
-AISERVER_BASE_URL=http://localhost:8000
+AISERVER_BASE_URL=http://localhost:8000  # 로컬 실행 시
 AISERVER_TIMEOUT=600
 AISERVER_CONNECT_TIMEOUT=10
 
@@ -171,6 +235,8 @@ ENABLE_CACHING=false
 ENABLE_METRICS=true
 ENABLE_PROGRESS_NOTIFICATIONS=true
 ```
+
+**참고**: Docker 환경에서는 AI 서버 URL이 `http://nanococoa-aiserver:8000`으로 설정되어 내부 네트워크를 통해 통신합니다.
 
 ## 예제 코드
 

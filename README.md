@@ -49,16 +49,37 @@
 
 ## 빠른 시작
 
-### Docker로 실행 (권장)
+### Docker Compose로 실행 (권장)
+
+프로젝트는 Docker Compose를 통해 두 개의 서비스를 제공합니다:
+- **nanoCocoa_aiserver**: AI 모델 서빙 서버 (포트 8000)
+- **nanoCocoa_mcpserver**: MCP 프로토콜 브릿지 서버 (포트 3000)
 
 ```bash
-cd src/nanoCocoa_aiserver
+# src 디렉토리에서 실행
+cd src
 sudo docker-compose up -d --build
+
+# 서버 상태 확인
+docker-compose ps
+
+# 로그 확인
+docker-compose logs -f
 ```
 
-서버 접속: `http://localhost:8000`
+**서버 접속**:
+- AI 서버: `http://localhost:8000`
+- AI 서버 API 문서: `http://localhost:8000/docs`
+- MCP 서버: `http://localhost:3000`
+- MCP 서버 Health Check: `http://localhost:3000/health`
 
-상세 가이드: [QUICKSTART.md](QUICKSTART.md)
+**서비스 중지**:
+```bash
+cd src
+sudo docker-compose down
+```
+
+상세 가이드: [완전한 설치 가이드](docs/doc/완전한_설치_가이드.md)
 
 ---
 
@@ -107,6 +128,7 @@ gantt
 graph TB
     subgraph "사용자 환경"
         User["사용자 (소상공인)"]
+        Claude["Claude Desktop/Code<br/>(LLM 클라이언트)"]
     end
 
     subgraph "프론트엔드 계층 (Docker Container 1)"
@@ -118,22 +140,30 @@ graph TB
         LLM["OpenAI GPT-4o<br/>프롬프트 생성"]
     end
 
-    subgraph "모델서빙 계층 (Docker Container 3)"
-        ModelServer["FastAPI 모델 서버<br/>Port: 8000"]
-
-        subgraph "AI 모델 파이프라인"
-            BiRefNet["BiRefNet<br/>(이미지 누끼)"]
-            FLUX["FLUX.1-dev<br/>(배경 생성)"]
-            SDXL["SDXL ControlNet<br/>(3D 텍스트)"]
+    subgraph "Docker Network: nanococoa-network"
+        subgraph "MCP 서버 (nanoCocoa_mcpserver)"
+            MCPServer["MCP 서버<br/>FastAPI<br/>Port: 3000"]
         end
 
-        GPU["NVIDIA L4 GPU<br/>24GB VRAM"]
+        subgraph "AI 서빙 서버 (nanoCocoa_aiserver)"
+            ModelServer["FastAPI 모델 서버<br/>Port: 8000"]
+
+            subgraph "AI 모델 파이프라인"
+                BiRefNet["BiRefNet<br/>(이미지 누끼)"]
+                FLUX["FLUX.1-dev<br/>(배경 생성)"]
+                SDXL["SDXL ControlNet<br/>(3D 텍스트)"]
+            end
+
+            GPU["NVIDIA L4 GPU<br/>24GB VRAM"]
+        end
     end
 
     User -->|HTTP 요청| Frontend
     Frontend -->|REST API<br/>Port 8080| Backend
     Backend -->|LLM API| LLM
     Backend -->|REST API<br/>Port 8000| ModelServer
+    Claude -.->|MCP Protocol<br/>(SSE)| MCPServer
+    MCPServer -->|REST API<br/>Port 8000| ModelServer
     ModelServer --> BiRefNet
     ModelServer --> FLUX
     ModelServer --> SDXL
@@ -222,13 +252,22 @@ sequenceDiagram
 nanoCocoa_mcpserver는 **FastMCP 표준**을 준수하여 개발된 Model Context Protocol 서버입니다.
 nanoCocoa_aiserver REST API를 MCP 프로토콜로 브릿지하여, Claude Desktop/Code 등의 LLM 클라이언트에서 자연어로 광고 이미지를 생성할 수 있도록 합니다.
 
+**Docker Compose 배포**:
+```
+Docker Network (nanococoa-network)
+├── nanoCocoa_aiserver (포트 8000)
+│   └── GPU 기반 AI 모델 추론
+└── nanoCocoa_mcpserver (포트 3000)
+    └── MCP 프로토콜 브릿지 (SSE)
+```
+
 **아키텍처**:
 ```
 Claude Desktop/Code (사용자)
-    ↕ MCP Protocol (stdio transport)
-nanoCocoa_mcpserver (MCP 브릿지)
-    ↕ REST API
-nanoCocoa_aiserver (AI 서빙 서버)
+    ↕ MCP Protocol (SSE transport, Port 3000)
+nanoCocoa_mcpserver (Docker Container)
+    ↕ REST API (Internal Network)
+nanoCocoa_aiserver (Docker Container, Port 8000)
     ↕ GPU Models
 NVIDIA L4 GPU
 ```
@@ -248,7 +287,28 @@ MCP 서버는 **8개의 도구(Tools)**를 제공합니다:
 
 ### 설치 및 실행
 
-#### 1. 의존성 설치
+#### 방법 1: Docker Compose로 실행 (권장)
+
+```bash
+# src 디렉토리에서 실행
+cd src
+sudo docker-compose up -d --build
+
+# MCP 서버만 재시작
+sudo docker-compose restart nanococoa-mcpserver
+
+# 로그 확인
+sudo docker-compose logs -f nanococoa-mcpserver
+```
+
+MCP 서버는 자동으로 `nanoCocoa_aiserver`에 의존하며, AI 서버가 정상 작동한 후에 시작됩니다.
+
+**환경 변수 설정** (docker-compose.yml에서 설정됨):
+- `MCP_TRANSPORT=sse`: SSE 전송 방식 사용
+- `MCP_PORT=3000`: MCP 서버 포트
+- `AISERVER_BASE_URL=http://nanococoa-aiserver:8000`: AI 서버 내부 네트워크 주소
+
+#### 방법 2: 직접 실행 (개발 환경)
 
 ```bash
 # 프로젝트 루트에서
@@ -257,8 +317,6 @@ pip install -e .
 # 또는 개발 의존성 포함
 pip install -e ".[dev]"
 ```
-
-#### 2. 환경 변수 설정
 
 `.env` 파일 생성:
 
@@ -272,11 +330,11 @@ AISERVER_CONNECT_TIMEOUT=10
 STATUS_POLL_INTERVAL=3.0
 MAX_POLL_RETRIES=200
 
-# 로깅 (stdio 사용 시 파일로만 출력)
+# 로깅
 LOG_LEVEL=INFO
 ```
 
-#### 3. MCP 서버 실행
+MCP 서버 실행:
 
 ```bash
 # 직접 실행

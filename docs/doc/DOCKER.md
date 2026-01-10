@@ -36,25 +36,53 @@ sudo chown -R $USER:$USER /opt/huggingface
 
 ### 방법 1: docker-compose 사용 (권장)
 
-```bash
-cd /home/spai0433/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver
+Docker Compose는 AI 서버와 MCP 서버를 함께 배포합니다.
 
-# 빌드 및 실행
+```bash
+# src 디렉토리로 이동 (중요!)
+cd /home/spai0433/codeit-ai-3team-ad-content/src
+
+# 또는 상대 경로로
+cd codeit-ai-3team-ad-content/src
+
+# 모든 서비스 빌드 및 실행 (aiserver + mcpserver)
 sudo docker-compose up -d --build
 
-# 로그 확인
+# 서비스 상태 확인
+docker-compose ps
+
+# 로그 확인 (모든 서비스)
 sudo docker-compose logs -f
+
+# 특정 서비스 로그만 확인
+sudo docker-compose logs -f nanococoa-aiserver
+sudo docker-compose logs -f nanococoa-mcpserver
 
 # 중지
 sudo docker-compose down
 
 # 재시작
 sudo docker-compose restart
+
+# 특정 서비스만 재시작
+sudo docker-compose restart nanococoa-aiserver
+sudo docker-compose restart nanococoa-mcpserver
 ```
 
-### 방법 2: Docker 명령어 직접 사용
+**배포되는 서비스**:
+- `nanococoa-aiserver`: AI 모델 서빙 서버 (포트 8000)
+- `nanococoa-mcpserver`: MCP 프로토콜 브릿지 서버 (포트 3000)
+
+**Docker 네트워크**: `nanococoa-network` (내부 통신용)
+
+### 방법 2: Docker 명령어 직접 사용 (AI 서버만)
+
+개별 서비스를 Docker 명령어로 직접 실행할 수 있습니다.
 
 ```bash
+# nanoCocoa_aiserver 디렉토리로 이동
+cd /home/spai0433/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver
+
 # 이미지 빌드
 sudo docker build -t nanococoa-aiserver:latest .
 
@@ -69,6 +97,8 @@ sudo docker run -d \
   -v $(pwd)/logs:/app/logs \
   -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
   -e HF_HOME=/root/.cache/huggingface \
+  -e DEVICE=cuda \
+  -e AUTO_UNLOAD_DEFAULT=true \
   --restart unless-stopped \
   nanococoa-aiserver:latest
 
@@ -79,6 +109,8 @@ sudo docker logs -f nanococoa-aiserver
 sudo docker stop nanococoa-aiserver
 sudo docker rm nanococoa-aiserver
 ```
+
+**참고**: MCP 서버도 함께 사용하려면 방법 1 (docker-compose)를 권장합니다.
 
 ---
 
@@ -100,36 +132,74 @@ sudo docker rm nanococoa-aiserver
 ### 헬스체크 API
 
 ```bash
-# 서버 상태 확인
+# AI 서버 상태 확인
 curl http://localhost:8000/health
 
 # 응답 예시
 {
   "status": "healthy",
-  "uptime": 3600,
-  "gpu_available": true,
-  "models_loaded": 0
+  "server_time": 1234567890.123,
+  "total_jobs": 0,
+  "active_jobs": 0,
+  "system_metrics": {
+    "cpu_percent": 12.5,
+    "ram_used_gb": 8.2,
+    "gpu_info": [...]
+  }
+}
+
+# MCP 서버 상태 확인
+curl http://localhost:3000/health
+
+# 응답 예시
+{
+  "status": "healthy",
+  "aiserver_status": "connected",
+  "aiserver_url": "http://nanococoa-aiserver:8000"
 }
 ```
 
 ### 컨테이너 상태 확인
 
 ```bash
-# 컨테이너 상태
+# 모든 컨테이너 상태
 sudo docker ps
+# 또는 docker-compose 사용
+docker-compose ps
 
-# 리소스 사용량 (실시간)
-sudo docker stats nanococoa-aiserver
+# 리소스 사용량 (실시간, 모든 컨테이너)
+sudo docker stats
+
+# 특정 컨테이너만
+sudo docker stats nanococoa-aiserver nanococoa-mcpserver
 
 # GPU 사용량
 nvidia-smi
 
 # 컨테이너 내부 접속
 sudo docker exec -it nanococoa-aiserver bash
+sudo docker exec -it nanococoa-mcpserver bash
 ```
 
 ### 로그 확인
 
+**docker-compose 사용**:
+```bash
+# 모든 서비스 로그
+sudo docker-compose logs -f
+
+# 특정 서비스 로그
+sudo docker-compose logs -f nanococoa-aiserver
+sudo docker-compose logs -f nanococoa-mcpserver
+
+# 최근 100줄
+sudo docker-compose logs --tail=100
+
+# 특정 시간 이후
+sudo docker-compose logs --since 10m
+```
+
+**Docker 명령어 사용**:
 ```bash
 # 전체 로그
 sudo docker logs nanococoa-aiserver
@@ -331,11 +401,21 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
 ## 💡 빠른 명령어 요약
 
 ```bash
-# 빌드 및 실행
+# 디렉토리 이동 (중요!)
+cd /home/spai0433/codeit-ai-3team-ad-content/src
+
+# 빌드 및 실행 (모든 서비스)
 sudo docker-compose up -d --build
+
+# 서비스 상태
+docker-compose ps
 
 # 로그 확인
 sudo docker-compose logs -f
+
+# 특정 서비스 로그
+sudo docker-compose logs -f nanococoa-aiserver
+sudo docker-compose logs -f nanococoa-mcpserver
 
 # 중지
 sudo docker-compose down
@@ -343,12 +423,14 @@ sudo docker-compose down
 # 재시작
 sudo docker-compose restart
 
-# 상태 확인
-curl http://localhost:8000/health
+# Health Check
+curl http://localhost:8000/health  # AI 서버
+curl http://localhost:3000/health  # MCP 서버
 
 # GPU 확인
 nvidia-smi
 
 # 컨테이너 내부 접속
 sudo docker exec -it nanococoa-aiserver bash
+sudo docker exec -it nanococoa-mcpserver bash
 ```
