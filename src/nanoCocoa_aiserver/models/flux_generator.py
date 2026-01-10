@@ -135,19 +135,23 @@ class FluxGenerator:
         """
         logger.info("[FluxGenerator] Generating background with Text-to-Image...")
 
-        # 캐싱된 파이프라인 사용
-        pipe = self._load_t2i_pipeline()
-
-        generator = None
-        if seed is not None:
-            generator = torch.Generator("cpu").manual_seed(seed)
-
         num_steps = 25
 
         def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
             if progress_callback:
                 progress_callback(step_index + 1, num_steps, "flux_bg_generation")
             return callback_kwargs
+
+        # 캐싱된 파이프라인 사용
+        callback_fn(None, 0, None, None)
+
+        pipe = self._load_t2i_pipeline()
+
+        callback_fn(None, 0, None, None)
+
+        generator = None
+        if seed is not None:
+            generator = torch.Generator("cpu").manual_seed(seed)
 
         image = pipe(
             prompt,
@@ -222,8 +226,21 @@ class FluxGenerator:
         """
         logger.info("[FluxGenerator] Refining image with Img2Img...")
 
+        num_steps = 30
+
+        def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
+            if progress_callback:
+                progress_callback(
+                    step_index + 1, num_steps, "flux_bg_composition_refinement"
+                )
+            return callback_kwargs
+
+        callback_fn(None, 0, None, None)
+
         # 캐싱된 파이프라인 사용
         pipe = self._load_i2i_pipeline()
+
+        callback_fn(None, 0, None, None)
 
         default_prompt = (
             "A photorealistic close-up shot of a product lying naturally on a surface. "
@@ -240,15 +257,6 @@ class FluxGenerator:
             generator = torch.Generator("cpu").manual_seed(seed)
         else:
             generator = torch.Generator("cpu").manual_seed(42)
-
-        num_steps = 30
-
-        def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
-            if progress_callback:
-                progress_callback(
-                    step_index + 1, num_steps, "flux_bg_composition_refinement"
-                )
-            return callback_kwargs
 
         refined_image = pipe(
             use_prompt,
@@ -304,9 +312,22 @@ class FluxGenerator:
         """
         logger.info("[FluxGenerator] Injecting features via Inpainting...")
 
+        # Progress callback
+        def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
+            if progress_callback:
+                progress_callback(
+                    step_index + 1, num_inference_steps, "flux_feature_injection"
+                )
+            return callback_kwargs
+
         try:
+
+            callback_fn(None, 0, None, None)
+
             # 캐싱된 파이프라인 사용
             pipe = self._load_inpaint_pipeline()
+
+            callback_fn(None, 0, None, None)
 
             # 초안 이미지 생성 (상품을 배경에 임시 배치)
             draft = background.copy().convert("RGBA")
@@ -319,14 +340,6 @@ class FluxGenerator:
                 generator = torch.Generator("cpu").manual_seed(seed)
             else:
                 generator = torch.Generator("cpu").manual_seed(42)
-
-            # Progress callback
-            def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
-                if progress_callback:
-                    progress_callback(
-                        step_index + 1, num_inference_steps, "flux_feature_injection"
-                    )
-                return callback_kwargs
 
             logger.info(
                 f"[FluxGenerator] Injecting features: prompt='{prompt[:50]}...', strength={strength}"
@@ -385,9 +398,22 @@ class FluxGenerator:
         """
         logger.info("[FluxGenerator] Compositing via Inpainting...")
 
+        # Progress callback
+        def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
+            if progress_callback:
+                progress_callback(
+                    step_index + 1, num_inference_steps, "flux_inpaint_composite"
+                )
+            return callback_kwargs
+
         try:
+
+            callback_fn(None, 0, None, None)
+
             # 캐싱된 파이프라인 사용
             pipe = self._load_inpaint_pipeline()
+
+            callback_fn(None, 0, None, None)
 
             # 초안 합성 (텍스트를 배경에 배치)
             draft = background.copy().convert("RGBA")
@@ -401,14 +427,6 @@ class FluxGenerator:
                 generator = torch.Generator("cpu").manual_seed(seed)
             else:
                 generator = torch.Generator("cpu").manual_seed(42)
-
-            # Progress callback
-            def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
-                if progress_callback:
-                    progress_callback(
-                        step_index + 1, num_inference_steps, "flux_inpaint_composite"
-                    )
-                return callback_kwargs
 
             logger.info(
                 f"[FluxGenerator] Running inpainting: prompt='{prompt[:50]}...', steps={num_inference_steps}"

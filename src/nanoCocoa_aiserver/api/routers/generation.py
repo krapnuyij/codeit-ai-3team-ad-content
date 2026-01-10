@@ -117,6 +117,7 @@ async def generate_ad(req: GenerateRequest, response: Response):
     JOBS[job_id] = manager.dict(
         {
             "status": "pending",
+            "step_count": 0,
             "progress_percent": 0,
             "current_step": "init",
             "message": "Initializing...",

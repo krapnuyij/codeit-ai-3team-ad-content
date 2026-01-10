@@ -23,7 +23,13 @@ except RuntimeError:
     pass
 
 from config import logger
-from utils import pil_to_base64, base64_to_pil, flush_gpu, step_stats_manager
+from utils import (
+    pil_to_base64,
+    base64_to_pil,
+    flush_gpu,
+    step_stats_manager,
+    get_system_metrics,
+)
 from core.engine import AIModelEngine
 from core.processors import (
     process_step1_background,
@@ -47,9 +53,15 @@ def worker_process(
 
     # 파라미터 추출
     test_mode = input_data.get("test_mode", False)
+    step1_count = step_stats_manager.get_stat("step1_count")
+    step2_count = step_stats_manager.get_stat("step2_count")
+    step3_count = step_stats_manager.get_stat("step3_count")
+    total_count = step_stats_manager.get_stat("total_count")
+    total_time = step_stats_manager.get_stat("total_time")
 
     # 진행률 업데이트 콜백 함수
-    def update_progress(step_num: int, total_steps: int, sub_step_name: str):
+    # def update_progress(step_num: int, total_steps: int, sub_step_name: str):
+    def update_progress(*args, **kwargs):
         """
         모델 파이프라인 내부의 진행률을 shared_state에 반영합니다.
 
@@ -58,64 +70,48 @@ def worker_process(
             total_steps: 전체 스텝 수
             sub_step_name: 서브 스텝 이름
         """
+        step_num = kwargs.get("step_num", args[0] if len(args) > 0 else 0)
+        total_steps = kwargs.get("total_steps", args[1] if len(args) > 1 else 1)
+        sub_step_name = kwargs.get(
+            "sub_step_name", args[2] if len(args) > 2 else "unknown"
+        )
+
         # 현재 메인 스텝 확인
         current_main_step = shared_state.get("current_step", "step1_background")
 
         # 메인 스텝별 진행률 범위 정의
         # Step 1: 0-33%, Step 2: 33-66%, Step 3: 66-100%
+        step_num = 0
+        total_steps = 1
         if "step1" in current_main_step:
-            base_progress = 0
-            step_range = 33
+            base_progress = (100 * step1_count) / total_count
+            step_range = (100 * step1_count) / total_count
+            step_num = shared_state["step_count"]
+            total_steps = step1_count
         elif "step2" in current_main_step:
-            base_progress = 33
-            step_range = 33
+            base_progress = (100 * step2_count) / total_count
+            step_range = (100 * (step2_count - step1_count)) / total_count
+            step_num = shared_state["step_count"]
+            total_steps = step2_count
         elif "step3" in current_main_step:
-            base_progress = 66
-            step_range = 34
+            base_progress = (100 * step3_count) / total_count
+            step_range = (100 * (step3_count - step2_count)) / total_count
+            step_num = shared_state["step_count"]
+            total_steps = step3_count
         else:
             base_progress = 0
-            step_range = 33
-
-        # 서브 스텝별 가중치 적용 (Weighted Progress)
-        progress_weight = 0.0
-
-        if "step1" in current_main_step:
-            # Step 1: Background Gen (50%) + Feature Injection (50%)
-            # Segmentation은 매우 빠르므로 0% 비중으로 처리 (혹은 무시)
-            if "flux_bg_generation" in sub_step_name:
-                # 0 ~ 50% 구간
-                progress_weight = (step_num / total_steps) * 0.5
-            elif "flux_feature_injection" in sub_step_name:
-                # 50 ~ 100% 구간
-                progress_weight = 0.5 + ((step_num / total_steps) * 0.5)
-            else:
-                progress_weight = 0  # segmentation etc
-
-        elif "step2" in current_main_step:
-            # Step 2: Text Gen (100%)
-            progress_weight = step_num / total_steps
-
-        elif "step3" in current_main_step:
-            # Step 3: Composite (100%)
-            progress_weight = step_num / total_steps
-
-        else:
-            progress_weight = 0
+            step_range = (100 * (step3_count - step2_count)) / total_count
+            step_num = shared_state["step_count"]
+            total_steps = step3_count
 
         # 최종 진행률 = 베이스 + (가중된 서브 진행률 * 스텝 범위)
-        final_progress = int(base_progress + (progress_weight * step_range))
+        # final_progress = int(base_progress + (progress_weight * step_range))
+        final_progress = int((shared_state["step_count"] / total_count) * 100)
         final_progress = min(100, max(0, final_progress))
 
+        shared_state["step_count"] = shared_state["step_count"] + 1
         shared_state["progress_percent"] = final_progress
         shared_state["sub_step"] = f"{sub_step_name} ({step_num}/{total_steps})"
-        from utils import get_system_metrics
-
-        shared_state["system_metrics"] = get_system_metrics()
-
-        shared_state["progress_percent"] = final_progress
-        shared_state["sub_step"] = f"{sub_step_name} ({step_num}/{total_steps})"
-        from utils import get_system_metrics
-
         shared_state["system_metrics"] = get_system_metrics()
 
         # [ETA 계산] 통계 기반 동적 예측
@@ -127,7 +123,9 @@ def worker_process(
             current_step_key = "step3_composite"
 
         avg_time = step_stats_manager.get_stat(current_step_key)
-        step_remaining = max(0, avg_time * (1.0 - progress_weight))
+
+        # step_remaining = max(0, avg_time * (1.0 - progress_weight))
+        step_remaining = max(0, (avg_time * (step_range / 100.0)))
         shared_state["step_eta_seconds"] = int(step_remaining)
 
         # [전체 ETA 계산]
@@ -142,6 +140,11 @@ def worker_process(
 
         shared_state["eta_seconds"] = int(total_remaining)
         shared_state["eta_update_time"] = time.time()
+
+        logger.debug(" ")
+        logger.debug(
+            f"step_count={shared_state['step_count']} avg_time={avg_time} step_range={step_range}"
+        )
 
     # auto_unload 설정 (기본값: True)
     auto_unload = input_data.get("auto_unload", True)
@@ -194,11 +197,16 @@ def worker_process(
                     engine, input_data, shared_state, stop_event
                 )
                 s1_dur = time.time() - s1_start
-                step_stats_manager.update_stat("step1_background", s1_dur)
+
+                if not test_mode:
+                    step_stats_manager.update_stat("step1_background", s1_dur)
+                    step_stats_manager.update_stat(
+                        "step1_count", shared_state["step_count"]
+                    )
 
                 if step1_result:
                     shared_state["images"]["step1_result"] = pil_to_base64(step1_result)
-                    shared_state["progress_percent"] = 33
+                    shared_state["progress_percent"] = (step1_count / total_time) * 100
                 else:
                     raise ValueError("Step 1 returned None - 배경 생성 실패")
 
@@ -253,11 +261,16 @@ def worker_process(
                     engine, input_data, shared_state, stop_event
                 )
                 s2_dur = time.time() - s2_start
-                step_stats_manager.update_stat("step2_text", s2_dur)
+
+                if not test_mode:
+                    step_stats_manager.update_stat("step2_text", s2_dur)
+                    step_stats_manager.update_stat(
+                        "step2_count", shared_state["step_count"]
+                    )
 
                 if step2_result:
                     shared_state["images"]["step2_result"] = pil_to_base64(step2_result)
-                    shared_state["progress_percent"] = 66
+                    shared_state["progress_percent"] = (step2_count / total_time) * 100
                 else:
                     raise ValueError("Step 2 returned None - 텍스트 생성 실패")
 
@@ -317,11 +330,22 @@ def worker_process(
                     stop_event,
                 )
                 s3_dur = time.time() - s3_start
-                step_stats_manager.update_stat("step3_composite", s3_dur)
+
+                if not test_mode:
+                    step_stats_manager.update_stat("step3_composite", s3_dur)
+                    step_stats_manager.update_stat(
+                        "step3_count", shared_state["step_count"]
+                    )
+                    step_stats_manager.update_stat(
+                        "total_count", shared_state["step_count"]
+                    )
+                    step_stats_manager.update_stat(
+                        "total_time", time.time() - shared_state["start_time"]
+                    )
 
                 if final_result:
                     shared_state["images"]["final_result"] = pil_to_base64(final_result)
-                    shared_state["progress_percent"] = 100
+                    shared_state["progress_percent"] = (step3_count / total_time) * 100
                 else:
                     raise ValueError("Step 3 returned None - 합성 실패")
 

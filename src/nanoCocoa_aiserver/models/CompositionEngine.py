@@ -17,7 +17,7 @@ from PIL import Image
 from typing import Literal, Optional
 from config import DEVICE, TORCH_DTYPE, MODEL_IDS, logger
 from transformers import BitsAndBytesConfig
-from diffusers import FluxTransformer2DModel
+from diffusers import FluxTransformer2DModel, FluxInpaintPipeline
 
 
 CompositionMode = Literal["overlay", "blend", "behind"]
@@ -47,7 +47,6 @@ class CompositionEngine:
             return
 
         try:
-            from diffusers import FluxInpaintPipeline
 
             logger.info("Loading Flux Inpainting pipeline for composition...")
 
@@ -176,11 +175,20 @@ class CompositionEngine:
         Returns:
             Image.Image: 합성된 최종 이미지
         """
+        # 1. 초안 합성 (텍스트를 배경에 배치)
+        logger.info(f"Creating composition draft: mode={mode}, position={position}")
+
+        def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
+            if progress_callback:
+                progress_callback(
+                    step_index + 1, num_inference_steps, "intelligent_composite"
+                )
+            return callback_kwargs
+
+        callback_fn(None, 0, None, None)
         self._load_pipeline()
 
         try:
-            # 1. 초안 합성 (텍스트를 배경에 배치)
-            logger.info(f"Creating composition draft: mode={mode}, position={position}")
 
             draft = background.copy().convert("RGBA")
             text_resized = text_asset.resize(draft.size, Image.LANCZOS)
@@ -188,6 +196,7 @@ class CompositionEngine:
             draft_rgb = draft.convert("RGB")
 
             # 2. 프롬프트 생성
+            callback_fn(None, 0, None, None)
             composition_prompt = self._build_composition_prompt(
                 mode, position, user_prompt
             )
@@ -215,13 +224,6 @@ class CompositionEngine:
             logger.info(
                 f"Running Flux Inpainting: strength={strength}, guidance={guidance_scale}, steps={num_inference_steps}"
             )
-
-            def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
-                if progress_callback:
-                    progress_callback(
-                        step_index + 1, num_inference_steps, "intelligent_composite"
-                    )
-                return callback_kwargs
 
             result = self.pipe(
                 prompt=composition_prompt,

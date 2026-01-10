@@ -1,4 +1,5 @@
 import sys
+import time
 from pathlib import Path
 
 project_root = Path(__file__).resolve().parent
@@ -34,10 +35,12 @@ class AIModelEngine:
 
         if not self.dummy_mode:
             # 하위 모델 인스턴스 생성 (실제 모델 로딩은 각 클래스의 메서드 실행 시점에 발생)
+            logger.debug("AIModelEngine: Initializing sub-models")
             self.segmenter = SegmentationModel()
             self.flux_gen = FluxGenerator()
             self.sdxl_gen = SDXLTextGenerator()
             self.compositor = CompositionEngine()
+            logger.debug("AIModelEngine: Initializing sub-models completed")
         else:
             logger.info("AIModelEngine initialized in DUMMY MODE.")
             # Dummy mode에서는 모델 인스턴스를 생성하지 않거나 모의 객체 사용
@@ -86,13 +89,16 @@ class AIModelEngine:
         """
         if self.dummy_mode:
             logger.info(f"[DUMMY] Generating BG with prompt: {prompt}")
-            import time
 
             total_steps = 10
             for i in range(total_steps):
                 time.sleep(0.5)  # Simulate delay
                 if self.progress_callback:
-                    self.progress_callback(i + 1, total_steps, "flux_bg_generation")
+                    self.progress_callback(
+                        step_num=i + 1,
+                        total_steps=total_steps,
+                        sub_step_name="flux_bg_generation",
+                    )
             return self._create_dummy_image(1024, 1024, "lightblue")
 
         return self.flux_gen.generate_background(
@@ -130,7 +136,11 @@ class AIModelEngine:
             for i in range(total_steps):
                 time.sleep(0.5)
                 if self.progress_callback:
-                    self.progress_callback(i + 1, total_steps, "flux_refinement")
+                    self.progress_callback(
+                        step_num=i + 1,
+                        total_steps=total_steps,
+                        sub_step_name="flux_refinement",
+                    )
             return draft_image.copy()  # 단순 복사
 
         return self.flux_gen.refine_image(
@@ -174,13 +184,15 @@ class AIModelEngine:
         """
         if self.dummy_mode:
             logger.info(f"[DUMMY] Injecting features with strength: {strength}")
-            import time
-
             total_steps = 10
             for i in range(total_steps):
                 time.sleep(0.5)
                 if self.progress_callback:
-                    self.progress_callback(i + 1, total_steps, "flux_feature_injection")
+                    self.progress_callback(
+                        step_num=i + 1,
+                        total_steps=total_steps,
+                        sub_step_name="flux_feature_injection",
+                    )
             return background.copy()
 
         return self.flux_gen.inject_features_via_inpaint(
@@ -217,13 +229,15 @@ class AIModelEngine:
         """
         if self.dummy_mode:
             logger.info(f"[DUMMY] Generating 3D Text with prompt: {prompt}")
-            import time
-
             total_steps = 8
             for i in range(total_steps):
                 time.sleep(0.5)
                 if self.progress_callback:
-                    self.progress_callback(i + 1, total_steps, "sdxl_text_gen")
+                    self.progress_callback(
+                        step_num=i + 1,
+                        total_steps=total_steps,
+                        sub_step_name="sdxl_text_gen",
+                    )
             return self._create_dummy_image(1024, 1024, "yellow")
 
         return self.sdxl_gen.generate_text_effect(
@@ -261,12 +275,14 @@ class AIModelEngine:
             logger.info(
                 f"[DUMMY] Compositing: mode={composition_mode}, position={text_position}"
             )
-            import time
-
             for i in range(5):
                 time.sleep(0.5)
                 if self.progress_callback:
-                    self.progress_callback(i + 1, 5, "intelligent_composite")
+                    self.progress_callback(
+                        step_num=i + 1,
+                        total_steps=5,
+                        sub_step_name="intelligent_composite",
+                    )
             # 단순 합성 반환
             draft = background.copy().convert("RGBA")
             text_resized = text_asset.resize(draft.size, Image.LANCZOS).convert("RGBA")

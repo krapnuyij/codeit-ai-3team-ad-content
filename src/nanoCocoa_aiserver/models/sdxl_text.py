@@ -48,26 +48,7 @@ class SDXLTextGenerator:
         else:
             logger.info("[SDXL] progress_callback 정상 전달됨")
 
-        print("[Engine] Loading SDXL ControlNet... (SDXL ControlNet 로딩 중)")
-        flush_gpu()
-
-        controlnet = ControlNetModel.from_pretrained(
-            MODEL_IDS["SDXL_CNET"], torch_dtype=TORCH_DTYPE, use_safetensors=True
-        )
-        vae = AutoencoderKL.from_pretrained(
-            MODEL_IDS["SDXL_VAE"], torch_dtype=TORCH_DTYPE
-        )
-        pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
-            MODEL_IDS["SDXL_BASE"],
-            controlnet=controlnet,
-            vae=vae,
-            torch_dtype=TORCH_DTYPE,
-        ).to(DEVICE)
-
-        # Generator 설정: seed가 None이면 진정한 랜덤, 아니면 고정
-        generator = None
-        if seed is not None:
-            generator = torch.Generator(device=DEVICE).manual_seed(seed)
+        logger.debug("[Engine] Loading SDXL ControlNet... (SDXL ControlNet 로딩 중)")
 
         num_steps = 30
 
@@ -80,6 +61,33 @@ class SDXLTextGenerator:
                     f"[SDXL Callback] progress_callback이 None이어서 업데이트 생략"
                 )
             return callback_kwargs
+
+        flush_gpu()
+
+        callback_fn(None, 0, None, None)
+        controlnet = ControlNetModel.from_pretrained(
+            MODEL_IDS["SDXL_CNET"], torch_dtype=TORCH_DTYPE, use_safetensors=True
+        )
+
+        callback_fn(None, 0, None, None)
+        vae = AutoencoderKL.from_pretrained(
+            MODEL_IDS["SDXL_VAE"], torch_dtype=TORCH_DTYPE
+        )
+
+        callback_fn(None, 0, None, None)
+        pipe = StableDiffusionXLControlNetPipeline.from_pretrained(
+            MODEL_IDS["SDXL_BASE"],
+            controlnet=controlnet,
+            vae=vae,
+            torch_dtype=TORCH_DTYPE,
+        ).to(DEVICE)
+
+        callback_fn(None, 0, None, None)
+
+        # Generator 설정: seed가 None이면 진정한 랜덤, 아니면 고정
+        generator = None
+        if seed is not None:
+            generator = torch.Generator(device=DEVICE).manual_seed(seed)
 
         logger.info(
             f"[SDXL] Inference 시작 - {num_steps} steps, seed={'고정:'+str(seed) if seed is not None else '랜덤'}, callback={'설정됨' if progress_callback else '미설정'}"

@@ -7,6 +7,35 @@
 const loadedFonts = {};
 
 /**
+ * Show message to user
+ * @param {string} message - Message to display
+ * @param {string} type - Message type: 'info', 'error', 'warning', 'success'
+ */
+function showMessage(message, type = 'info') {
+    const errorMsg = document.getElementById('error_msg');
+    const statusText = document.getElementById('status_text');
+    const statusIcon = document.getElementById('status_icon');
+    
+    if (errorMsg) {
+        errorMsg.innerText = message;
+    }
+    
+    if (statusText && type === 'error') {
+        statusText.innerText = 'ERROR';
+    }
+    
+    if (statusIcon) {
+        const colors = {
+            'info': 'var(--primary-color)',
+            'error': '#d32f2f',
+            'warning': '#ff9800',
+            'success': '#4caf50'
+        };
+        statusIcon.style.color = colors[type] || colors['info'];
+    }
+}
+
+/**
  * Initialize UI event listeners
  */
 function initializeUI() {
