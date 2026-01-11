@@ -35,6 +35,8 @@ services:
     env_file:
       - .env
     environment:
+      - RUNTIME_ENV=docker
+      - STATIC_BASE_PATH=/app/static
       - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
       - HF_HOME=/root/.cache/huggingface
       - TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers
@@ -81,6 +83,8 @@ services:
     
     # 환경 변수
     environment:
+      - RUNTIME_ENV=docker
+      - STATIC_BASE_PATH=/app/static
       - MCP_TRANSPORT=sse
       - MCP_PORT=3000
       - MCP_HOST=0.0.0.0

@@ -3,6 +3,12 @@ API 모델 정의
 nanoCocoa_aiserver의 요청/응답 스키마를 MCP 서버용으로 복제
 """
 
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
+
 from typing import Optional
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -11,8 +17,10 @@ from pydantic import BaseModel, Field, ConfigDict
 # 시스템 메트릭 스키마
 # =============================================================================
 
+
 class GPUMetric(BaseModel):
     """GPU 메트릭 정보"""
+
     index: int = Field(..., title="GPU 인덱스")
     name: str = Field(..., title="GPU 이름")
     gpu_util: int = Field(..., title="GPU 사용률 (%)")
@@ -23,6 +31,7 @@ class GPUMetric(BaseModel):
 
 class SystemMetrics(BaseModel):
     """시스템 메트릭 정보"""
+
     cpu_percent: float = Field(..., title="CPU 사용률 (%)")
     ram_used_gb: float = Field(..., title="사용 중인 RAM (GB)")
     ram_total_gb: float = Field(..., title="전체 RAM (GB)")
@@ -33,6 +42,7 @@ class SystemMetrics(BaseModel):
 # =============================================================================
 # 요청 스키마
 # =============================================================================
+
 
 class GenerateRequest(BaseModel):
     """
@@ -209,10 +219,14 @@ class GenerateRequest(BaseModel):
 # 응답 스키마
 # =============================================================================
 
+
 class StatusResponse(BaseModel):
     """작업 상태 응답 스키마"""
+
     job_id: str = Field(..., title="작업 ID")
-    status: str = Field(..., title="작업 상태 (pending/running/completed/failed/stopped)")
+    status: str = Field(
+        ..., title="작업 상태 (pending/running/completed/failed/stopped)"
+    )
     progress_percent: int = Field(..., title="진행률 (%)")
     current_step: str = Field(..., title="현재 단계")
     sub_step: Optional[str] = Field(None, title="현재 서브 단계")
@@ -229,6 +243,7 @@ class StatusResponse(BaseModel):
 
 class GenerateResponse(BaseModel):
     """생성 시작 응답 스키마"""
+
     job_id: str = Field(..., title="작업 ID")
     status: str = Field(..., title="초기 상태")
     message: Optional[str] = Field(None, title="메시지")
@@ -236,6 +251,7 @@ class GenerateResponse(BaseModel):
 
 class StopResponse(BaseModel):
     """작업 중단 응답 스키마"""
+
     job_id: str = Field(..., title="작업 ID")
     status: str = Field(..., title="상태")
     message: Optional[str] = Field(None, title="메시지")
@@ -243,6 +259,7 @@ class StopResponse(BaseModel):
 
 class JobSummary(BaseModel):
     """작업 요약 정보"""
+
     job_id: str
     status: str
     progress_percent: int
@@ -252,6 +269,7 @@ class JobSummary(BaseModel):
 
 class JobListResponse(BaseModel):
     """작업 목록 응답 스키마"""
+
     total_jobs: int = Field(..., title="전체 작업 수")
     active_jobs: int = Field(..., title="활성 작업 수")
     completed_jobs: int = Field(..., title="완료된 작업 수")
@@ -261,6 +279,7 @@ class JobListResponse(BaseModel):
 
 class HealthResponse(BaseModel):
     """헬스체크 응답 스키마"""
+
     status: str = Field(..., title="서버 상태 (healthy/busy)")
     server_time: float = Field(..., title="서버 시간 (Unix timestamp)")
     total_jobs: int = Field(..., title="전체 작업 수")
@@ -270,11 +289,13 @@ class HealthResponse(BaseModel):
 
 class FontListResponse(BaseModel):
     """폰트 목록 응답 스키마"""
+
     fonts: list[str] = Field(..., title="사용 가능한 폰트 목록")
 
 
 class ErrorResponse(BaseModel):
     """에러 응답 스키마"""
+
     error: str = Field(..., title="에러 유형")
     message: str = Field(..., title="에러 메시지")
     detail: Optional[str] = Field(None, title="상세 정보")

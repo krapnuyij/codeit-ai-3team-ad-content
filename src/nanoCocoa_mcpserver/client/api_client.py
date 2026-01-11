@@ -5,6 +5,12 @@ nanoCocoa_aiserver REST API 클라이언트
 
 import asyncio
 import logging
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
+
 from typing import Optional, Callable, Any
 from contextlib import asynccontextmanager
 

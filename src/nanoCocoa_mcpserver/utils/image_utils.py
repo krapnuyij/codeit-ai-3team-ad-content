@@ -8,15 +8,16 @@ import io
 import sys
 import logging
 from pathlib import Path
+
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
+
+from pathlib import Path
 from typing import Optional
 
 from PIL import Image
 from pathlib import Path
-
-try:
-    from ..config import MAX_IMAGE_SIZE_MB, SUPPORTED_IMAGE_FORMATS
-except ImportError:
-    from config import MAX_IMAGE_SIZE_MB, SUPPORTED_IMAGE_FORMATS
+from config import MAX_IMAGE_SIZE_MB, SUPPORTED_IMAGE_FORMATS
 
 # MCP stdio 프로토콜은 stdout을 사용하므로 stderr로만 로깅
 logging.basicConfig(
