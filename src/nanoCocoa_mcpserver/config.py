@@ -4,32 +4,37 @@ nanoCocoa_aiserver를 제어하는 MCP 서버의 설정 상수들
 """
 
 import os
+from pathlib import Path
 from typing import Final
+
+# =============================================================================
+# 런타임 환경 설정
+# =============================================================================
+
+RUNTIME_ENV: Final[str] = os.getenv("RUNTIME_ENV", "local")
+"""실행 환경: 'local' (로컬 개발) 또는 'docker' (Docker 컨테이너)"""
+
+STATIC_BASE_PATH: Final[str] = os.getenv("STATIC_BASE_PATH", "./static")
+"""정적 파일 기본 경로 (Docker: /app/static, Local: ./static)"""
 
 # =============================================================================
 # AI 서버 연결 설정
 # =============================================================================
 
-AISERVER_BASE_URL: Final[str] = os.getenv(
-    "AISERVER_BASE_URL", "http://localhost:8000"
-)
+AISERVER_BASE_URL: Final[str] = os.getenv("AISERVER_BASE_URL", "http://localhost:8000")
 """nanoCocoa_aiserver REST API의 기본 URL"""
 
 AISERVER_TIMEOUT: Final[int] = int(os.getenv("AISERVER_TIMEOUT", "600"))
 """API 요청 타임아웃 (초 단위, 기본값: 10분)"""
 
-AISERVER_CONNECT_TIMEOUT: Final[int] = int(
-    os.getenv("AISERVER_CONNECT_TIMEOUT", "10")
-)
+AISERVER_CONNECT_TIMEOUT: Final[int] = int(os.getenv("AISERVER_CONNECT_TIMEOUT", "10"))
 """연결 타임아웃 (초 단위)"""
 
 # =============================================================================
 # 폴링 설정
 # =============================================================================
 
-STATUS_POLL_INTERVAL: Final[float] = float(
-    os.getenv("STATUS_POLL_INTERVAL", "3.0")
-)
+STATUS_POLL_INTERVAL: Final[float] = float(os.getenv("STATUS_POLL_INTERVAL", "3.0"))
 """상태 폴링 요청 간격 (초 단위)"""
 
 MAX_POLL_RETRIES: Final[int] = int(os.getenv("MAX_POLL_RETRIES", "200"))
@@ -87,14 +92,10 @@ MAX_RETRIES_ON_503: Final[int] = 5
 LOG_LEVEL: Final[str] = os.getenv("LOG_LEVEL", "INFO")
 """로깅 레벨 (DEBUG, INFO, WARNING, ERROR, CRITICAL)"""
 
-LOG_FORMAT: Final[str] = (
-    "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+LOG_FORMAT: Final[str] = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 """로그 메시지 포맷"""
 
-LOG_FILE: Final[str] = os.getenv(
-    "LOG_FILE", "/tmp/nanococoa_mcpserver.log"
-)
+LOG_FILE: Final[str] = os.getenv("LOG_FILE", "/tmp/nanococoa_mcpserver.log")
 """로그 파일 경로 (빈 문자열이면 콘솔만 사용)"""
 
 # =============================================================================
@@ -126,6 +127,7 @@ ENABLE_PROGRESS_NOTIFICATIONS: Final[bool] = (
 # API 엔드포인트 (AISERVER_BASE_URL 기준 상대 경로)
 # =============================================================================
 
+
 class APIEndpoints:
     """nanoCocoa_aiserver API 엔드포인트 경로"""
 
@@ -146,9 +148,11 @@ class APIEndpoints:
     HELP_PARAMETERS = "/help/parameters"
     HELP_EXAMPLES = "/help/examples"
 
+
 # =============================================================================
 # 기본 파라미터
 # =============================================================================
+
 
 class DefaultParameters:
     """생성 파라미터 기본값"""
@@ -166,9 +170,11 @@ class DefaultParameters:
     AUTO_UNLOAD: bool = True
     TEST_MODE: bool = False
 
+
 # =============================================================================
 # 검증 제약조건
 # =============================================================================
+
 
 class ValidationConstraints:
     """파라미터 검증 제약조건"""

@@ -5,6 +5,7 @@ Base64 인코딩/디코딩 및 이미지 검증 기능
 
 import base64
 import io
+import os
 import sys
 import logging
 from pathlib import Path
@@ -17,7 +18,12 @@ from typing import Optional
 
 from PIL import Image
 from pathlib import Path
-from config import MAX_IMAGE_SIZE_MB, SUPPORTED_IMAGE_FORMATS
+from config import (
+    MAX_IMAGE_SIZE_MB,
+    SUPPORTED_IMAGE_FORMATS,
+    RUNTIME_ENV,
+    STATIC_BASE_PATH,
+)
 
 # MCP stdio 프로토콜은 stdout을 사용하므로 stderr로만 로깅
 logging.basicConfig(
@@ -35,6 +41,65 @@ class ImageProcessingError(Exception):
     pass
 
 
+def resolve_image_path(file_path: str | Path) -> Path:
+    """
+    이미지 파일 경로를 현재 런타임 환경에 맞게 변환
+
+    Docker 환경에서는 호스트 절대 경로를 컨테이너 내부 경로로 변환
+
+    Args:
+        file_path: 원본 파일 경로
+
+    Returns:
+        해석된 파일 경로
+
+    Examples:
+        # Docker 환경
+        >>> resolve_image_path("/home/user/project/src/nanoCocoa_aiserver/static/uploads/test.png")
+        Path("/app/static/uploads/test.png")
+
+        # 상대 경로/파일명만 제공된 경우
+        >>> resolve_image_path("test.png")
+        Path("/app/static/uploads/test.png")  # Docker
+        Path("./static/uploads/test.png")     # Local
+    """
+    path = Path(file_path)
+
+    # 이미 컨테이너 경로인 경우 그대로 반환
+    if RUNTIME_ENV == "docker" and str(path).startswith("/app/"):
+        return path
+
+    # 파일명만 제공된 경우 (경로 구분자가 없음)
+    if (
+        not path.is_absolute()
+        and "/" not in str(file_path)
+        and "\\" not in str(file_path)
+    ):
+        base_path = Path(STATIC_BASE_PATH) / "uploads"
+        return base_path / path.name
+
+    # Docker 환경: 호스트 경로를 컨테이너 경로로 변환
+    if RUNTIME_ENV == "docker":
+        path_str = str(path)
+
+        # static/uploads 또는 static/results 부분을 찾아서 변환
+        for pattern in ["static/uploads", "static/results"]:
+            if pattern in path_str:
+                # pattern 이후 부분 추출
+                idx = path_str.find(pattern)
+                relative_part = path_str[idx + len("static/") :]
+                container_path = Path(STATIC_BASE_PATH) / relative_part
+                logger.info(f"경로 변환: {file_path} -> {container_path}")
+                return container_path
+
+        # 패턴을 찾지 못한 경우, 파일명만 추출하여 uploads에 배치
+        logger.warning(f"경로 패턴 찾기 실패, 파일명만 사용: {path.name}")
+        return Path(STATIC_BASE_PATH) / "uploads" / path.name
+
+    # 로컬 환경: 원본 경로 그대로 사용
+    return path
+
+
 def image_file_to_base64(file_path: str | Path) -> str:
     """
     이미지 파일을 읽어서 Base64 문자열로 변환
@@ -49,11 +114,14 @@ def image_file_to_base64(file_path: str | Path) -> str:
         ImageProcessingError: 파일을 읽을 수 없거나 유효하지 않은 이미지인 경우
     """
     try:
-        path = Path(file_path)
+        # 경로 해석
+        path = resolve_image_path(file_path)
 
         # 파일 존재 확인
         if not path.exists():
-            raise ImageProcessingError(f"파일을 찾을 수 없습니다: {file_path}")
+            raise ImageProcessingError(
+                f"파일을 찾을 수 없습니다: {path} (원본: {file_path})"
+            )
 
         # 파일 크기 확인
         file_size_mb = path.stat().st_size / (1024 * 1024)
@@ -107,7 +175,8 @@ def base64_to_image_file(
         ImageProcessingError: Base64 디코딩 실패 또는 파일 저장 실패
     """
     try:
-        path = Path(output_path)
+        # 경로 해석
+        path = resolve_image_path(output_path)
 
         # 기존 파일 확인
         if path.exists() and not overwrite:
