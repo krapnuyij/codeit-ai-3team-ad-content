@@ -1,3 +1,14 @@
+---
+layout: default
+title: "nanoCocoa AI Server - Docker 배포 가이드"
+description: "nanoCocoa AI Server - Docker 배포 가이드"
+date: 2026-01-11
+cache-control: no-cache
+expires: 0
+pragma: no-cache
+author: "김명환"
+---
+
 # nanoCocoa AI Server - Docker 배포 가이드
 
 ## 📦 사전 준비

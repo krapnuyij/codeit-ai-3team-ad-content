@@ -1,3 +1,14 @@
+---
+layout: default
+title: "환경 설정 가이드 (Cross-Platform)"
+description: "환경 설정 가이드 (Cross-Platform)"
+date: 2026-01-11
+cache-control: no-cache
+expires: 0
+pragma: no-cache
+author: "김명환"
+---
+
 # 환경 설정 가이드 (Cross-Platform)
 
 이 프로젝트는 **Windows**, **Linux**, **macOS**에서 모두 작동합니다.

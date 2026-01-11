@@ -85,30 +85,43 @@ graph TB
     end
 
     subgraph "프론트엔드 계층 (Docker Container 1)"
-        Frontend["FastAPI UI<br/>FastAPI 기반<br/>Port: External"]
+        Frontend["FastAPI UI
+FastAPI 기반
+Port: External"]
     end
 
     subgraph "백엔드 계층 (Docker Container 2)"
-        Backend["FastAPI 서버<br/>비즈니스 로직<br/>LLM 연동<br/>Port: 8080"]
-        LLM["OpenAI GPT-4o<br/>프롬프트 생성"]
+        Backend["FastAPI 서버
+비즈니스 로직
+LLM 연동
+Port: 8080"]
+        LLM["OpenAI GPT-4o
+프롬프트 생성"]
     end
 
     subgraph "모델서빙 계층 (Docker Container 3)"
-        ModelServer["FastAPI 모델 서버<br/>Port: 8000"]
+        ModelServer["FastAPI 모델 서버
+Port: 8000"]
 
         subgraph "AI 모델 파이프라인"
-            BiRefNet["BiRefNet<br/>(이미지 누끼)"]
-            FLUX["FLUX.1-dev<br/>(배경 생성)"]
-            SDXL["SDXL ControlNet<br/>(3D 텍스트)"]
+            BiRefNet["BiRefNet
+(이미지 누끼)"]
+            FLUX["FLUX.1-dev
+(배경 생성)"]
+            SDXL["SDXL ControlNet
+(3D 텍스트)"]
         end
 
-        GPU["NVIDIA L4 GPU<br/>24GB VRAM"]
+        GPU["NVIDIA L4 GPU
+24GB VRAM"]
     end
 
     User -->|HTTP 요청| Frontend
-    Frontend -->|REST API<br/>Port 8080| Backend
+    Frontend -->|"REST API
+Port 8080"| Backend
     Backend -->|LLM API| LLM
-    Backend -->|REST API<br/>Port 8000| ModelServer
+    Backend -->|"REST API
+Port 8000"| ModelServer
     ModelServer --> BiRefNet
     ModelServer --> FLUX
     ModelServer --> SDXL
@@ -122,22 +135,22 @@ graph TB
 ```mermaid
 sequenceDiagram
     participant User as 사용자
-    participant FE as 프론트엔드<br/>(FastAPI)
-    participant BE as 백엔드<br/>(FastAPI)
-    participant LLM as OpenAI<br/>GPT-4o
-    participant MS as 모델서빙<br/>(FastAPI)
+    participant FE as 프론트엔드 (FastAPI)
+    participant BE as 백엔드 (FastAPI)
+    participant LLM as OpenAI GPT-4o
+    participant MS as 모델서빙 (FastAPI)
     participant GPU as L4 GPU
 
     User->>FE: 1. 이미지 업로드 + 광고 문구 입력
     FE->>FE: 2. 입력 검증
-    FE->>BE: 3. POST /api/generate<br/>{image, text, options}
+    FE->>BE: 3. POST /api/generate {image, text, options}
 
     BE->>BE: 4. 요청 검증
-    BE->>LLM: 5. 프롬프트 생성 요청<br/>"건어물 대박 세일"
-    LLM-->>BE: 6. 영문 프롬프트 반환<br/>"Dried seafood..."
+    BE->>LLM: 5. 프롬프트 생성 요청 "건어물 대박 세일"
+    LLM-->>BE: 6. 영문 프롬프트 반환 "Dried seafood..."
 
-    BE->>MS: 7. POST /generate<br/>{input_image, bg_prompt, text_content}
-    MS->>MS: 8. Job ID 생성<br/>Worker Process 생성
+    BE->>MS: 7. POST /generate {input_image, bg_prompt, text_content}
+    MS->>MS: 8. Job ID 생성 Worker Process 생성
     MS-->>BE: 9. {job_id, status: "started"}
     BE-->>FE: 10. {job_id}
     FE-->>User: 11. "생성 중..." 표시

@@ -1,3 +1,14 @@
+---
+layout: default
+title: "auto_unload 옵션 기반 메모리 관리 구현"
+description: "auto_unload 옵션 기반 메모리 관리 구현"
+date: 2026-01-11
+cache-control: no-cache
+expires: 0
+pragma: no-cache
+author: "김명환"
+---
+
 # auto_unload 옵션 기반 메모리 관리 구현
 
 ## 1. 개요

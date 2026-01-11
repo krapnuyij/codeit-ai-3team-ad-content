@@ -1,3 +1,14 @@
+---
+layout: default
+title: "nanoCocoa AI 광고 생성기 프로젝트의 기술 문서 모음"
+description: "nanoCocoa AI 광고 생성기 프로젝트의 기술 문서 모음"
+date: 2026-01-11
+cache-control: no-cache
+expires: 0
+pragma: no-cache
+author: "김명환"
+---
+
 # 문서 목차
 
 nanoCocoa AI 광고 생성기 프로젝트의 기술 문서 모음입니다.

@@ -1,3 +1,14 @@
+---
+layout: default
+title: "nanoCocoa AI Server REST API 문서"
+description: "nanoCocoa AI Server REST API 문서"
+date: 2026-01-11
+cache-control: no-cache
+expires: 0
+pragma: no-cache
+author: "김명환"
+---
+
 # nanoCocoa AI Server REST API 문서
 
 ## 1. 개요

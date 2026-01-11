@@ -106,12 +106,18 @@ docker run --rm --gpus all nvidia/cuda:12.9.1-base-ubuntu22.04 nvidia-smi
 graph TB
     subgraph "Docker Host (GCP VM)"
         subgraph "Docker Network: nanococoa-network"
-            AIServer["nanococoa-aiserver<br/>Container<br/>Port: 8000"]
-            MCPServer["nanococoa-mcpserver<br/>Container<br/>Port: 3000"]
+            AIServer["nanococoa-aiserver
+Container
+Port: 8000"]
+            MCPServer["nanococoa-mcpserver
+Container
+Port: 3000"]
         end
 
-        GPU["NVIDIA L4 GPU<br/>/dev/nvidia0"]
-        Storage["/opt/huggingface<br/>HuggingFace Cache"]
+        GPU["NVIDIA L4 GPU
+/dev/nvidia0"]
+        Storage["/opt/huggingface
+HuggingFace Cache"]
     end
 
     Internet["Internet"] -->|Port 8000| AIServer

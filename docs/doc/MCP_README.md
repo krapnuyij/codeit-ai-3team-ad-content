@@ -1,3 +1,14 @@
+---
+layout: default
+title: "nanoCocoa MCP Server"
+description: "nanoCocoa MCP Server"
+date: 2026-01-11
+cache-control: no-cache
+expires: 0
+pragma: no-cache
+author: "김명환"
+---
+
 # nanoCocoa MCP Server
 
 AI 기반 광고 이미지 생성을 위한 MCP (Model Context Protocol) 서버
