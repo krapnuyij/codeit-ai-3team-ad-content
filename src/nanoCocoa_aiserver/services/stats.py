@@ -7,8 +7,13 @@
 
 import json
 import os
-from typing import Dict, Optional
+import sys
+from pathlib import Path
 
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
+
+from typing import Dict, Optional
 from config import logger
 
 

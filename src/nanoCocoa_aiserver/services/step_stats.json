@@ -1,10 +1,10 @@
 {
-    "step1_background": 356.44444394111633,
-    "step2_text": 325.6484925746918,
-    "step3_composite": 321.9614064693451,
+    "step1_background": 364.5977592468262,
+    "step2_text": 280.87891030311584,
+    "step3_composite": 263.8695259094238,
     "step1_count": 46,
     "step2_count": 80,
     "step3_count": 94,
     "total_count": 94,
-    "total_time": 1005.9995999336243
+    "total_time": 911.3552796840668
 }

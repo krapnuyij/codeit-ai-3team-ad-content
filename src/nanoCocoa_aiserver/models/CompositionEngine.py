@@ -8,7 +8,7 @@ Flux Inpainting을 활용하여 텍스트 에셋을 배경 이미지와 맥락�
 import sys
 from pathlib import Path
 
-project_root = Path(__file__).resolve().parent.parent
+project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
 import gc

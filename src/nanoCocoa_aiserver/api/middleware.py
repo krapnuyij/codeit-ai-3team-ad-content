@@ -2,12 +2,19 @@
 middleware.py
 FastAPI 미들웨어 정의
 """
+
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
+
 from starlette.middleware.base import BaseHTTPMiddleware
 
 
 class FontHeaderMiddleware(BaseHTTPMiddleware):
     """폰트 파일 응답 헤더 설정 미들웨어"""
-    
+
     async def dispatch(self, request, call_next):
         response = await call_next(request)
         if request.url.path.startswith("/fonts/"):

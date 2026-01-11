@@ -6,10 +6,14 @@ REST API 테스트용 웹 대시보드를 제공합니다.
 """
 
 import os
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(project_root))
 
 from fastapi import APIRouter, Response, status
 from fastapi.responses import HTMLResponse
-
 from config import logger
 
 router = APIRouter(
