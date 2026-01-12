@@ -237,7 +237,7 @@ async def test_handle_generate_ad_image_async(
             "product_image_path": temp_product_image,
             "background_prompt": "Test background",
             "text_content": "TEST",
-            "text_style_prompt": "Test style",
+            "text_prompt": "Test style",
             "wait_for_completion": False,
         }
     )
@@ -279,7 +279,7 @@ async def test_handle_generate_ad_image_sync(
             "product_image_path": temp_product_image,
             "background_prompt": "Test background",
             "text_content": "TEST",
-            "text_style_prompt": "Test style",
+            "text_prompt": "Test style",
             "wait_for_completion": True,
         }
     )
@@ -365,7 +365,7 @@ async def test_handle_generate_text_asset_only_with_base64(
         {
             "step1_image_base64": sample_image_base64,
             "text_content": "SALE",
-            "text_style_prompt": "Gold metallic",
+            "text_prompt": "Gold metallic",
             "wait_for_completion": True,
         }
     )
@@ -384,7 +384,7 @@ async def test_handle_generate_text_asset_only_missing_input(
 
     # step1_image 없이 호출
     result = await mcp_server._handle_generate_text_asset_only(
-        {"text_content": "SALE", "text_style_prompt": "Gold metallic"}
+        {"text_content": "SALE", "text_prompt": "Gold metallic"}
     )
 
     # 에러 메시지 확인
@@ -464,7 +464,7 @@ async def test_error_handling_image_processing(mcp_server, mock_api_client):
             "product_image_path": "/nonexistent/image.png",
             "background_prompt": "Test",
             "text_content": "TEST",
-            "text_style_prompt": "Style",
+            "text_prompt": "Style",
             "wait_for_completion": False,
         }
     )
@@ -491,7 +491,7 @@ async def test_error_handling_aiserver_error(
             "product_image_path": temp_product_image,
             "background_prompt": "Test",
             "text_content": "TEST",
-            "text_style_prompt": "Style",
+            "text_prompt": "Style",
             "wait_for_completion": False,
         }
     )

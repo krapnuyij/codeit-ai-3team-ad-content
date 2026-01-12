@@ -75,7 +75,7 @@ async def test_generate_ad_test_mode(mcp_client, tmp_path, require_docker_server
             "product_image_path": str(project_root / "tests" / "banana.png"),
             "background_prompt": "Colorful party background",
             "text_content": "SALE",
-            "text_style_prompt": "3D gold text",
+            "text_prompt": "3D gold text",
             "test_mode": True,
             "wait_for_completion": True,
             "save_output_path": str(output_path),
@@ -97,7 +97,7 @@ async def test_generate_ad_async(mcp_client, require_docker_server):
             "product_image_path": str(project_root / "tests" / "banana.png"),
             "background_prompt": "Modern studio background",
             "text_content": "NEW",
-            "text_style_prompt": "Bold 3D text",
+            "text_prompt": "Bold 3D text",
             "test_mode": True,
             "wait_for_completion": False,
         },
@@ -139,7 +139,7 @@ async def test_step_by_step_generation(mcp_client, tmp_path, require_docker_serv
         {
             "step1_image_path": str(step1_path),
             "text_content": "SALE",
-            "text_style_prompt": "3D gold foil text",
+            "text_prompt": "3D gold foil text",
             "test_mode": True,
             "wait_for_completion": True,
             "save_output_path": str(step2_path),
@@ -181,7 +181,7 @@ async def test_invalid_image_path(mcp_client, require_docker_server):
             "product_image_path": "/nonexistent/image.png",
             "background_prompt": "Test background",
             "text_content": "TEST",
-            "text_style_prompt": "Test text",
+            "text_prompt": "Test text",
             "test_mode": True,
         },
     )
@@ -199,7 +199,7 @@ async def test_missing_required_params(mcp_client, require_docker_server):
                 "product_image_path": str(project_root / "tests" / "banana.png"),
                 # background_prompt 누락
                 "text_content": "TEST",
-                "text_style_prompt": "Test text",
+                "text_prompt": "Test text",
             },
         )
 
@@ -221,7 +221,7 @@ async def test_concurrent_requests(mcp_client, require_docker_server):
                 "product_image_path": str(project_root / "tests" / "banana.png"),
                 "background_prompt": f"Background {i}",
                 "text_content": f"TEXT {i}",
-                "text_style_prompt": "3D text",
+                "text_prompt": "3D text",
                 "test_mode": True,
                 "wait_for_completion": False,
             },

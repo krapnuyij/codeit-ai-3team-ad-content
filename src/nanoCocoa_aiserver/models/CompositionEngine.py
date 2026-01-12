@@ -15,10 +15,12 @@ import gc
 import torch
 from PIL import Image
 from typing import Literal, Optional
-from config import DEVICE, TORCH_DTYPE, MODEL_IDS, logger
+from config import DEVICE, TORCH_DTYPE, MODEL_IDS
 from transformers import BitsAndBytesConfig
 from diffusers import FluxTransformer2DModel, FluxInpaintPipeline
+from helper_dev_utils import get_auto_logger
 
+logger = get_auto_logger()
 
 CompositionMode = Literal["overlay", "blend", "behind"]
 TextPosition = Literal["top", "center", "bottom"]
@@ -224,6 +226,9 @@ class CompositionEngine:
             logger.info(
                 f"Running Flux Inpainting: strength={strength}, guidance={guidance_scale}, steps={num_inference_steps}"
             )
+
+            logger.info(f" [Composition] composition_prompt='{composition_prompt}' ")
+            logger.info(f" [Composition] final_negative='{final_negative}' ")
 
             result = self.pipe(
                 prompt=composition_prompt,

@@ -12,6 +12,7 @@ sys.path.insert(0, str(project_root))
 import multiprocessing
 import time
 from PIL import Image
+from helper_dev_utils import print_dic_tree
 
 # CUDA 호환성을 위한 안전장치: spawn 방식 확인
 # main.py에서 이미 설정되었지만, 직접 실행 시를 대비
@@ -22,7 +23,6 @@ except RuntimeError:
     # 이미 설정된 경우 무시
     pass
 
-from config import logger
 from utils import (
     pil_to_base64,
     base64_to_pil,
@@ -37,6 +37,10 @@ from core.processors import (
     process_step3_composite,
 )
 
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
+
 
 def worker_process(
     job_id: str, input_data: dict, shared_state: dict, stop_event: multiprocessing.Event
@@ -50,6 +54,9 @@ def worker_process(
         shared_state: 프로세스 간 공유 상태 딕셔너리
         stop_event: 작업 중단 이벤트
     """
+
+    logger.info(f"[Worker] input_data")
+    print_dic_tree(input_data)
 
     # 파라미터 추출
     test_mode = input_data.get("test_mode", False)

@@ -4,11 +4,19 @@ HTTP/SSE transport를 통해 MCP 서버와 통신
 """
 
 import httpx
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve()
+sys.path.insert(0, str(project_root))
+
 import logging
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
+
 from typing import Any, Dict, Optional, List
 from contextlib import asynccontextmanager
-
-logger = logging.getLogger(__name__)
 
 
 class MCPClientError(Exception):

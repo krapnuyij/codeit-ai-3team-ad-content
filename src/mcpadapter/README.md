@@ -30,7 +30,7 @@ async with MCPClient("http://mcpserver:3000") as client:
             "product_image_path": "/path/to/product.png",
             "background_prompt": "Luxury marble background",
             "text_content": "SALE 50%",
-            "text_style_prompt": "Gold metallic 3D text"
+            "text_prompt": "Gold metallic 3D text"
         }
     )
     print(result)

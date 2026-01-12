@@ -14,8 +14,11 @@ from diffusers import (
     FluxTransformer2DModel,
 )
 from transformers import BitsAndBytesConfig
-from config import MODEL_IDS, TORCH_DTYPE, logger
+from config import MODEL_IDS, TORCH_DTYPE
 from utils import flush_gpu
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 
 class FluxGenerator:
@@ -153,6 +156,9 @@ class FluxGenerator:
         if seed is not None:
             generator = torch.Generator("cpu").manual_seed(seed)
 
+        logger.info(f" [FluxGenerator] prompt='{prompt}' ")
+        logger.info(f" [FluxGenerator] negative_prompt='{negative_prompt}' ")
+
         image = pipe(
             prompt,
             negative_prompt=negative_prompt,
@@ -258,6 +264,9 @@ class FluxGenerator:
         else:
             generator = torch.Generator("cpu").manual_seed(42)
 
+        logger.info(f" [FluxGenerator] prompt='{prompt}' ")
+        logger.info(f" [FluxGenerator] negative_prompt='{negative_prompt}' ")
+
         refined_image = pipe(
             use_prompt,
             negative_prompt=use_negative,
@@ -345,6 +354,9 @@ class FluxGenerator:
                 f"[FluxGenerator] Injecting features: prompt='{prompt[:50]}...', strength={strength}"
             )
 
+            logger.info(f" [FluxGenerator] prompt='{prompt}' ")
+            logger.info(f" [FluxGenerator] negative_prompt='{negative_prompt}' ")
+
             # Inpainting 실행 (상품 영역만 재생성하여 특성 주입)
             result = pipe(
                 prompt=prompt,
@@ -373,6 +385,7 @@ class FluxGenerator:
         text_asset: Image.Image,
         mask: Image.Image,
         prompt: str,
+        negative_prompt: str = None,
         strength: float = 0.4,
         guidance_scale: float = 3.5,
         num_inference_steps: int = 28,
@@ -431,6 +444,9 @@ class FluxGenerator:
             logger.info(
                 f"[FluxGenerator] Running inpainting: prompt='{prompt[:50]}...', steps={num_inference_steps}"
             )
+
+            logger.info(f" [FluxGenerator] prompt='{prompt}' ")
+            logger.info(f" [FluxGenerator] negative_prompt='{negative_prompt}' ")
 
             # Inpainting 실행
             result = pipe(

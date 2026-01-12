@@ -64,15 +64,27 @@ async def get_api_client() -> AIServerClient:
 
 async def generate_ad_image(
     product_image_path: str,
-    background_prompt: str,
     text_content: str,
-    text_style_prompt: str,
     font_name: Optional[str] = None,
+    background_prompt: Optional[str] = None,
+    background_negative_prompt: Optional[str] = None,
+    bg_composition_prompt: Optional[str] = None,
+    bg_composition_negative_prompt: Optional[str] = None,
+    text_prompt: Optional[str] = None,
+    text_negative_prompt: Optional[str] = None,
+    composition_prompt: Optional[str] = None,
+    composition_negative_prompt: Optional[str] = None,
     composition_mode: str = "overlay",
     text_position: str = "auto",
+    strength: float = 0.6,
+    guidance_scale: float = 3.5,
+    composition_strength: float = 0.4,
+    composition_steps: int = 28,
+    composition_guidance_scale: float = 3.5,
+    auto_unload: bool = True,
     seed: Optional[int] = None,
     test_mode: bool = False,
-    wait_for_completion: bool = True,
+    wait_for_completion: bool = False,
     save_output_path: Optional[str] = None,
 ) -> str:
     """
@@ -107,7 +119,7 @@ async def generate_ad_image(
             - 짧고 임팩트 있는 문구 권장 (1~10단어)
             - 예시: "SALE", "NEW", "50% OFF", "특가 2500원", "신제품 출시"
 
-        text_style_prompt: 3D 텍스트의 시각적 스타일 설명 (영문)
+        text_prompt: 3D 텍스트의 시각적 스타일 설명 (영문)
             - 3D 렌더링 스타일, 재질, 조명 등을 구체적으로 기술
             - 예시: "3D render of gold foil balloon text, shiny metallic texture, floating"
             - 예시: "Bold 3D text with neon glow effect, cyberpunk style, dark background"
@@ -117,6 +129,75 @@ async def generate_ad_image(
             - list_available_fonts 도구로 사용 가능한 폰트 목록 확인 가능
             - 한글 텍스트는 한글 폰트 필수 (예: "NanumGothic.ttf")
             - 생략 시 기본 폰트 사용
+
+        background_negative_prompt: 배경 생성 시 제외할 요소 설명 (선택사항)
+            - 배경 이미지에서 생성되지 않았으면 하는 요소를 명시하여 품질 향상
+            - 영문으로 작성, 쉼표로 구분된 키워드 형식 권장
+            - 효과적인 작성법:
+                * 품질 저하 요소: "blurry, low quality, distorted, ugly, bad lighting"
+                * 불필요한 객체: "text, watermark, logo, signature"
+                * 원치 않는 요소: "people, faces, hands, extra objects"
+            - 예시:
+                * 깔끔한 배경: "cluttered, messy, chaotic, busy background"
+                * 전문적인 느낌: "amateur, unprofessional, low resolution"
+                * 자연스러운 조명: "harsh shadows, overexposed, underexposed"
+            - 생략 시 기본 negative prompt 사용
+
+        text_negative_prompt: 3D 텍스트 생성 시 제외할 요소 설명 (선택사항)
+            - 텍스트 이미지에서 생성되지 않았으면 하는 요소를 명시
+            - 영문으로 작성, 쉼표로 구분된 키워드 형식 권장
+            - 효과적인 작성법:
+                * 바닥/배경 제거: "floor, ground, dirt, debris, background elements"
+                * 품질 문제: "low quality, blurry, distorted letters, unreadable"
+                * 불필요한 형태: "random shapes, extra objects, artifacts"
+            - 예시:
+                * 깔끔한 텍스트: "messy, chaotic, cluttered, extra elements"
+                * 입체감 강조: "flat, 2D, no depth, plain"
+                * 정확한 글자: "distorted, warped, illegible, broken letters"
+            - 생략 시 기본 negative prompt 사용
+
+        composition_negative_prompt: 최종 합성 시 제외할 요소 설명 (선택사항)
+            - 배경과 텍스트를 합성할 때 피하고 싶은 요소를 명시
+            - 영문으로 작성, 쉼표로 구분된 키워드 형식 권장
+            - 효과적인 작성법:
+                * 부자연스러운 합성: "unnatural composition, misaligned, poorly integrated"
+                * 품질 문제: "low quality, blurry, inconsistent lighting"
+                * 시각적 오류: "artifacts, seams, visible edges, color mismatch"
+            - 예시:
+                * 자연스러운 합성: "artificial looking, pasted on, flat composition"
+                * 조화로운 색상: "color clash, inconsistent tones, jarring colors"
+                * 깔끔한 마무리: "rough edges, halos, bleeding, poor blending"
+            - 생략 시 기본 negative prompt 사용
+
+        bg_composition_prompt: 배경 합성 프롬프트 (선택사항)
+            - 제품 이미지와 배경을 자연스럽게 합성하기 위한 추가 지시사항
+            - 배경 생성 후 제품과 통합하는 단계에서 사용
+            - 효과적인 작성 예시:
+                * "Product naturally placed on the surface, consistent lighting"
+                * "Seamless integration, the product looks like it belongs in the scene"
+            - 생략 가능 (대부분의 경우 불필요)
+
+        bg_composition_negative_prompt: 배경 합성 시 제외 요소 (선택사항)
+            - 예시: "floating, disconnected, unrealistic shadows, inconsistent lighting"
+            - 생략 가능
+
+        composition_prompt: 최종 합성 프롬프트 (선택사항)
+            - 배경과 3D 텍스트를 합성할 때 추가 지시사항
+            - 예시: "Text naturally integrated, realistic shadows and lighting"
+            - 생략 가능
+
+        composition_negative_prompt: 최종 합성 시 제외할 요소 설명 (선택사항)
+            - 배경과 텍스트를 합성할 때 피하고 싶은 요소를 명시
+            - 영문으로 작성, 쉼표로 구분된 키워드 형식 권장
+            - 효과적인 작성법:
+                * 부자연스러운 합성: "unnatural composition, misaligned, poorly integrated"
+                * 품질 문제: "low quality, blurry, inconsistent lighting"
+                * 시각적 오류: "artifacts, seams, visible edges, color mismatch"
+            - 예시:
+                * 자연스러운 합성: "artificial looking, pasted on, flat composition"
+                * 조화로운 색상: "color clash, inconsistent tones, jarring colors"
+                * 깔끔한 마무리: "rough edges, halos, bleeding, poor blending"
+            - 생략 시 기본 negative prompt 사용
 
         composition_mode: 배경과 텍스트 합성 방식 (기본값: "overlay")
             - "overlay": 텍스트를 배경 위에 자연스럽게 오버레이 (가장 일반적)
@@ -128,6 +209,67 @@ async def generate_ad_image(
             - "top": 이미지 상단에 배치
             - "center": 이미지 중앙에 배치
             - "bottom": 이미지 하단에 배치
+
+        strength: 이미지 변환 강도 (0.0 ~ 1.0, 기본값: 0.6)
+            - 배경 생성 시 원본 제품 이미지를 얼마나 변형할지 제어
+            - 낮은 값 (0.0 ~ 0.3): 원본을 거의 유지, 배경만 약간 변경 (제품 보존 중시)
+            - 중간 값 (0.4 ~ 0.6): 균형있는 변환 (권장, 자연스러운 배경 생성)
+            - 높은 값 (0.7 ~ 1.0): 원본을 크게 변형, 창의적인 배경 (주의 필요)
+            - 사용 케이스별 권장값:
+                * 제품 형태 보존 중요: 0.3 ~ 0.4
+                * 일반적인 광고: 0.5 ~ 0.6 (기본값)
+                * 예술적/창의적 효과: 0.7 ~ 0.8
+            - guidance_scale과 함께 조정하여 최적 결과 도출
+
+        guidance_scale: 프롬프트 가이던스 강도 (1.0 ~ 20.0, 기본값: 3.5)
+            - AI가 프롬프트를 얼마나 엄격하게 따를지 제어
+            - 낮은 값 (1.0 ~ 3.0): 자연스럽고 창의적, 프롬프트를 느슨하게 해석
+            - 중간 값 (3.5 ~ 7.0): 균형있는 생성 (권장 범위, 프롬프트 준수 + 자연스러움)
+            - 높은 값 (8.0 ~ 20.0): 프롬프트에 매우 충실, 때로 부자연스러울 수 있음
+            - 사용 케이스별 권장값:
+                * 자연스러운 느낌 우선: 2.0 ~ 3.5 (기본값)
+                * 균형: 3.5 ~ 5.0
+                * 프롬프트 정확도 우선: 5.0 ~ 7.0
+            - strength와 함께 조정: strength 낮을수록 guidance_scale 높여도 안전
+
+        composition_strength: 최종 합성 변환 강도 (0.0 ~ 1.0, 기본값: 0.4)
+            - 배경과 텍스트를 합성할 때 원본을 얼마나 변형할지 제어
+            - 낮은 값 (0.0 ~ 0.3): 원본을 거의 유지한 채 가볍게 합성 (자연스러움 우선)
+            - 중간 값 (0.3 ~ 0.5): 균형있는 합성 (권장 범위)
+            - 높은 값 (0.5 ~ 1.0): 강한 합성 효과, 예술적 표현 (주의 필요)
+            - composition_mode와 조합:
+                * overlay + 0.3~0.5: 명확한 텍스트, 자연스러운 통합
+                * blend + 0.4~0.6: 부드러운 융합
+                * behind + 0.5~0.7: 깊이감 있는 합성
+
+        composition_steps: 합성 AI 추론 스텝 수 (10 ~ 50, 기본값: 28)
+            - 최종 합성 시 AI가 수행하는 반복 계산 횟수
+            - 적은 스텝 (10 ~ 20): 빠르지만 품질 저하 가능 (프로토타입용)
+            - 중간 스텝 (20 ~ 35): 균형있는 품질과 속도 (권장, 대부분의 경우 충분)
+            - 많은 스텝 (35 ~ 50): 고품질이지만 느림 (최종 산출물용)
+            - 실행 시간 예상:
+                * 20 steps: ~15초
+                * 28 steps: ~20초 (기본값)
+                * 40 steps: ~30초
+
+        composition_guidance_scale: 합성 가이던스 강도 (1.0 ~ 7.0, 기본값: 3.5)
+            - 최종 합성 시 프롬프트 준수 강도
+            - 낮은 값 (1.0 ~ 3.0): 자연스럽고 부드러운 합성
+            - 중간 값 (3.0 ~ 5.0): 균형있는 합성 (권장)
+            - 높은 값 (5.0 ~ 7.0): 명확하고 선명한 합성
+            - composition_mode와 조합:
+                * overlay: 3.5 ~ 5.0 (텍스트 명확성)
+                * blend: 2.5 ~ 3.5 (자연스러움)
+                * behind: 3.0 ~ 4.0 (깊이감)
+
+        auto_unload: 모델 자동 언로드 (기본값: True)
+            - 각 단계 완료 후 AI 모델을 GPU 메모리에서 자동 해제할지 제어
+            - True: 메모리 절약 (권장, 여러 작업 동시 실행 가능)
+            - False: 속도 우선 (연속 작업 시 빠름, GPU 메모리 많이 필요)
+            - 권장 사용:
+                * GPU VRAM < 16GB: True (필수)
+                * GPU VRAM >= 24GB: False 가능 (속도 향상)
+                * 동시 여러 작업: True (메모리 부족 방지)
 
         seed: 재현성을 위한 랜덤 시드 (선택사항)
             - 동일한 seed를 사용하면 동일한 결과 생성
@@ -171,15 +313,29 @@ async def generate_ad_image(
         # 요청 파라미터 구성
         params = GenerateRequest(
             start_step=1,
-            input_image=product_image_b64,
-            bg_prompt=background_prompt,
             text_content=text_content,
-            text_model_prompt=text_style_prompt,
+            input_image=product_image_b64,
+            step1_image=None,
+            step2_image=None,
+            bg_prompt=background_prompt,
+            bg_negative_prompt=background_negative_prompt or "",
+            bg_composition_prompt=bg_composition_prompt,
+            bg_composition_negative_prompt=bg_composition_negative_prompt,
+            text_prompt=text_prompt,
+            negative_prompt=text_negative_prompt or "",
             font_name=font_name,
             composition_mode=composition_mode,
             text_position=text_position,
+            composition_prompt=composition_prompt,
+            composition_negative_prompt=composition_negative_prompt or "",
+            composition_strength=composition_strength,
+            composition_steps=composition_steps,
+            composition_guidance_scale=composition_guidance_scale,
+            strength=strength,
+            guidance_scale=guidance_scale,
             seed=seed,
             test_mode=test_mode,
+            auto_unload=auto_unload,
         )
 
         if wait_for_completion:
@@ -199,28 +355,34 @@ async def generate_ad_image(
                 )
                 logger.info(f"결과 저장: {output_path}")
 
-            # 응답 구성
-            response = (
-                f"광고 이미지 생성 완료!\n\n"
-                f"작업 ID: {result.job_id}\n"
-                f"소요 시간: {result.elapsed_sec:.1f}초\n"
-                f"진행률: {result.progress_percent}%\n"
-                f"상태: {result.status}\n"
-            )
+            # 응답 구성 (JSON 형식)
+            import json
+
+            response_data = {
+                "status": "completed",
+                "job_id": result.job_id,
+                "elapsed_sec": round(result.elapsed_sec, 1),
+                "progress_percent": result.progress_percent,
+                "message": "Ad image generation completed successfully",
+            }
 
             if save_output_path:
-                response += f"\n저장 경로: {save_output_path}"
+                response_data["saved_path"] = save_output_path
 
-            return response
+            return json.dumps(response_data, ensure_ascii=False)
         else:
             # 비동기 시작만
             logger.info("광고 이미지 생성 시작 (비동기)")
             response = await client.start_generation(params)
-            return (
-                f"작업 시작됨\n"
-                f"작업 ID: {response.job_id}\n"
-                f"상태: {response.status}\n\n"
-                f"진행 상태 확인: check_generation_status(job_id='{response.job_id}')"
+            import json
+
+            return json.dumps(
+                {
+                    "status": "started",
+                    "job_id": response.job_id,
+                    "message": "Ad generation started. Use check_generation_status to monitor progress.",
+                },
+                ensure_ascii=False,
             )
 
     except ImageProcessingError as e:
@@ -288,45 +450,40 @@ async def check_generation_status(
             )
             logger.info(f"결과 저장: {output_path}")
 
-        # 응답 구성
-        response = (
-            f"작업 상태: {status.status}\n"
-            f"진행률: {status.progress_percent}%\n"
-            f"현재 단계: {status.current_step}\n"
-            f"메시지: {status.message}\n"
-            f"경과 시간: {status.elapsed_sec:.1f}초\n"
-        )
+        # 응답 구성 (JSON 형식)
+        import json
+
+        response_data = {
+            "status": status.status,
+            "progress_percent": status.progress_percent,
+            "current_step": status.current_step,
+            "message": status.message,
+            "elapsed_sec": round(status.elapsed_sec, 1),
+        }
 
         if status.eta_seconds is not None:
-            if status.eta_seconds > 0:
-                response += f"예상 남은 시간: {status.eta_seconds}초\n"
-            else:
-                response += f"예상 시간 초과: {abs(status.eta_seconds)}초\n"
+            response_data["eta_seconds"] = status.eta_seconds
 
         if status.system_metrics:
             metrics = status.system_metrics
-            response += (
-                f"\n시스템 메트릭:\n"
-                f"  CPU: {metrics.cpu_percent:.1f}%\n"
-                f"  RAM: {metrics.ram_used_gb:.1f}/{metrics.ram_total_gb:.1f} GB "
-                f"({metrics.ram_percent:.1f}%)\n"
-            )
+            system_metrics_data = {
+                "cpu_percent": round(metrics.cpu_percent, 1),
+                "ram_used_gb": round(metrics.ram_used_gb, 2),
+                "ram_total_gb": round(metrics.ram_total_gb, 2),
+                "ram_percent": round(metrics.ram_percent, 1),
+            }
+            # GPU 정보가 있으면 첫 번째 GPU 정보 추가
             if metrics.gpu_info:
-                for gpu in metrics.gpu_info:
-                    response += (
-                        f"  GPU {gpu.index} ({gpu.name}): {gpu.gpu_util}%, "
-                        f"VRAM: {gpu.vram_used_gb:.1f}/{gpu.vram_total_gb:.1f} GB\n"
-                    )
+                gpu = metrics.gpu_info[0]
+                system_metrics_data["vram_used_gb"] = round(gpu.vram_used_gb, 2)
+                system_metrics_data["vram_total_gb"] = round(gpu.vram_total_gb, 2)
+                system_metrics_data["vram_percent"] = round(gpu.vram_percent, 1)
+            response_data["system_metrics"] = system_metrics_data
 
-        if status.status == "completed":
-            response += "\n작업 완료!"
-            if save_result_path:
-                response += f"\n저장 경로: {save_result_path}"
+        if save_result_path and status.status == "completed":
+            response_data["saved_path"] = save_result_path
 
-        elif status.status == "failed":
-            response += f"\n❌ 작업 실패: {status.message}"
-
-        return response
+        return json.dumps(response_data, ensure_ascii=False)
 
     except AIServerError as e:
         logger.error(f"AI 서버 에러: {e}")
@@ -359,10 +516,21 @@ async def stop_generation(job_id: str) -> str:
     try:
         client = await get_api_client()
         result = await client.stop_job(job_id)
-        return f"작업 중단 요청 완료\n작업 ID: {result.job_id}\n상태: {result.status}"
+        import json
+
+        return json.dumps(
+            {
+                "status": result.status,
+                "job_id": result.job_id,
+                "message": "Job stop requested",
+            },
+            ensure_ascii=False,
+        )
 
     except AIServerError as e:
-        return f"AI 서버 에러: {str(e)}"
+        import json
+
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
 
 
 async def list_available_fonts() -> str:
@@ -599,24 +767,31 @@ async def get_all_jobs() -> str:
         client = await get_api_client()
         jobs = await client.list_jobs()
 
+        import json
+
         if not jobs.jobs:
-            return "등록된 작업이 없습니다."
-
-        response = f"전체 작업 수: {len(jobs.jobs)}개\n\n"
-        for job in jobs.jobs:
-            response += (
-                f"작업 ID: {job.job_id}\n"
-                f"  상태: {job.status}\n"
-                f"  진행률: {job.progress}%\n"
-                f"  생성 시각: {job.created_at}\n"
+            return json.dumps(
+                {"total_jobs": 0, "jobs": [], "message": "No jobs registered"},
+                ensure_ascii=False,
             )
-            if job.completed_at:
-                response += f"  완료 시각: {job.completed_at}\n"
-            if job.error:
-                response += f"  에러: {job.error}\n"
-            response += "\n"
 
-        return response
+        job_list = []
+        for job in jobs.jobs:
+            job_data = {
+                "job_id": job.job_id,
+                "status": job.status,
+                "progress": job.progress,
+                "created_at": job.created_at,
+            }
+            if job.completed_at:
+                job_data["completed_at"] = job.completed_at
+            if job.error:
+                job_data["error"] = job.error
+            job_list.append(job_data)
+
+        return json.dumps(
+            {"total_jobs": len(jobs.jobs), "jobs": job_list}, ensure_ascii=False
+        )
 
     except AIServerError as e:
         return f"AI 서버 에러: {str(e)}"
@@ -786,10 +961,13 @@ async def generate_background_only(
     product_image_path: str,
     background_prompt: str,
     background_negative_prompt: Optional[str] = None,
+    bg_composition_prompt: Optional[str] = None,
+    bg_composition_negative_prompt: Optional[str] = None,
     strength: float = 0.6,
     guidance_scale: float = 3.5,
+    auto_unload: bool = True,
     seed: Optional[int] = None,
-    wait_for_completion: bool = True,
+    wait_for_completion: bool = False,
     save_output_path: Optional[str] = None,
 ) -> str:
     """
@@ -817,15 +995,30 @@ async def generate_background_only(
             - 예시: "text, watermark, low quality, blurry, distorted"
             - 예시: "people, faces, logos"
 
+        bg_composition_prompt: 배경 합성 프롬프트 (선택사항)
+            - 제품과 배경을 자연스럽게 합성하기 위한 추가 지시사항
+            - 예시: "Product naturally placed, consistent lighting"
+            - 생략 가능
+
+        bg_composition_negative_prompt: 배경 합성 시 제외 요소 (선택사항)
+            - 예시: "floating, disconnected, unrealistic shadows"
+            - 생략 가능
+
         strength: 제품 이미지를 변환하는 강도 (0.0 ~ 1.0, 기본값: 0.6)
             - 0.0: 원본 이미지를 거의 유지 (배경 변화 최소)
             - 0.5: 균형있는 합성 (권장)
             - 1.0: 원본 이미지를 크게 변형 (배경 변화 최대)
+            - generate_ad_image의 strength와 동일한 제어
 
         guidance_scale: 프롬프트 가이던스 강도 (1.0 ~ 20.0, 기본값: 3.5)
             - 낮을수록: 더 자연스럽고 창의적인 결과 (1.0 ~ 3.0)
             - 높을수록: 프롬프트에 더 충실한 결과 (5.0 ~ 10.0)
             - 너무 높으면 부자연스러운 결과 발생 가능 (10.0+)
+            - generate_ad_image의 guidance_scale과 동일한 제어
+
+        auto_unload: 모델 자동 언로드 (기본값: True)
+            - 단계 완료 후 AI 모델을 GPU 메모리에서 해제
+            - True 권장 (메모리 절약)
 
         seed: 랜덤 시드 (재현성 보장)
             - generate_ad_image의 seed와 동일
@@ -850,13 +1043,29 @@ async def generate_background_only(
 
         params = GenerateRequest(
             start_step=1,
+            text_content=None,
             input_image=product_image_b64,
+            step1_image=None,
+            step2_image=None,
             bg_prompt=background_prompt,
             bg_negative_prompt=background_negative_prompt or "",
-            text_content=None,  # 텍스트 없음
+            bg_composition_prompt=bg_composition_prompt,
+            bg_composition_negative_prompt=bg_composition_negative_prompt,
+            text_prompt="",
+            negative_prompt="",
+            font_name=None,
+            composition_mode="overlay",
+            text_position="auto",
+            composition_prompt=None,
+            composition_negative_prompt="",
+            composition_strength=0.4,
+            composition_steps=28,
+            composition_guidance_scale=3.5,
             strength=strength,
             guidance_scale=guidance_scale,
             seed=seed,
+            test_mode=False,
+            auto_unload=auto_unload,
         )
 
         if wait_for_completion:
@@ -890,11 +1099,11 @@ async def generate_text_asset_only(
     step1_image_base64: Optional[str] = None,
     step1_image_path: Optional[str] = None,
     text_content: str = "",
-    text_style_prompt: str = "",
+    text_prompt: str = "",
     font_name: Optional[str] = None,
     negative_prompt: Optional[str] = None,
     seed: Optional[int] = None,
-    wait_for_completion: bool = True,
+    wait_for_completion: bool = False,
     save_output_path: Optional[str] = None,
 ) -> str:
     """
@@ -907,7 +1116,7 @@ async def generate_text_asset_only(
     사용 시나리오:
     - generate_background_only로 생성한 배경에 텍스트를 추가
     - 다양한 텍스트 스타일을 동일한 배경에 적용하여 A/B 테스트
-    - 텍스트 생성 파라미터 (text_style_prompt, font_name)를 세밀하게 튜닝
+    - 텍스트 생성 파라미터 (text_prompt, font_name)를 세밀하게 튜닝
     - 외부에서 제작한 배경 이미지에 AI 텍스트 추가
 
     Args:
@@ -925,7 +1134,7 @@ async def generate_text_asset_only(
             - generate_ad_image의 text_content와 동일
             - 예시: "SALE", "NEW", "특가 2500원"
 
-        text_style_prompt: 3D 텍스트의 시각적 스타일 설명 (영문)
+        text_prompt: 3D 텍스트의 시각적 스타일 설명 (영문)
             - generate_ad_image의 text_style_prompt와 동일
             - 예시: "3D gold foil balloon text, shiny metallic surface"
 
@@ -968,12 +1177,29 @@ async def generate_text_asset_only(
 
         params = GenerateRequest(
             start_step=2,
-            step1_image=step1_img_b64,
             text_content=text_content,
-            text_model_prompt=text_style_prompt,
-            font_name=font_name,
+            input_image=None,
+            step1_image=step1_img_b64,
+            step2_image=None,
+            bg_prompt="",
+            bg_negative_prompt="",
+            bg_composition_prompt=None,
+            bg_composition_negative_prompt=None,
+            text_prompt=text_prompt,
             negative_prompt=negative_prompt or "",
+            font_name=font_name,
+            composition_mode="overlay",
+            text_position="auto",
+            composition_prompt=None,
+            composition_negative_prompt="",
+            composition_strength=0.4,
+            composition_steps=28,
+            composition_guidance_scale=3.5,
+            strength=0.6,
+            guidance_scale=3.5,
             seed=seed,
+            test_mode=False,
+            auto_unload=True,
         )
 
         if wait_for_completion:
@@ -1010,10 +1236,11 @@ async def compose_final_image(
     step2_image_path: Optional[str] = None,
     composition_mode: str = "overlay",
     text_position: str = "auto",
+    composition_negative_prompt: Optional[str] = None,
     composition_strength: float = 0.4,
     composition_steps: int = 28,
     composition_guidance_scale: float = 3.5,
-    wait_for_completion: bool = True,
+    wait_for_completion: bool = False,
     save_output_path: Optional[str] = None,
 ) -> str:
     """
@@ -1062,6 +1289,19 @@ async def compose_final_image(
             - "top": 이미지 상단
             - "center": 이미지 중앙
             - "bottom": 이미지 하단
+
+        composition_negative_prompt: 최종 합성 시 제외할 요소 설명 (선택사항)
+            - 배경과 텍스트를 합성할 때 피하고 싶은 요소를 명시
+            - 영문으로 작성, 쉼표로 구분된 키워드 형식 권장
+            - 효과적인 작성법:
+                * 부자연스러운 합성: "unnatural composition, misaligned, poorly integrated"
+                * 품질 문제: "low quality, blurry, inconsistent lighting"
+                * 시각적 오류: "artifacts, seams, visible edges, color mismatch"
+            - 예시:
+                * 자연스러운 합성: "artificial looking, pasted on, flat composition"
+                * 조화로운 색상: "color clash, inconsistent tones, jarring colors"
+                * 깔끔한 마무리: "rough edges, halos, bleeding, poor blending"
+            - 생략 시 기본 negative prompt 사용
 
         composition_strength: 합성 변환 강도 (0.0 ~ 1.0, 기본값: 0.4)
             - 0.0 ~ 0.3: 원본을 거의 유지한 채 가볍게 합성 (자연스러움)
@@ -1115,13 +1355,29 @@ async def compose_final_image(
 
         params = GenerateRequest(
             start_step=3,
+            text_content="",
+            input_image=None,
             step1_image=step1_img_b64,
             step2_image=step2_img_b64,
+            bg_prompt="",
+            bg_negative_prompt="",
+            bg_composition_prompt=None,
+            bg_composition_negative_prompt=None,
+            text_prompt="",
+            negative_prompt="",
+            font_name=None,
             composition_mode=composition_mode,
             text_position=text_position,
+            composition_prompt=None,
+            composition_negative_prompt=composition_negative_prompt or "",
             composition_strength=composition_strength,
             composition_steps=composition_steps,
             composition_guidance_scale=composition_guidance_scale,
+            strength=0.6,
+            guidance_scale=3.5,
+            seed=None,
+            test_mode=False,
+            auto_unload=True,
         )
 
         if wait_for_completion:
@@ -1168,19 +1424,62 @@ TOOL_SCHEMAS = [
                 },
                 "background_prompt": {
                     "type": "string",
-                    "description": "생성할 배경에 대한 영문 설명 (예: 'Colorful party balloons and confetti, festive atmosphere')",
+                    "description": (
+                        "Detailed English description of commercial-quality background (15-30 words). "
+                        "Include: main elements, lighting (natural/studio/dramatic), color palette, "
+                        "textures (surfaces/materials), composition style. "
+                        "Example: 'Elegant marble surface with flowing silk fabric, soft natural window light, "
+                        "pastel color palette, high-end magazine editorial style, depth of field bokeh effect'"
+                    ),
                 },
                 "text_content": {
                     "type": "string",
                     "description": "광고에 표시할 텍스트 내용 (예: 'SALE', '50% OFF', '특가 2500원')",
                 },
-                "text_style_prompt": {
+                "text_prompt": {
                     "type": "string",
-                    "description": "3D 텍스트의 시각적 스타일 설명 (예: '3D render of gold foil balloon text, shiny metallic texture')",
+                    "description": (
+                        "Detailed English description for 3D text rendering (10-20 words). "
+                        "MUST include: '3D render' (mandatory), material type (metallic/balloon/glass/neon), "
+                        "surface finish (glossy/matte/reflective), lighting effects (reflections/glow/shadows). "
+                        "Example: '3D chrome metallic text with highly reflective surface, mirror-like polished finish, "
+                        "studio lighting reflections, sharp beveled edges, professional metal rendering'"
+                    ),
                 },
                 "font_name": {
                     "type": "string",
                     "description": "텍스트 렌더링에 사용할 폰트 파일명 (선택사항, list_available_fonts로 확인 가능)",
+                },
+                "background_negative_prompt": {
+                    "type": "string",
+                    "description": (
+                        "Comma-separated English keywords to exclude from background (8-15 keywords recommended). "
+                        "Include: quality issues (blurry, low quality, pixelated), lighting problems (bad lighting, harsh shadows), "
+                        "professional standard (amateur, unprofessional), clean visual (cluttered, watermark, text, logo). "
+                        "Example: 'blurry, low quality, bad lighting, amateur photography, cluttered, watermark, messy, "
+                        "harsh shadows, overexposed, unprofessional, distracting elements'"
+                    ),
+                },
+                "text_negative_prompt": {
+                    "type": "string",
+                    "description": (
+                        "Comma-separated English keywords to exclude from 3D text (7-12 keywords recommended). "
+                        "CRITICAL: ALWAYS include 'floor, ground, background, scene' to ensure floating 3D effect. "
+                        "Also add: flat appearance (flat, 2D, no depth), quality issues (low quality, blurry, distorted letters), "
+                        "rendering quality (rough edges, jagged, poor rendering). "
+                        "Example: 'floor, ground, background, scene, flat, 2D, no depth, low quality, blurry, "
+                        "distorted letters, rough edges, poor rendering'"
+                    ),
+                },
+                "composition_negative_prompt": {
+                    "type": "string",
+                    "description": (
+                        "Comma-separated English keywords to exclude from final composition (8-15 keywords recommended). "
+                        "Include: integration issues (artificial looking, pasted on, disconnected), visual artifacts (seams, halos, visible edges), "
+                        "color consistency (color mismatch, tone inconsistency), lighting consistency (mismatched lighting, inconsistent shadows). "
+                        "Example: 'artificial looking, pasted on, poorly integrated, color mismatch, mismatched lighting, "
+                        "halos, visible edges, seams, poor blending, amateur work, low quality'"
+                    ),
                 },
                 "composition_mode": {
                     "type": "string",
@@ -1191,6 +1490,79 @@ TOOL_SCHEMAS = [
                     "type": "string",
                     "description": "텍스트 배치 위치 ('auto', 'top', 'center', 'bottom' 중 선택, 기본값: 'auto')",
                     "default": "auto",
+                },
+                "bg_composition_prompt": {
+                    "type": "string",
+                    "description": (
+                        "Detailed English instructions for natural product-background composition (10-20 words recommended). "
+                        "Include: product integration (naturally integrated/seamlessly blended), lighting consistency (consistent/matching/unified), "
+                        "depth/perspective (proper depth of field/realistic perspective), color harmony (harmonized/matched/balanced). "
+                        "Example: 'Product naturally placed with realistic contact, matching ambient lighting and shadows, "
+                        "proper depth of field, harmonized color palette, professional seamless integration'"
+                    ),
+                },
+                "bg_composition_negative_prompt": {
+                    "type": "string",
+                    "description": (
+                        "Comma-separated English keywords to exclude from product-background composition (7-12 keywords recommended). "
+                        "Include: integration issues (floating, disconnected, pasted on, unrealistic), "
+                        "lighting problems (mismatched lighting, inconsistent shadows, wrong color temperature), "
+                        "physical errors (no contact, hovering, poor placement). "
+                        "Example: 'floating, disconnected, unrealistic shadows, mismatched lighting, pasted on, "
+                        "hovering, poor integration, inconsistent shadows, wrong perspective'"
+                    ),
+                },
+                "composition_prompt": {
+                    "type": "string",
+                    "description": (
+                        "Detailed English instructions for text-background composition (12-25 words recommended). "
+                        "Include: text integration (floating naturally/seamlessly integrated/behind elements), "
+                        "lighting/shadows (realistic shadows/consistent lighting/matching), visual hierarchy (clear focal point/dominant element), "
+                        "quality standards (professional/commercial/polished). Mode-specific: overlay='floating naturally with soft shadows', "
+                        "blend='seamlessly integrated', behind='positioned behind elements with realistic occlusion'. "
+                        "Example: 'Text floating naturally above background with soft shadows beneath, consistent atmospheric lighting, "
+                        "clear visual hierarchy as focal point, professional overlay quality, smooth blending, commercial advertising grade'"
+                    ),
+                },
+                "strength": {
+                    "type": "number",
+                    "description": "이미지 변환 강도 (0.0~1.0, 기본값: 0.6). 낮을수록 원본 유지, 높을수록 창의적 변형. 권장: 제품 보존=0.3~0.4, 일반=0.5~0.6, 예술적=0.7~0.8",
+                    "default": 0.6,
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                },
+                "guidance_scale": {
+                    "type": "number",
+                    "description": "프롬프트 가이던스 (1.0~20.0, 기본값: 3.5). 낮을수록 자연스럽고 창의적, 높을수록 프롬프트에 충실. 권장: 자연스러움=2.0~3.5, 균형=3.5~5.0, 정확도=5.0~7.0",
+                    "default": 3.5,
+                    "minimum": 1.0,
+                    "maximum": 20.0,
+                },
+                "composition_strength": {
+                    "type": "number",
+                    "description": "합성 변환 강도 (0.0~1.0, 기본값: 0.4). 최종 합성 시 원본 변형 정도. 낮을수록 자연스럽고, 높을수록 예술적. 권장: overlay=0.3~0.5, blend=0.4~0.6, behind=0.5~0.7",
+                    "default": 0.4,
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                },
+                "composition_steps": {
+                    "type": "integer",
+                    "description": "합성 추론 스텝 수 (10~50, 기본값: 28). 적을수록 빠르지만 품질 저하, 많을수록 고품질이지만 느림. 권장: 프로토타입=20, 일반=28, 최종=40",
+                    "default": 28,
+                    "minimum": 10,
+                    "maximum": 50,
+                },
+                "composition_guidance_scale": {
+                    "type": "number",
+                    "description": "합성 가이던스 (1.0~7.0, 기본값: 3.5). 합성 시 프롬프트 준수 강도. overlay=3.5~5.0, blend=2.5~3.5, behind=3.0~4.0 권장",
+                    "default": 3.5,
+                    "minimum": 1.0,
+                    "maximum": 7.0,
+                },
+                "auto_unload": {
+                    "type": "boolean",
+                    "description": "모델 자동 언로드 (기본값: true). True=메모리 절약(권장), False=속도 우선. GPU VRAM < 16GB는 True 필수",
+                    "default": True,
                 },
                 "seed": {
                     "type": "integer",
@@ -1204,7 +1576,7 @@ TOOL_SCHEMAS = [
                 "wait_for_completion": {
                     "type": "boolean",
                     "description": "생성 완료까지 대기 여부 (기본값: true)",
-                    "default": True,
+                    "default": False,
                 },
                 "save_output_path": {
                     "type": "string",
@@ -1215,7 +1587,7 @@ TOOL_SCHEMAS = [
                 "product_image_path",
                 "background_prompt",
                 "text_content",
-                "text_style_prompt",
+                "text_prompt",
             ],
         },
     },
@@ -1331,6 +1703,44 @@ TOOL_SCHEMAS = [
                     "type": "string",
                     "description": "생성할 배경에 대한 영문 설명",
                 },
+                "background_negative_prompt": {
+                    "type": "string",
+                    "description": """배경 생성 시 제외할 요소 설명 (선택사항). 배경 이미지 품질 향상을 위해 원치 않는 요소를 명시합니다.
+                    
+효과적인 작성 예시:
+- 기본 품질 제어: "blurry, low quality, distorted, ugly, bad lighting"
+- 깔끔한 배경: "cluttered, messy, text, watermark, logo"
+- 전문적 느낌: "amateur, unprofessional, poor composition"
+
+영문으로 작성하며 쉼표로 구분. 5-15개 키워드 권장.""",
+                },
+                "bg_composition_prompt": {
+                    "type": "string",
+                    "description": "배경 합성 프롬프트 (선택사항). 제품과 배경 자연스러운 합성을 위한 지시사항",
+                },
+                "bg_composition_negative_prompt": {
+                    "type": "string",
+                    "description": "배경 합성 시 제외 요소 (선택사항). 예: 'floating, disconnected, unrealistic shadows'",
+                },
+                "strength": {
+                    "type": "number",
+                    "description": "이미지 변환 강도 (0.0~1.0, 기본값: 0.6). 낮을수록 원본 유지, 높을수록 창의적 변형",
+                    "default": 0.6,
+                    "minimum": 0.0,
+                    "maximum": 1.0,
+                },
+                "guidance_scale": {
+                    "type": "number",
+                    "description": "프롬프트 가이던스 (1.0~20.0, 기본값: 3.5). 낮을수록 자연스럽고, 높을수록 프롬프트에 충실",
+                    "default": 3.5,
+                    "minimum": 1.0,
+                    "maximum": 20.0,
+                },
+                "auto_unload": {
+                    "type": "boolean",
+                    "description": "모델 자동 언로드 (기본값: true). 메모리 절약 권장",
+                    "default": True,
+                },
                 "seed": {
                     "type": "integer",
                     "description": "재현성을 위한 랜덤 시드 (선택사항)",
@@ -1358,13 +1768,32 @@ TOOL_SCHEMAS = [
                     "type": "string",
                     "description": "생성할 텍스트 내용",
                 },
-                "text_style_prompt": {
+                "text_prompt": {
                     "type": "string",
                     "description": "3D 텍스트의 시각적 스타일 설명",
                 },
                 "font_name": {
                     "type": "string",
                     "description": "텍스트 렌더링에 사용할 폰트 파일명 (선택사항)",
+                },
+                "step1_image_base64": {
+                    "type": "string",
+                    "description": "배경 이미지 Base64 문자열 (step1_image_path와 둘 중 하나 필수)",
+                },
+                "step1_image_path": {
+                    "type": "string",
+                    "description": "배경 이미지 파일 경로 (step1_image_base64와 둘 중 하나 필수)",
+                },
+                "text_negative_prompt": {
+                    "type": "string",
+                    "description": """3D 텍스트 생성 시 제외할 요소 설명 (선택사항). 텍스트 품질과 3D 효과 향상을 위해 원치 않는 요소를 명시합니다.
+                    
+효과적인 작성 예시:
+- 바닥 제거: "floor, ground, dirt, debris, shadows on ground"
+- 품질 제어: "low quality, blurry, distorted letters, unreadable"
+- 3D 효과: "flat, 2D, no depth, plain"
+
+영문으로 작성하며 쉼표로 구분. 5-10개 키워드 권장.""",
                 },
                 "seed": {
                     "type": "integer",
@@ -1380,7 +1809,7 @@ TOOL_SCHEMAS = [
                     "description": "결과 이미지를 저장할 파일 경로 (선택사항)",
                 },
             },
-            "required": ["text_content", "text_style_prompt"],
+            "required": ["text_content", "text_prompt"],
         },
     },
     {
@@ -1415,20 +1844,31 @@ TOOL_SCHEMAS = [
                     "description": "텍스트 배치 위치 ('auto', 'top', 'center', 'bottom' 중 선택)",
                     "default": "auto",
                 },
+                "composition_negative_prompt": {
+                    "type": "string",
+                    "description": """최종 합성 시 제외할 요소 설명 (선택사항). 배경과 텍스트를 자연스럽게 합성하기 위해 피하고 싶은 요소를 명시합니다.
+                    
+효과적인 작성 예시:
+- 자연스러운 합성: "artificial looking, pasted on, cut-out effect"
+- 품질 제어: "low quality, blurry, inconsistent lighting"
+- 시각적 오류: "artifacts, seams, visible edges, halos"
+
+영문으로 작성하며 쉼표로 구분. 5-12개 키워드 권장.""",
+                },
                 "composition_strength": {
                     "type": "number",
-                    "description": "합성 강도 (0.0~1.0, 기본값: 0.8)",
-                    "default": 0.8,
+                    "description": "합성 강도 (0.0~1.0, 기본값: 0.4)",
+                    "default": 0.4,
                 },
                 "composition_steps": {
                     "type": "integer",
-                    "description": "합성 반복 횟수 (기본값: 30)",
-                    "default": 30,
+                    "description": "합성 반복 횟수 (기본값: 28)",
+                    "default": 28,
                 },
                 "composition_guidance_scale": {
                     "type": "number",
-                    "description": "합성 가이던스 스케일 (기본값: 7.5)",
-                    "default": 7.5,
+                    "description": "합성 가이던스 스케일 (기본값: 3.5)",
+                    "default": 3.5,
                 },
                 "save_output_path": {
                     "type": "string",
@@ -1488,11 +1928,17 @@ async def call_tool(tool_name: str, request: Dict[str, Any]):
 
     try:
         tool_func = TOOL_FUNCTIONS[tool_name]
+        logger.info(f"도구 호출: {tool_name}")
+        logger.info(f"받은 파라미터: {list(request.keys())}")
         result = await tool_func(**request)
         return {"result": result}
     except TypeError as e:
+        logger.error(f"TypeError 발생: {tool_name}")
+        logger.error(f"받은 파라미터: {request}")
+        logger.error(f"에러 상세: {str(e)}")
         raise HTTPException(
-            status_code=400, detail=f"Invalid parameters for {tool_name}: {str(e)}"
+            status_code=400,
+            detail=f"Invalid parameters for {tool_name}: {str(e)}. Received params: {list(request.keys())}",
         )
     except Exception as e:
         logger.exception(f"Error executing tool {tool_name}: {e}")

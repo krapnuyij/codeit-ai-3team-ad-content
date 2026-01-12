@@ -154,7 +154,7 @@ async def get_help():
                             "start_step": 2,
                             "step1_image": "<step1_result_base64>",
                             "text_content": "Different Text",
-                            "text_model_prompt": "gold metallic text with shadow",
+                            "text_prompt": "gold metallic text with shadow",
                             "font_name": "NanumGothic/NanumGothic.ttf",
                         },
                     },
@@ -353,7 +353,7 @@ async def get_parameters_help():
                     "source": "GET /status/{job_id}의 step1_result 필드",
                     "example": "iVBORw0KGgoAAAANSUhEUgAA...",
                 },
-                "text_model_prompt": {
+                "text_prompt": {
                     "type": "string",
                     "required": False,
                     "default": "",
@@ -367,12 +367,12 @@ async def get_parameters_help():
                     ],
                     "example": "silver metallic 3D text with shadow and reflection",
                 },
-                "negative_prompt": {
+                "text_negative_prompt": {
                     "type": "string",
                     "required": False,
                     "default": "",
                     "description": "텍스트 생성 시 제외할 요소",
-                    "example": "flat, 2d, blurry, distorted",
+                    "example": "flat, 2d, blurry, distorted, unreadable text",
                 },
                 "font_name": {
                     "type": "string | null",
@@ -518,7 +518,7 @@ async def get_parameters_help():
                     "input_image": "<base64_product_image>",
                     "bg_prompt": "luxury hotel lobby with warm lighting",
                     "text_content": "Grand Opening",
-                    "text_model_prompt": "gold metallic 3D text",
+                    "text_prompt": "gold metallic 3D text",
                     "font_name": "NanumSquare/NanumSquareB.ttf",
                     "start_step": 1,
                 },
@@ -530,8 +530,8 @@ async def get_parameters_help():
                     "bg_prompt": "modern minimalist studio with soft shadows",
                     "bg_negative_prompt": "cluttered, dark, people, text",
                     "text_content": "NEW COLLECTION",
-                    "text_model_prompt": "chrome reflective text with mirror finish and glow",
-                    "negative_prompt": "flat, 2d, blurry, distorted",
+                    "text_prompt": "chrome reflective text with mirror finish and glow",
+                    "text_negative_prompt": "flat, 2d, blurry, distorted",
                     "font_name": "NanumGothic/NanumGothic.ttf",
                     "composition_mode": "overlay",
                     "text_position": "center",
@@ -548,7 +548,7 @@ async def get_parameters_help():
                 "request": {
                     "step1_image": "<previous_step1_result_base64>",
                     "text_content": "Different Text",
-                    "text_model_prompt": "neon glowing text with pink and blue",
+                    "text_prompt": "neon glowing text with pink and blue",
                     "font_name": "NanumSquare/NanumSquareB.ttf",
                     "start_step": 2,
                 },
@@ -618,7 +618,7 @@ async def get_examples():
     "input_image": "<base64_cosmetic_product>",
     "bg_prompt": "luxury marble bathroom with gold accents and soft lighting",
     "text_content": "Premium Beauty",
-    "text_model_prompt": "elegant gold metallic text with subtle glow",
+    "text_prompt": "elegant gold metallic text with subtle glow",
     "font_name": "NanumSquare/NanumSquareB.ttf"
   }' """,
                         "python": """import requests
@@ -631,7 +631,7 @@ response = requests.post("http://localhost:8000/generate", json={
     "input_image": image_b64,
     "bg_prompt": "luxury marble bathroom with gold accents and soft lighting",
     "text_content": "Premium Beauty",
-    "text_model_prompt": "elegant gold metallic text with subtle glow",
+    "text_prompt": "elegant gold metallic text with subtle glow",
     "font_name": "NanumSquare/NanumSquareB.ttf"
 })
 
@@ -671,7 +671,7 @@ new_response = requests.post("http://localhost:8000/generate", json={
     "start_step": 2,
     "step1_image": step1_result,
     "text_content": "Premium Beauty",
-    "text_model_prompt": "chrome reflective text with rainbow gradient",
+    "text_prompt": "chrome reflective text with rainbow gradient",
     "font_name": "NanumGothic/NanumGothic.ttf"
 })
 
@@ -718,7 +718,7 @@ for text_config in texts:
         "start_step": 2,
         "step1_image": background,
         "text_content": text_config["text"],
-        "text_model_prompt": text_config["style"]
+        "text_prompt": text_config["style"]
     }).json()
 
     # 완료 대기

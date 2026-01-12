@@ -11,7 +11,9 @@ from models.flux_generator import FluxGenerator
 from models.sdxl_text import SDXLTextGenerator
 from models.CompositionEngine import CompositionEngine
 from utils.MaskGenerator import MaskGenerator
-from config import logger
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 
 class AIModelEngine:
@@ -143,6 +145,9 @@ class AIModelEngine:
                     )
             return draft_image.copy()  # 단순 복사
 
+        logger.info(f"prompt={prompt}")
+        logger.info(f"negative_prompt={negative_prompt}")
+
         return self.flux_gen.refine_image(
             draft_image=draft_image,
             prompt=prompt,
@@ -195,6 +200,9 @@ class AIModelEngine:
                     )
             return background.copy()
 
+        logger.info(f"prompt={prompt}")
+        logger.info(f"negative_prompt={negative_prompt}")
+
         return self.flux_gen.inject_features_via_inpaint(
             background=background,
             product_foreground=product_foreground,
@@ -240,6 +248,9 @@ class AIModelEngine:
                     )
             return self._create_dummy_image(1024, 1024, "yellow")
 
+        logger.info(f"prompt={prompt}")
+        logger.info(f"negative_prompt={negative_prompt}")
+
         return self.sdxl_gen.generate_text_effect(
             canny_map, prompt, negative_prompt, seed, self.progress_callback
         )
@@ -251,6 +262,7 @@ class AIModelEngine:
         composition_mode: str = "overlay",
         text_position: str = "top",
         user_prompt: str = None,
+        negative_prompt: str = None,
         strength: float = 0.4,
         num_inference_steps: int = 28,
         seed: int = None,
@@ -299,6 +311,9 @@ class AIModelEngine:
             background, text_asset, position=text_position, mode=mask_mode
         )
 
+        logger.info(f"prompt={user_prompt}")
+        logger.info(f"negative_prompt={negative_prompt}")
+
         # Composition Engine 실행
         result = self.compositor.compose(
             background=background,
@@ -307,6 +322,7 @@ class AIModelEngine:
             mode=composition_mode,
             position=text_position,
             user_prompt=user_prompt,
+            negative_prompt=negative_prompt,
             strength=strength,
             num_inference_steps=num_inference_steps,
             seed=seed,

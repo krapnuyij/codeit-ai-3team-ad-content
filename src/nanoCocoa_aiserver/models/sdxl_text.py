@@ -11,8 +11,11 @@ from diffusers import (
     ControlNetModel,
     AutoencoderKL,
 )
-from config import MODEL_IDS, TORCH_DTYPE, DEVICE, logger
+from config import MODEL_IDS, TORCH_DTYPE, DEVICE
 from utils import flush_gpu
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 
 class SDXLTextGenerator:
@@ -92,8 +95,12 @@ class SDXLTextGenerator:
         logger.info(
             f"[SDXL] Inference 시작 - {num_steps} steps, seed={'고정:'+str(seed) if seed is not None else '랜덤'}, callback={'설정됨' if progress_callback else '미설정'}"
         )
+
+        logger.info(f" [SDXL] prompt='{prompt}' ")
+        logger.info(f" [SDXL] negative_prompt='{negative_prompt}' ")
+
         generated_img = pipe(
-            prompt,
+            prompt=prompt,
             negative_prompt=negative_prompt,
             image=canny_map,
             controlnet_conditioning_scale=1.0,
