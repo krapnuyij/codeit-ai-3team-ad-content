@@ -13,7 +13,10 @@ import gc
 import torch
 
 from PIL import Image, ImageDraw, ImageFont
-from config import logger
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
+
 from utils import (
     pil_to_base64,
     base64_to_pil,
@@ -192,11 +195,11 @@ def process_step2_text(
     # 2. SDXL ControlNet
     shared_state["sub_step"] = "sdxl_text_generation"
     shared_state["system_metrics"] = get_system_metrics()
-    text_model_prompt = input_data.get("text_model_prompt")
-    negative_prompt = input_data.get("negative_prompt")
+    text_prompt = input_data.get("text_prompt")
+    negative_prompt = input_data.get("text_negative_prompt")
     seed = input_data.get("seed")
     raw_3d_text = engine.run_sdxl_text_gen(
-        canny_map, prompt=text_model_prompt, negative_prompt=negative_prompt, seed=seed
+        canny_map, prompt=text_prompt, negative_prompt=negative_prompt, seed=seed
     )
 
     # 3. 배경 제거 (Text Segmentation)
@@ -318,6 +321,9 @@ def process_step3_composite(
         f"[Step 3] Composition parameters: mode={composition_mode}, position={text_position}, strength={strength}, steps={num_steps}, guidance={guidance_scale}"
     )
 
+    logger.info(f"prompt={user_prompt}")
+    logger.info(f"negative_prompt={negative_prompt}")
+
     try:
         # 지능형 합성 실행
         final_result = engine.run_intelligent_composite(
@@ -326,6 +332,7 @@ def process_step3_composite(
             composition_mode=composition_mode,
             text_position=text_position,  # 결정된 위치("auto" 아님)
             user_prompt=user_prompt,
+            negative_prompt=negative_prompt,
             strength=strength,
             num_inference_steps=num_steps,
             seed=seed,

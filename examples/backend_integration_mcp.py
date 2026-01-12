@@ -30,7 +30,7 @@ class AdGenerationRequest(BaseModel):
     product_image_path: str
     background_prompt: str
     text_content: str
-    text_style_prompt: str
+    text_prompt: str
     font_name: Optional[str] = None
     composition_mode: str = "overlay"
     text_position: str = "auto"
@@ -63,7 +63,7 @@ async def generate_advertisement(request: AdGenerationRequest):
                 "product_image_path": request.product_image_path,
                 "background_prompt": request.background_prompt,
                 "text_content": request.text_content,
-                "text_style_prompt": request.text_style_prompt,
+                "text_prompt": request.text_prompt,
                 "font_name": request.font_name,
                 "composition_mode": request.composition_mode,
                 "text_position": request.text_position,

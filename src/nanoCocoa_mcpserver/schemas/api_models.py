@@ -57,7 +57,7 @@ class GenerateRequest(BaseModel):
                 "start_step": 1,
                 "text_content": "New Arrival",
                 "bg_prompt": "Wooden table in a cozy cafe, sunlight, realistic",
-                "text_model_prompt": "Gold balloon text, 3d render",
+                "text_prompt": "Gold balloon text, 3d render",
                 "strength": 0.6,
                 "guidance_scale": 3.5,
             }
@@ -113,7 +113,7 @@ class GenerateRequest(BaseModel):
         title="Step 1 결과 이미지 (Base64)",
         description="Step 2 이상 시작 시 필수: 배경 이미지",
     )
-    text_model_prompt: str = Field(
+    text_prompt: str = Field(
         "3D render of Gold foil balloon text, inflated, shiny metallic texture, floating in air, cinematic lighting, sharp details, isolated on black background",
         title="텍스트 모델 프롬프트",
         description="3D 텍스트의 재질, 조명, 스타일 정의",

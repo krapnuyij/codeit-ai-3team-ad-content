@@ -20,7 +20,7 @@ class GenerateRequest(BaseModel):
                 "start_step": 1,
                 "text_content": "New Arrival",
                 "bg_prompt": "Wooden table in a cozy cafe, sunlight, realistic",
-                "text_model_prompt": "Gold balloon text, 3d render",
+                "text_prompt": "Gold balloon text, 3d render",
                 "strength": 0.6,
                 "guidance_scale": 3.5,
             }
@@ -110,7 +110,7 @@ class GenerateRequest(BaseModel):
             "Step 1부터 실행 시에는 서버가 생성한 이미지를 자동으로 사용하므로 비워둡니다."
         ),
     )
-    text_model_prompt: str = Field(
+    text_prompt: str = Field(
         "3D render of Gold foil balloon text, inflated, shiny metallic texture, floating in air, cinematic lighting, sharp details, isolated on black background",
         title="텍스트 모델 프롬프트 (Text Model Prompt)",
         description="3D 텍스트의 재질, 조명, 스타일을 정의하는 영문 프롬프트입니다.",
@@ -118,11 +118,13 @@ class GenerateRequest(BaseModel):
             "example": "3D render of pink neon glass text, glowing, cyberpunk style"
         },
     )
-    negative_prompt: str = Field(
+    text_negative_prompt: str = Field(
         "floor, ground, dirt, debris, random shapes, multiple objects, clutter, ugly, low quality",
-        title="부정 프롬프트 (Negative Prompt)",
-        description="생성 결과물에서 배제하고 싶은 요소들에 대한 키워드입니다.",
-        json_schema_extra={"example": "blurry, low quality, distorted"},
+        title="텍스트 모델 부정 프롬프트 (Text Model Negative Prompt)",
+        description="텍스트 생성 시 배제하고 싶은 요소들에 대한 키워드입니다.",
+        json_schema_extra={
+            "example": "blurry, low quality, distorted, unreadable text"
+        },
     )
     font_name: Optional[str] = Field(
         None,

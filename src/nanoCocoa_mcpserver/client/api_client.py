@@ -13,6 +13,7 @@ sys.path.insert(0, str(project_root))
 
 from typing import Optional, Callable, Any
 from contextlib import asynccontextmanager
+from helper_dev_utils import print_json_tree
 
 import httpx
 
@@ -313,6 +314,10 @@ class AIServerClient:
         )
 
         data = response.json()
+
+        logger.info("start_generation")
+        print_json_tree(data)
+
         return GenerateResponse(**data)
 
     async def get_status(self, job_id: str) -> StatusResponse:

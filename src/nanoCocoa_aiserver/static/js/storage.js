@@ -27,8 +27,8 @@ function saveToLocalStorage() {
             text_content: document.getElementById('text_content')?.value || '',
             bg_prompt: document.getElementById('bg_prompt')?.value || '',
             bg_negative_prompt: document.getElementById('bg_negative_prompt')?.value || '',
-            text_model_prompt: document.getElementById('text_model_prompt')?.value || '',
-            negative_prompt: document.getElementById('negative_prompt')?.value || '',
+            text_prompt: document.getElementById('text_prompt')?.value || '',
+            text_negative_prompt: document.getElementById('text_negative_prompt')?.value || '',
             font_name: document.getElementById('font_name')?.value || '',
             strength: document.getElementById('strength')?.value || '0.6',
             guidance_scale: document.getElementById('guidance_scale')?.value || '3.5',
@@ -66,7 +66,7 @@ function restoreFromLocalStorage() {
         }
         
         // Restore text inputs and textareas
-        const fields = ['text_content', 'bg_prompt', 'bg_negative_prompt', 'text_model_prompt', 'negative_prompt', 'seed'];
+        const fields = ['text_content', 'bg_prompt', 'bg_negative_prompt', 'text_prompt', 'text_negative_prompt', 'seed'];
         fields.forEach(id => {
             if (data[id] !== undefined) {
                 const el = document.getElementById(id);

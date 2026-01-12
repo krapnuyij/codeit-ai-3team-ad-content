@@ -9,8 +9,11 @@ import warnings
 from PIL import Image
 from torchvision import transforms
 from transformers import AutoModelForImageSegmentation
-from config import MODEL_IDS, DEVICE, logger
+from config import MODEL_IDS, DEVICE
 from utils import flush_gpu
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 # timm 라이브러리 deprecation 경고 억제
 warnings.filterwarnings("ignore", category=FutureWarning, module="timm")
