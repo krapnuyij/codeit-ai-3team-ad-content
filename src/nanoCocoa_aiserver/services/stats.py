@@ -90,14 +90,12 @@ class StepStatsManager:
             logger.info(f"Initialized new stat '{step_name}' = {duration:.2f}s")
         else:
             # EMA with alpha = 0.2 (recent values have 20% weight)
-            self.stats[step_name] = duration
-            logger.debug(f"Updated stat '{step_name}': {duration}s")
-            # current_avg = self.stats[step_name]
-            # new_avg = (current_avg * 0.8) + (duration * 0.2)
-            # self.stats[step_name] = round(new_avg, 2)
-            # logger.debug(
-            #     f"Updated stat '{step_name}': {current_avg:.2f}s -> {new_avg:.2f}s"
-            # )
+            current_avg = self.stats[step_name]
+            new_avg = (current_avg * 0.8) + (duration * 0.2)
+            self.stats[step_name] = round(new_avg, 2)
+            logger.debug(
+                f"Updated stat '{step_name}': {current_avg:.2f}s -> {new_avg:.2f}s"
+            )
 
         self.save_stats()
 
