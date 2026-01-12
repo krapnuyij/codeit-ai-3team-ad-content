@@ -13,7 +13,10 @@ from typing import Optional
 
 from PIL import Image
 
-from nanoCocoa_mcpserver.config import (
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
+
+from config import (
     MAX_IMAGE_SIZE_MB,
     SUPPORTED_IMAGE_FORMATS,
     RUNTIME_ENV,

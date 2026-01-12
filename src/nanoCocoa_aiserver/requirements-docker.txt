@@ -111,5 +111,5 @@ sentry-sdk==2.48.0
 nvidia-ml-py3==7.352.0
 
 # Development (optional - remove in production)
-helper-dev-utils==0.5.0
-helper-plot-hangul==0.5.6
+helper-dev-utils>=0.5.0
+helper-plot-hangul>=0.5.6
