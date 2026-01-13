@@ -3,6 +3,12 @@
 Base64 인코딩/디코딩 및 이미지 검증 기능
 """
 
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).resolve().parent
+sys.path.insert(0, str(project_root))
+
 import base64
 import io
 import os
@@ -13,7 +19,7 @@ from typing import Optional
 
 from PIL import Image
 
-from nanoCocoa_mcpserver.config import (
+from config import (
     MAX_IMAGE_SIZE_MB,
     SUPPORTED_IMAGE_FORMATS,
     RUNTIME_ENV,
