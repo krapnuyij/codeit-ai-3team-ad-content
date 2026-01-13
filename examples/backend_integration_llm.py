@@ -51,7 +51,7 @@ async def chat_with_ai(request: ChatRequest):
         async with LLMAdapter(
             openai_api_key=OPENAI_API_KEY,
             mcp_server_url="http://nanococoa-mcpserver:3000",
-            model="gpt-4o",
+            model="gpt-5-mini",
         ) as adapter:
             response = await adapter.chat(request.message)
 

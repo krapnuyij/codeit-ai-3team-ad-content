@@ -36,7 +36,7 @@ class LLMAdapter:
         self,
         openai_api_key: str,
         mcp_server_url: str = "http://localhost:3000",
-        model: str = "gpt-4o",
+        model: str = "gpt-5-mini",
         temperature: float = 1.0,
         max_completion_tokens: int = 4000,
     ):

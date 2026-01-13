@@ -33,7 +33,7 @@ class LLMMCPAdapter:
     def __init__(
         self,
         openai_api_key: str,
-        model: str = "gpt-4o",
+        model: str = "gpt-5-mini",
         mcp_server_command: str = "python",
         mcp_server_args: Optional[List[str]] = None,
         conda_env: str = "py311_ad",
@@ -43,7 +43,7 @@ class LLMMCPAdapter:
         """
         Args:
             openai_api_key: OpenAI API 키
-            model: 사용할 OpenAI 모델 (기본값: gpt-4o)
+            model: 사용할 OpenAI 모델 (기본값: gpt-5-mini)
             mcp_server_command: MCP 서버 실행 명령어 (기본값: python)
             mcp_server_args: MCP 서버 실행 인자 리스트
             conda_env: 사용할 conda 환경 이름 (기본값: py311_ad)
