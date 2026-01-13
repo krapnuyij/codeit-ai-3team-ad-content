@@ -13,58 +13,52 @@
 
 <section class="launch-content">
     <div class="project-form-container">
-        <form class="project-form" method="POST" action="/api/promote-store">
+        <form class="project-form" method="POST" action="/save-customer-data">
             <h3>매장 정보</h3>
             
             <div class="form-section">
-                <label>매장 이름</label>
-                <input type="text" name="store_name" placeholder="매장의 이름을 입력해주세요." required>
+                <label for="store_name">매장 이름</label>
+                <input type="text" id="store_name" name="store_name" placeholder="매장의 이름을 입력해주세요." required>
             </div>
 
             <div class="form-section">
-                <label>매장 유형</label>
-                <select name="store_type" required>
-                    <option value="">선택하세요</option>
-                    <option value="mart">소매업</option>
-                    <option value="traditional-market">전통시장</option>
-                    <option value="restaurant">음식점</option>
-                    <option value="cafe">카페</option>
-                    <option value="service">서비스업</option>
-                    <option value="healthcare">헬스케어</option>
-                    <option value="entertainments">엔터테인먼트</option>
-                    <option value="other">기타</option>
-                </select>
+                <label for="store_type">매장 유형</label>
+                <input type="text" id="store_type" name="store_type" placeholder="ex) 카페, 음식점, 소매업" required>
             </div>
 
             <div class="form-row">
                 <div class="form-section">
-                    <label>예산 범위</label>
-                    <select name="budget" required>
-                        <option value="">선택하세요</option>
-                        <option value="1">1,000만원 이하</option>
-                        <option value="2">1,000만원 - 3,000만원</option>
-                        <option value="3">3,000만원 - 5,000만원</option>
-                        <option value="4">5,000만원 이상</option>
-                    </select>
+                    <label for="budget">예산 범위  (단위: 만원 [생략])</label>
+                    <input type="text" id="budget" name="budget" placeholder="ex) 10" required>
+
                 </div>
                 <div class="form-section">
-                    <label>예상 기간</label>
-                    <select name="duration" required>
-                        <option value="">선택하세요</option>
-                        <option value="1">1개월 이내</option>
-                        <option value="2">1-3개월</option>
-                        <option value="3">3-6개월</option>
-                        <option value="4">6개월 이상</option>
-                    </select>
+                    <label class="period">예상 기간  (단위: 일 [생략])</label>
+                    <input type="text" id="period" name="period" placeholder="ex) 30" required>
                 </div>
             </div>
 
             <div class="form-section">
-                <label>광고 목표 및 상세 내용</label>
-                <textarea name="description" rows="6" placeholder="기대하는 홍보 효과나 홍보시 힘든 점을 자세히 알려주세요.&#10;예: 20대 여성 타겟으로 인스타그램 홍보를 집중하고 싶어요. / 신메뉴 출시 이벤트 강조를 희망합니다." required></textarea>
+                <label class="advertising_goal">광고 목표</label>
+                <input type="text" id="advertising_goal" name="advertising_goal" placeholder="기대하는 홍보 효과나 홍보시 힘든 점을 자세히 알려주세요.&#10;예: 인스타그램 홍보를 집중하고 싶어요. / 신메뉴 출시 이벤트 강조를 희망합니다." required></inputtext>
             </div>
 
-            <h3 style="margin-top: 50px;">담당자 정보</h3>
+            <div class="form-section">
+                <label class="target_customer">광고 타겟</label>
+                <input type="text" id="target_customer" name="target_customer" placeholder="광고의 주 시청자를 선택해주세요.&#10;예:20~30대 여성, 고등학생 및 취준생 등." required></inputtext>
+            </div>
+            <div class="form-section">
+                <label class="advertising_media">광고 매체</label>
+                <input type="text" id="advertising_media" name="advertising_media" placeholder="광고할 매체를 선택하세요. ex)홈페이지, 인스타그램, 블로그" required></inputtext>
+            </div>
+            <div class="form-section">
+                <label class="store_strength">매장의 차별점</label>
+                <textarea id="store_strength" name="store_strength" rows="6" placeholder="다른 매장과 차별화된 인테리어나 장점을 자세히 알려주세요." required></textarea>
+            </div>
+
+
+
+            <h3 style="margin-top: 50px;">대표자 정보</h3>
 
             <div class="form-row">
                 <div class="form-section">
@@ -73,7 +67,7 @@
                 </div>
                 <div class="form-section">
                     <label>매장명</label>
-                    <input type="text" name="company_name" placeholder="매장명 (선택사항)">
+                    <input type="text" name="company_name" placeholder="매장명">
                 </div>
             </div>
 
@@ -97,6 +91,23 @@
 
             <button type="submit" class="submit-btn">프로젝트 제출하기</button>
         </form>
+
+        {% if result %}
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+            <p style="margin: 0 0 15px 0; color: #333; font-size: 1.1rem;">{{ result }}</p>
+
+            {% if customer_id %}
+            <form method="POST" action="/generate-homepage/{{ customer_id }}" style="margin-top: 15px;">
+                <button type="submit" class="submit-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    🎨 홈페이지 생성하기
+                </button>
+            </form>
+            <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                ⏱️ 홈페이지 생성에는 약 3~5분이 소요됩니다.
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
     </div>
 
     <div class="process-info">

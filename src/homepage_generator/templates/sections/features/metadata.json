@@ -1,0 +1,65 @@
+{
+  "features_grid": {
+    "name": "Features Grid",
+    "description": "3열 카드 그리드 레이아웃. 여러 특징을 동등하게 나열",
+    "preview_image": "features_grid_preview.png",
+    "use_cases": [
+      "서비스 특징 나열",
+      "제품 기능 소개",
+      "장점 강조",
+      "팀 멤버 소개"
+    ],
+    "required_fields": {
+      "features": [
+        {
+          "title": "string - 특징 제목",
+          "description": "string - 특징 설명"
+        }
+      ]
+    },
+    "optional_fields": {
+      "section_title": "string - 섹션 제목",
+      "section_subtitle": "string - 섹션 부제목",
+      "features[].image": "string - 특징별 이미지 URL",
+      "features[].icon": "string - 특징별 아이콘 (이모지 또는 텍스트)",
+      "features[].link_text": "string - 상세보기 링크 텍스트",
+      "features[].link_url": "string - 상세보기 링크 URL"
+    },
+    "best_for": "동일한 중요도의 여러 항목을 나열. SaaS 기능, 서비스 장점, 제품 스펙 비교에 적합",
+    "responsive": true,
+    "tailwind": true,
+    "grid_columns": "1 (mobile) → 2 (tablet) → 3 (desktop)"
+  },
+  "features_alternating": {
+    "name": "Alternating Features",
+    "description": "좌우 번갈아가며 배치. 텍스트와 이미지가 교대로 표시",
+    "preview_image": "features_alternating_preview.png",
+    "use_cases": [
+      "상세한 기능 설명",
+      "제품 사용 시나리오",
+      "스토리텔링",
+      "단계별 프로세스"
+    ],
+    "required_fields": {
+      "features": [
+        {
+          "title": "string - 기능 제목",
+          "description": "string - 기능 설명",
+          "image": "string - 이미지 URL"
+        }
+      ]
+    },
+    "optional_fields": {
+      "section_title": "string - 섹션 제목",
+      "section_subtitle": "string - 섹션 부제목",
+      "features[].badge": "string - 배지 텍스트 (예: NEW, POPULAR)",
+      "features[].benefits": ["string - 혜택 목록 (체크마크 포함)"],
+      "features[].cta_text": "string - CTA 버튼 텍스트",
+      "features[].cta_action": "string - CTA 버튼 액션"
+    },
+    "best_for": "각 기능을 자세히 설명해야 하는 경우. 제품 투어, 사용법 가이드, 프리미엄 기능 소개에 적합",
+    "responsive": true,
+    "tailwind": true,
+    "layout": "이미지와 텍스트가 홀수/짝수 행마다 좌우 교대"
+  }
+}

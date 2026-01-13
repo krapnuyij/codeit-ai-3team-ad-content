@@ -16,6 +16,10 @@ import cv2
 import os
 from typing import Union
 from dotenv import load_dotenv
+import httpx
+
+# 데이터베이스 모듈 import
+from customer_db import init_db, save_customer, get_customer_by_id
 
 # 환경변수 로드
 load_dotenv()
@@ -120,6 +124,9 @@ def process_with_onnx(image_data: bytes, ort_session) -> AdPrompt:
 async def lifespan(app: FastAPI):
     """앱 시작/종료 시 실행되는 로직"""
     print("🚀 앱 시작")
+
+    # 데이터베이스 초기화
+    await init_db()
 
     api_key = os.getenv("OPENAI_API_KEY")
     app.state.use_openai = False
@@ -251,19 +258,9 @@ async def generate_ad(
             result = process_with_openai(image_data, purpose, mood, client)
         else:
             result = process_with_onnx(image_data, client)
-        # ✅ manager.html을 다시 렌더링하되, 결과 포함
-        manager_data = {
-            "store_name": "오로라 카페",
-            "email": "owner@aurora.com",
-            "monthly_generated": 12,
-            "monthly_limit": 30,
-            "total_views": "8.4k",
-            "ctr": 4.2
-        }
 
         return templates.TemplateResponse("user.html", {
             "request": request,
-            "manager": manager_data,
             "result": result  # ← 결과 전달!
         })
 
@@ -271,6 +268,139 @@ async def generate_ad(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/save-customer-data", response_class=HTMLResponse)
+async def save_customer_data(
+        request: Request,
+        store_name: str = Form(...),
+        store_type: str = Form(...),
+        budget: str = Form(...),
+        period: str = Form(...),
+        advertising_goal: str = Form(...),
+        target_customer: str = Form(...),
+        advertising_media: str = Form(...),
+        store_strength: str = Form(...),
+        contact_name: str = Form(...),
+        company_name: str = Form(None),  # 선택 사항이므로 기본값 None
+        email: str = Form(...),
+        phone: str = Form(...),
+        agree: str = Form(...)
+):
+    """홈페이지 생성 요청 처리 및 DB 저장"""
+    try:
+        # 고객 데이터 딕셔너리 생성
+        customer_data = {
+            "store_name": store_name,
+            "store_type": store_type,
+            "budget": budget,
+            "period": period,
+            "advertising_goal": advertising_goal,
+            "target_customer": target_customer,
+            "advertising_media": advertising_media,
+            "store_strength": store_strength,
+            "contact_name": contact_name,
+            "company_name": company_name if company_name else store_name,  # 비어있으면 매장명 사용
+            "email": email,
+            "phone": phone,
+            "agree": agree
+        }
+
+        # 데이터베이스에 저장
+        saved_customer = await save_customer(customer_data)
+
+        result = f"✅ 데이터를 안전하게 저장하였습니다. (고객 ID: {saved_customer.id})"
+
+        return templates.TemplateResponse("promote_store.html", {
+            "request": request,
+            "result": result,
+            "customer_id": saved_customer.id
+        })
+
+    except Exception as e:
+        print(f"❌ 에러 발생: {e}")
+        result = "데이터 저장 중 오류가 발생했습니다. 다시 시도해주세요."
+        return templates.TemplateResponse("promote_store.html", {
+            "request": request,
+            "result": result,
+            "error": str(e)
+        })
+
+@app.post("/generate-homepage/{customer_id}", response_class=HTMLResponse)
+async def generate_homepage(request: Request, customer_id: int):
+    """저장된 고객 데이터로 홈페이지 생성 요청"""
+    try:
+        # DB에서 고객 데이터 조회
+        customer = await get_customer_by_id(customer_id)
+
+        # homepage_generator에 전달할 데이터 구성
+        customer_data = {
+            "store_name": customer.store_name,
+            "store_type": customer.store_type,
+            "budget": int(customer.budget),
+            "period": int(customer.period),
+            "advertising_goal": customer.advertising_goal,
+            "target_customer": customer.target_customer,
+            "advertising_media": customer.advertising_media,
+            "store_strength": customer.store_strength,
+            "location": customer.company_name or customer.store_name,
+            "phone_number": customer.phone
+        }
+
+        # homepage_generator 컨테이너에 데이터 전송
+        homepage_generator_url = os.getenv("HOMEPAGE_GENERATOR_URL", "http://homepage_generator:8081")
+
+        async with httpx.AsyncClient(timeout=600.0) as client:
+            response = await client.post(
+                f"{homepage_generator_url}/generate",
+                json=customer_data
+            )
+
+            if response.status_code == 200:
+                generation_result = response.json()
+                output_path = generation_result.get("output_path", "알 수 없음")
+                result = f"""
+✅ 홈페이지 생성 완료!<br>
+<br>
+고객 ID: {customer_id}<br>
+매장명: {customer.store_name}<br>
+생성 경로: {output_path}<br>
+홈페이지 경로 : localhost:3000/sites/{output_path.split('/')[-1]}/index.html
+"""
+            else:
+                result = f"❌ 홈페이지 생성 중 오류가 발생했습니다. (상태 코드: {response.status_code})"
+
+        return templates.TemplateResponse("promote_store.html", {
+            "request": request,
+            "result": result
+        })
+
+    except ValueError as e:
+        # 고객 데이터를 찾을 수 없는 경우
+        result = f"❌ {str(e)}"
+        return templates.TemplateResponse("promote_store.html", {
+            "request": request,
+            "result": result
+        })
+    except httpx.ConnectError:
+        result = f"❌ homepage_generator 서버에 연결할 수 없습니다."
+        return templates.TemplateResponse("promote_store.html", {
+            "request": request,
+            "result": result
+        })
+    except httpx.TimeoutException:
+        result = f"⚠️ 홈페이지 생성 시간이 초과되었습니다. (5분 이상 소요)"
+        return templates.TemplateResponse("promote_store.html", {
+            "request": request,
+            "result": result
+        })
+    except Exception as e:
+        print(f"❌ 홈페이지 생성 오류: {e}")
+        result = f"❌ 홈페이지 생성 중 오류가 발생했습니다: {str(e)}"
+        return templates.TemplateResponse("promote_store.html", {
+            "request": request,
+            "result": result
+        })
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8000)

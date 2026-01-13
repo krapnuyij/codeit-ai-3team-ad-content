@@ -14,7 +14,6 @@
                 <h3>AI AD GENERATOR</h3>
                 <p class="section-desc">귀하의 상품 사진을 업로드하면 AI가 최적의 광고 카피와 디자인을 입혀줍니다.</p>
 
-                <!-- ✅ 순수 HTML Form! JavaScript 없음! -->
                 <form action="/generate-ad" method="POST" enctype="multipart/form-data">
                     <div class="form-grid">
                     <!-- 왼쪽: 이미지 업로드 -->
@@ -39,6 +38,7 @@
                                     <option value="시즌 할인 이벤트">시즌 할인 이벤트</option>
                                     <option value="브랜드 인지도 상승">브랜드 인지도 상승</option>
                                 </select>
+                            </div>
                             <div class="option-group">
                                 <label>분위기 설정</label>
                                 <select name="mood" class="option-group" required>
@@ -52,7 +52,13 @@
                     </div>
                     <div>
                         <div>
-                            <p>여기에 생성 이미지 넣기</p>
+                            <div class="image-container">
+                              {% if image_url %}
+                                <img src="{{ image_url }}" alt="result image" />
+                              {% else %}
+                                <div class="placeholder"> 광고를 생성하세요. </div>
+                              {% endif %}
+                            </div>
                         </div>
                         <!-- 하단 전체 버튼 -->
                         <button type="submit" class="generate-submit-btn">

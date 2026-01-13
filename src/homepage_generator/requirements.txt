@@ -1,0 +1,19 @@
+# FastAPI
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+
+# AI & LangGraph
+openai
+langgraph
+agent-framework
+
+# Database (DB에서 데이터를 가져오지 않으므로 제거 가능, 하지만 db_client.py가 있으므로 일단 유지)
+sqlalchemy
+asyncpg
+
+# Utilities
+python-dotenv
+pyyaml
+

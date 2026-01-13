@@ -1,0 +1,31 @@
+{
+  "header_default": {
+    "name": "Default Header",
+    "description": "Sticky 헤더. 로고 + 네비게이션 + CTA 버튼. 모바일 햄버거 메뉴 포함",
+    "preview_image": "header_default_preview.png",
+    "required_fields": {
+      "store_name": "string - 매장/브랜드명",
+      "logo_url": "string - 로고 이미지 URL",
+      "pages": [
+        {
+          "name": "string - 페이지 이름 (예: 홈, 메뉴, 소개)",
+          "url": "string - 페이지 URL (예: index.html, menu.html)",
+          "is_current": "boolean - 현재 페이지 여부"
+        }
+      ]
+    },
+    "optional_fields": {
+      "cta_text": "string - CTA 버튼 텍스트",
+      "cta_action": "string - CTA 버튼 액션"
+    },
+    "features": [
+      "Sticky positioning (스크롤 시 상단 고정)",
+      "반응형 디자인 (모바일 햄버거 메뉴)",
+      "현재 페이지 강조",
+      "Hover 효과"
+    ],
+    "best_for": "대부분의 웹사이트에 범용적으로 사용 가능",
+    "responsive": true,
+    "tailwind": true
+  }
+}

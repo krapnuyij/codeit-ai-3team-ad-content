@@ -882,6 +882,24 @@ nav ul li a:hover {
     margin-top: 0;
 }
 
+.image-container {
+  width: 300px;
+  height: 300px;
+  border: 1px dashed #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.resultImage {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.placeholder {
+  color: #999;
+}
+
 /* === 푸터 === */
 footer {
     text-align: center;

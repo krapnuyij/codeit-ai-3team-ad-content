@@ -1,0 +1,46 @@
+{
+  "footer_default": {
+    "name": "Default Footer",
+    "description": "4열 푸터. 브랜드 소개 + 빠른 링크 + 연락처 + 소셜 미디어",
+    "preview_image": "footer_default_preview.png",
+    "required_fields": {
+      "store_name": "string - 매장/브랜드명",
+      "logo_url": "string - 로고 이미지 URL",
+      "tagline": "string - 브랜드 태그라인",
+      "pages": [
+        {
+          "name": "string - 페이지 이름",
+          "url": "string - 페이지 URL"
+        }
+      ],
+      "current_year": "number - 현재 연도 (저작권 표시용)"
+    },
+    "optional_fields": {
+      "phone": "string - 전화번호",
+      "location": "string - 주소",
+      "social_links": [
+        {
+          "name": "string - 소셜 미디어 이름 (예: Instagram, Facebook)",
+          "url": "string - 소셜 미디어 URL",
+          "icon": "string - 아이콘 (이모지 또는 텍스트)"
+        }
+      ],
+      "policy_links": [
+        {
+          "name": "string - 정책 이름 (예: 이용약관, 개인정보처리방침)",
+          "url": "string - 정책 페이지 URL"
+        }
+      ]
+    },
+    "features": [
+      "4열 그리드 레이아웃 (반응형)",
+      "소셜 미디어 링크",
+      "연락처 정보 (아이콘 포함)",
+      "하단 저작권 및 정책 링크"
+    ],
+    "best_for": "정보가 많은 웹사이트. 연락처와 링크를 명확히 제공해야 하는 경우",
+    "responsive": true,
+    "tailwind": true,
+    "grid_columns": "1 (mobile) → 2 (tablet) → 4 (desktop)"
+  }
+}
