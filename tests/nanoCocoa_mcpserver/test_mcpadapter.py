@@ -7,13 +7,11 @@ import pytest
 import asyncio
 import os
 import sys
+import logging
 from pathlib import Path
+from tqdm import tqdm
 
-# 프로젝트 루트를 Python 경로에 추가
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from src.mcpadapter import MCPClient, LLMAdapter
+from mcpadapter import MCPClient, LLMAdapter
 
 
 # =============================================================================
@@ -85,7 +83,7 @@ async def test_llm_adapter_basic(mcp_server_url, openai_api_key):
     async with LLMAdapter(
         openai_api_key=openai_api_key,
         mcp_server_url=mcp_server_url,
-        model="gpt-5-mini-mini",
+        model="gpt-4o-mini",
     ) as adapter:
         response = await adapter.chat("서버 상태를 확인해줘")
 
@@ -99,7 +97,7 @@ async def test_llm_adapter_font_query(mcp_server_url, openai_api_key):
     async with LLMAdapter(
         openai_api_key=openai_api_key,
         mcp_server_url=mcp_server_url,
-        model="gpt-5-mini-mini",
+        model="gpt-4o-mini",
     ) as adapter:
         response = await adapter.chat("사용 가능한 폰트 목록을 알려줘")
 
@@ -113,7 +111,7 @@ async def test_llm_adapter_multi_turn(mcp_server_url, openai_api_key):
     async with LLMAdapter(
         openai_api_key=openai_api_key,
         mcp_server_url=mcp_server_url,
-        model="gpt-5-mini-mini",
+        model="gpt-4o-mini",
     ) as adapter:
         # 첫 번째 질문
         response1 = await adapter.chat("서버가 정상인지 확인해줘")
@@ -155,7 +153,7 @@ async def test_llm_adapter_invalid_api_key(mcp_server_url):
         async with LLMAdapter(
             openai_api_key="invalid-key",
             mcp_server_url=mcp_server_url,
-            model="gpt-5-mini-mini",
+            model="gpt-4o-mini",
         ) as adapter:
             await adapter.chat("테스트")
 
@@ -182,14 +180,30 @@ async def test_mcp_client_response_time(mcp_server_url):
 @pytest.mark.asyncio
 async def test_mcp_client_concurrent_calls(mcp_server_url):
     """MCPClient 동시 호출"""
+    from tqdm import tqdm
+    import logging
+
+    logger = logging.getLogger(__name__)
+    logger.info("동시 호출 테스트 시작 - 5개 요청 처리 중...")
+
     async with MCPClient(base_url=mcp_server_url) as client:
         tasks = [client.call_tool("check_server_health", {}) for _ in range(5)]
 
-        results = await asyncio.gather(*tasks)
+        # tqdm으로 진행상황 표시
+        with tqdm(total=len(tasks), desc="동시 호출", unit="req") as pbar:
+            completed_results = []
+            for coro in asyncio.as_completed(tasks):
+                result = await coro
+                completed_results.append(result)
+                pbar.update(1)
+
+            results = completed_results
 
         assert len(results) == 5
         for result in results:
             assert result is not None
+
+        logger.info(f"동시 호출 완료: {len(results)}/5 성공")
 
 
 # =============================================================================

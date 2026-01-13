@@ -170,6 +170,44 @@ def test_dashboard_endpoint():
     print("✓ Dashboard endpoint accessible")
 
 
+def test_server_reset_endpoint():
+    """Test POST /server-reset endpoint for development use"""
+    client = TestClient(app)
+
+    # Create a test job first
+    gen_resp = client.post("/generate", json={"test_mode": True})
+    assert gen_resp.status_code == 200
+    job_id = gen_resp.json()["job_id"]
+    print(f"✓ Created test job: {job_id}")
+
+    # Reset server
+    reset_resp = client.post("/server-reset")
+    assert reset_resp.status_code == 200
+    reset_data = reset_resp.json()
+
+    # Verify response structure
+    assert reset_data["status"] == "success"
+    assert "statistics" in reset_data
+    stats = reset_data["statistics"]
+    assert "deleted_jobs" in stats
+    assert "stopped_jobs" in stats
+    assert "terminated_processes" in stats
+    assert "elapsed_sec" in stats
+
+    print(f"✓ Server reset completed:")
+    print(f"  - Deleted jobs: {stats['deleted_jobs']}")
+    print(f"  - Stopped jobs: {stats['stopped_jobs']}")
+    print(f"  - Terminated processes: {stats['terminated_processes']}")
+    print(f"  - Elapsed: {stats['elapsed_sec']}s")
+
+    # Verify all jobs cleared
+    jobs_resp = client.get("/jobs")
+    assert jobs_resp.status_code == 200
+    jobs_data = jobs_resp.json()
+    assert jobs_data["total_jobs"] == 0, "Jobs not cleared after reset"
+    print("✓ All jobs cleared after reset")
+
+
 def test_generate_endpoint_validation():
     """Test POST /generate endpoint accepts request (validation happens in worker)"""
     client = TestClient(app)

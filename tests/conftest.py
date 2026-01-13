@@ -8,6 +8,33 @@ import subprocess
 from PIL import Image
 from unittest.mock import MagicMock, patch
 
+# tests/conftest.py
+import sys
+from pathlib import Path
+
+# Conda 환경 체크: py311_ad 환경에서만 실행 허용
+conda_env = os.environ.get("CONDA_DEFAULT_ENV")
+if conda_env != "py311_ad":
+    print("\n" + "=" * 70)
+    print("⚠️  경고: 잘못된 conda 환경에서 실행 중입니다.")
+    print(f"   현재 환경: {conda_env or '(conda 환경 아님)'}")
+    print("   필수 환경: py311_ad")
+    print("   올바른 실행 방법:")
+    print("   $ conda activate py311_ad")
+    print("   $ pytest tests -v")
+    print("=" * 70 + "\n")
+    sys.exit(1)
+
+# 현재 작업 디렉토리가 tests/인지 확인
+if Path.cwd().name == "tests":
+    print("\n" + "=" * 70)
+    print("⚠️  경고: tests/ 디렉토리에서 직접 실행 중입니다.")
+    print("   올바른 실행 방법:")
+    print("   $ cd ..")
+    print("   $ pytest tests -v")
+    print("=" * 70 + "\n")
+    sys.exit(1)
+
 # CUDA 멀티프로세싱 호환성을 위해 spawn 방식 설정
 # 반드시 다른 모듈 import 전에 실행되어야 함
 if __name__ != "__main__":
@@ -66,13 +93,11 @@ def pytest_addoption(parser):
 
 def pytest_collection_modifyitems(config, items):
     """
-    MCP 테스트는 현재 개발 중이므로 자동으로 skip
+    테스트 수집 단계에서 아이템 수정
     """
-    skip_mcp = pytest.mark.skip(reason="MCP는 현재 개발 중입니다")
-    for item in items:
-        # MCP 관련 테스트 파일은 skip
-        if "nanoCocoa_mcpserver" in str(item.fspath):
-            item.add_marker(skip_mcp)
+    # MCP 관련 테스트는 기본적으로 skip하지 않음 (FastAPI 기반으로 전환됨)
+    # 필요시 개별 테스트에서 mark를 사용하세요
+    pass
 
 
 @pytest.fixture(scope="session")
@@ -84,38 +109,92 @@ def dummy_mode(request):
     return request.config.getoption("dummy")
 
 
-# MCP는 현재 개발 중이므로 관련 fixture 주석처리
-# @pytest.fixture(scope="session")
-# def docker_server_running():
-#     """
-#     Docker 서버(aiserver, mcpserver) 실행 여부 확인
-#     실행 중이면 True, 아니면 False 반환
-#     """
-#     try:
-#         result = subprocess.run(
-#             ["docker", "ps", "--format", "{{.Names}}"],
-#             capture_output=True,
-#             text=True,
-#             timeout=5,
-#         )
-#
-#         containers = result.stdout.strip().split("\n")
-#         aiserver_running = any("nanococoa-aiserver" in c for c in containers)
-#         mcpserver_running = any("nanococoa-mcpserver" in c for c in containers)
-#
-#         return aiserver_running and mcpserver_running
-#
-#     except Exception:
-#         return False
-#
-#
-# @pytest.fixture(scope="session")
-# def require_docker_server(docker_server_running):
-#     """
-#     Docker 서버가 실행 중이지 않으면 테스트 skip
-#     """
-#     if not docker_server_running:
-#         pytest.skip("Docker server is not running")
+# =============================================================================
+# MCP 서버 테스트 Fixtures
+# =============================================================================
+
+
+@pytest.fixture(scope="session")
+def aiserver_running():
+    """
+    AI 서버(nanoCocoa_aiserver) 실행 여부 확인
+    실행 중이면 True, 아니면 False 반환
+    """
+    import requests
+
+    try:
+        response = requests.get("http://localhost:8000/health", timeout=5)
+        return response.status_code == 200
+    except Exception:
+        return False
+
+
+@pytest.fixture(scope="session")
+def mcpserver_running():
+    """
+    MCP 서버(nanoCocoa_mcpserver) 실행 여부 확인
+    실행 중이면 True, 아니면 False 반환
+    """
+    import requests
+
+    try:
+        response = requests.get("http://localhost:3000/health", timeout=5)
+        return response.status_code == 200
+    except Exception:
+        return False
+
+
+@pytest.fixture(scope="session")
+def require_aiserver(aiserver_running):
+    """
+    AI 서버가 실행 중이지 않으면 테스트 skip
+    """
+    if not aiserver_running:
+        pytest.skip("AI server (port 8000) is not running")
+
+
+@pytest.fixture(scope="session")
+def require_mcpserver(mcpserver_running):
+    """
+    MCP 서버가 실행 중이지 않으면 테스트 skip
+    """
+    if not mcpserver_running:
+        pytest.skip("MCP server (port 3000) is not running")
+
+
+@pytest.fixture(scope="session")
+def docker_running():
+    """
+    Docker 컨테이너(aiserver, mcpserver) 실행 여부 확인
+    """
+    import subprocess
+
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        running_containers = result.stdout.strip().split("\n")
+        # aiserver와 mcpserver 컨테이너가 모두 실행 중인지 확인
+        has_aiserver = any("aiserver" in name for name in running_containers)
+        has_mcpserver = any("mcpserver" in name for name in running_containers)
+        return has_aiserver and has_mcpserver
+    except Exception:
+        return False
+
+
+@pytest.fixture(scope="session")
+def require_docker_server(docker_running):
+    """
+    Docker 서버가 실행 중이지 않으면 테스트 skip
+    """
+    if not docker_running:
+        pytest.skip(
+            "Docker containers (aiserver, mcpserver) are not running. "
+            "Start with: docker-compose up -d"
+        )
 
 
 # Configuration for Report

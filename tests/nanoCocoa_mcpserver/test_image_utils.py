@@ -14,7 +14,7 @@ from nanoCocoa_mcpserver.utils.image_utils import (
     validate_base64_image,
     get_image_info,
     resize_image_if_needed,
-    ImageProcessingError
+    ImageProcessingError,
 )
 
 
@@ -24,8 +24,8 @@ def temp_image_path(tmp_path):
     img_path = tmp_path / "test_image.png"
 
     # 100x100 빨간색 이미지 생성
-    img = Image.new('RGB', (100, 100), color='red')
-    img.save(img_path, 'PNG')
+    img = Image.new("RGB", (100, 100), color="red")
+    img.save(img_path, "PNG")
 
     return img_path
 
@@ -33,11 +33,11 @@ def temp_image_path(tmp_path):
 @pytest.fixture
 def sample_base64_image():
     """테스트용 Base64 이미지 생성"""
-    img = Image.new('RGB', (50, 50), color='blue')
+    img = Image.new("RGB", (50, 50), color="blue")
     buffer = io.BytesIO()
-    img.save(buffer, format='PNG')
+    img.save(buffer, format="PNG")
     img_bytes = buffer.getvalue()
-    return base64.b64encode(img_bytes).decode('utf-8')
+    return base64.b64encode(img_bytes).decode("utf-8")
 
 
 def test_image_file_to_base64(temp_image_path):
@@ -55,7 +55,7 @@ def test_image_file_to_base64(temp_image_path):
     # 실제 이미지로 복원 가능해야 함
     img = Image.open(io.BytesIO(decoded))
     assert img.size == (100, 100)
-    assert img.format == 'PNG'
+    assert img.format == "PNG"
 
 
 def test_image_file_to_base64_file_not_found():
@@ -90,7 +90,7 @@ def test_base64_to_image_file(sample_base64_image, tmp_path):
     # 저장된 이미지 확인
     img = Image.open(result)
     assert img.size == (50, 50)
-    assert img.format == 'PNG'
+    assert img.format == "PNG"
 
 
 def test_base64_to_image_file_overwrite(sample_base64_image, tmp_path):
@@ -150,7 +150,7 @@ def test_validate_base64_image_invalid_base64():
 
 def test_validate_base64_image_not_image():
     """이미지가 아닌 Base64 검증 테스트"""
-    text_b64 = base64.b64encode(b"Just some text").decode('utf-8')
+    text_b64 = base64.b64encode(b"Just some text").decode("utf-8")
 
     is_valid, error_msg = validate_base64_image(text_b64)
 
@@ -163,11 +163,11 @@ def test_get_image_info(sample_base64_image):
     info = get_image_info(sample_base64_image)
 
     assert isinstance(info, dict)
-    assert info['width'] == 50
-    assert info['height'] == 50
-    assert info['format'] == 'PNG'
-    assert info['mode'] == 'RGB'
-    assert info['size_kb'] > 0
+    assert info["width"] == 50
+    assert info["height"] == 50
+    assert info["format"] == "PNG"
+    assert info["mode"] == "RGB"
+    assert info["size_kb"] > 0
 
 
 def test_get_image_info_invalid():
@@ -181,10 +181,10 @@ def test_get_image_info_invalid():
 def test_resize_image_if_needed_no_resize():
     """리사이즈 불필요한 경우 테스트"""
     # 작은 이미지 생성 (100x100)
-    img = Image.new('RGB', (100, 100), color='green')
+    img = Image.new("RGB", (100, 100), color="green")
     buffer = io.BytesIO()
-    img.save(buffer, format='PNG')
-    original_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    img.save(buffer, format="PNG")
+    original_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     # 2048 이하이므로 리사이즈 안 됨
     result = resize_image_if_needed(original_b64, max_dimension=2048)
@@ -196,10 +196,10 @@ def test_resize_image_if_needed_no_resize():
 def test_resize_image_if_needed_with_resize():
     """리사이즈 필요한 경우 테스트"""
     # 큰 이미지 생성 (3000x2000)
-    img = Image.new('RGB', (3000, 2000), color='yellow')
+    img = Image.new("RGB", (3000, 2000), color="yellow")
     buffer = io.BytesIO()
-    img.save(buffer, format='PNG')
-    original_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    img.save(buffer, format="PNG")
+    original_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     # 1000으로 리사이즈
     result = resize_image_if_needed(original_b64, max_dimension=1000)
@@ -223,10 +223,10 @@ def test_resize_image_if_needed_with_resize():
 def test_resize_image_preserves_aspect_ratio():
     """리사이즈 시 비율 유지 테스트"""
     # 800x400 이미지 (2:1 비율)
-    img = Image.new('RGB', (800, 400), color='purple')
+    img = Image.new("RGB", (800, 400), color="purple")
     buffer = io.BytesIO()
-    img.save(buffer, format='PNG')
-    original_b64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+    img.save(buffer, format="PNG")
+    original_b64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
     # 500으로 리사이즈
     result = resize_image_if_needed(original_b64, max_dimension=500)
@@ -259,12 +259,12 @@ def test_roundtrip_conversion(temp_image_path, tmp_path):
 
 def test_supported_formats(tmp_path):
     """지원하는 이미지 포맷 테스트"""
-    formats = ['PNG', 'JPEG']
+    formats = ["PNG", "JPEG"]
 
     for fmt in formats:
         # 이미지 생성
         img_path = tmp_path / f"test.{fmt.lower()}"
-        img = Image.new('RGB', (100, 100), color='red')
+        img = Image.new("RGB", (100, 100), color="red")
         img.save(img_path, format=fmt)
 
         # Base64 변환 성공해야 함
@@ -280,8 +280,8 @@ def test_unsupported_format(tmp_path):
     """지원하지 않는 포맷 처리 테스트"""
     # BMP 이미지 생성 (지원 목록에 없음)
     img_path = tmp_path / "test.bmp"
-    img = Image.new('RGB', (100, 100), color='red')
-    img.save(img_path, format='BMP')
+    img = Image.new("RGB", (100, 100), color="red")
+    img.save(img_path, format="BMP")
 
     # Base64 변환 시 에러 발생
     with pytest.raises(ImageProcessingError) as exc_info:

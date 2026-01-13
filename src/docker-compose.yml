@@ -37,7 +37,7 @@ services:
     environment:
       - RUNTIME_ENV=docker
       - STATIC_BASE_PATH=/app/static
-      - PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+      - PYTORCH_ALLOC_CONF=expandable_segments:True
       - HF_HOME=/root/.cache/huggingface
       - TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers
       - HF_HUB_CACHE=/root/.cache/huggingface/hub

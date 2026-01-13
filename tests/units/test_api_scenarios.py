@@ -76,6 +76,10 @@ sys.path.insert(
 
 from nanoCocoa_aiserver.main import app, JOBS
 
+import logging
+
+logging.getLogger("httpx").setLevel(logging.WARNING)
+
 client = TestClient(app)
 
 # Helper to look for banana image
@@ -168,7 +172,7 @@ def test_red_rose_generation():
     job_id = resp.json()["job_id"]
 
     # Poll for completion (increased timeout for multiprocessing worker)
-    max_wait = 30  # 30 seconds max wait
+    max_wait = 30  # 3 seconds max wait
     poll_interval = 0.5
     data = None
     for _ in range(int(max_wait / poll_interval)):

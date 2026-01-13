@@ -59,8 +59,8 @@ def process_step1_background(
         # 더미 모드: 테스트용 흰색 이미지 생성
         raw_img = Image.new("RGB", (512, 512), "white")
         logger.info("[Step 1] Using dummy white image for testing")
-    elif input_img_b64:
-        # Base64 디코딩하여 PIL 이미지로 변환
+    elif input_img_b64 and len(input_img_b64) > 100:
+        # Base64 디코딩하여 PIL 이미지로 변환 (최소 길이 검증)
         raw_img = base64_to_pil(input_img_b64)
         logger.info(f"[Step 1] Input image loaded: {raw_img.size}")
     else:
@@ -192,6 +192,22 @@ def process_step2_text(
     draw.text((text_x, text_y), text_content, font=font, fill="white")
     canny_map = pil_canny_edge(text_guide)
 
+    # Step 2 시작 전 Step 1 모델 언로드 (auto_unload 활성화 시)
+    if hasattr(engine, "auto_unload") and engine.auto_unload:
+        logger.info("[Step2] Step 1 모델 언로드 시작")
+        engine.unload_step1_models()
+
+        # 명시적 GPU 메모리 정리
+        import time
+
+        time.sleep(0.5)
+        gc.collect()
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+        if hasattr(torch.cuda, "ipc_collect"):
+            torch.cuda.ipc_collect()
+        logger.info("[Step2] Step 1 모델 언로드 완료")
+
     # 2. SDXL ControlNet
     shared_state["sub_step"] = "sdxl_text_generation"
     shared_state["system_metrics"] = get_system_metrics()
@@ -206,20 +222,6 @@ def process_step2_text(
     shared_state["sub_step"] = "text_segmentation"
     shared_state["system_metrics"] = get_system_metrics()
     transparent_text, _ = engine.run_segmentation(raw_3d_text)
-
-    # Step 2 완료 후 Step 1 모델 언로드 (auto_unload 활성화 시)
-    if hasattr(engine, "auto_unload") and engine.auto_unload:
-        engine.unload_step1_models()
-
-    # Step 2 완료 후 명시적 GPU 메모리 정리
-    import time
-
-    time.sleep(0.5)  # GPU 작업 완료 대기
-    gc.collect()
-    torch.cuda.synchronize()
-    torch.cuda.empty_cache()
-    if hasattr(torch.cuda, "ipc_collect"):
-        torch.cuda.ipc_collect()  # IPC 메모리 정리
 
     return transparent_text
 
