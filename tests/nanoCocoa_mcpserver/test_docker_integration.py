@@ -6,13 +6,11 @@ aiserver와 mcpserver가 Docker로 실행 중일 때 테스트
 import pytest
 import asyncio
 import sys
+import logging
 from pathlib import Path
+from tqdm import tqdm
 
-# 프로젝트 루트를 Python 경로에 추가
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-from src.mcpadapter import MCPClient
+from mcpadapter import MCPClient
 
 
 # =============================================================================
@@ -39,6 +37,7 @@ async def mcp_client(mcp_server_url):
 # =============================================================================
 
 
+@pytest.mark.docker
 @pytest.mark.asyncio
 async def test_mcp_server_health(mcp_client, require_docker_server):
     """MCP 서버 헬스체크"""
@@ -49,6 +48,7 @@ async def test_mcp_server_health(mcp_client, require_docker_server):
     assert "healthy" in result.lower()
 
 
+@pytest.mark.docker
 @pytest.mark.asyncio
 async def test_list_fonts(mcp_client, require_docker_server):
     """폰트 목록 조회"""
@@ -64,6 +64,7 @@ async def test_list_fonts(mcp_client, require_docker_server):
 # =============================================================================
 
 
+@pytest.mark.docker
 @pytest.mark.asyncio
 async def test_generate_ad_test_mode(mcp_client, tmp_path, require_docker_server):
     """광고 생성 - test_mode (더미 데이터)"""
@@ -88,6 +89,7 @@ async def test_generate_ad_test_mode(mcp_client, tmp_path, require_docker_server
     assert output_path.exists()
 
 
+@pytest.mark.docker
 @pytest.mark.asyncio
 async def test_generate_ad_async(mcp_client, require_docker_server):
     """광고 생성 - 비동기 모드"""
@@ -112,11 +114,14 @@ async def test_generate_ad_async(mcp_client, require_docker_server):
 # =============================================================================
 
 
+@pytest.mark.docker
 @pytest.mark.asyncio
 async def test_step_by_step_generation(mcp_client, tmp_path, require_docker_server):
     """단계별 광고 생성 (Step 1 → 2 → 3)"""
+    logger = logging.getLogger(__name__)
 
     # Step 1: 배경 생성
+    logger.info("[Step 1/3] 배경 생성 시작 - 잠시 기다려주세요...")
     step1_path = tmp_path / "step1_bg.png"
     result1 = await mcp_client.call_tool(
         "generate_background_only",
@@ -131,8 +136,10 @@ async def test_step_by_step_generation(mcp_client, tmp_path, require_docker_serv
 
     assert "배경 생성 완료" in result1
     assert step1_path.exists()
+    logger.info("[Step 1/3] 배경 생성 완료")
 
     # Step 2: 텍스트 생성
+    logger.info("[Step 2/3] 3D 텍스트 생성 시작 - 잠시 기다려주세요...")
     step2_path = tmp_path / "step2_text.png"
     result2 = await mcp_client.call_tool(
         "generate_text_asset_only",
@@ -148,8 +155,10 @@ async def test_step_by_step_generation(mcp_client, tmp_path, require_docker_serv
 
     assert "3D 텍스트 생성 완료" in result2
     assert step2_path.exists()
+    logger.info("[Step 2/3] 3D 텍스트 생성 완료")
 
     # Step 3: 최종 합성
+    logger.info("[Step 3/3] 최종 합성 시작 - 잠시 기다려주세요...")
     final_path = tmp_path / "final.png"
     result3 = await mcp_client.call_tool(
         "compose_final_image",
@@ -165,6 +174,7 @@ async def test_step_by_step_generation(mcp_client, tmp_path, require_docker_serv
 
     assert "최종 합성 완료" in result3
     assert final_path.exists()
+    logger.info("[Step 3/3] 최종 합성 완료 - 모든 단계 성공")
 
 
 # =============================================================================
@@ -172,6 +182,7 @@ async def test_step_by_step_generation(mcp_client, tmp_path, require_docker_serv
 # =============================================================================
 
 
+@pytest.mark.docker
 @pytest.mark.asyncio
 async def test_invalid_image_path(mcp_client, require_docker_server):
     """존재하지 않는 이미지 경로 에러 처리"""
@@ -189,6 +200,7 @@ async def test_invalid_image_path(mcp_client, require_docker_server):
     assert "에러" in result or "실패" in result
 
 
+@pytest.mark.docker
 @pytest.mark.asyncio
 async def test_missing_required_params(mcp_client, require_docker_server):
     """필수 파라미터 누락 에러"""
@@ -209,9 +221,13 @@ async def test_missing_required_params(mcp_client, require_docker_server):
 # =============================================================================
 
 
+@pytest.mark.docker
 @pytest.mark.asyncio
 async def test_concurrent_requests(mcp_client, require_docker_server):
     """동시 요청 처리"""
+    logger = logging.getLogger(__name__)
+    logger.info("동시 요청 테스트 시작 - 3개의 작업을 동시에 처리합니다...")
+
     tasks = []
 
     for i in range(3):
@@ -228,11 +244,21 @@ async def test_concurrent_requests(mcp_client, require_docker_server):
         )
         tasks.append(task)
 
-    results = await asyncio.gather(*tasks)
+    # tqdm으로 진행상황 표시
+    with tqdm(total=len(tasks), desc="동시 요청 처리", unit="req") as pbar:
+        completed_results = []
+        for coro in asyncio.as_completed(tasks):
+            result = await coro
+            completed_results.append(result)
+            pbar.update(1)
+
+        results = completed_results
 
     assert len(results) == 3
     for result in results:
         assert result is not None
+
+    logger.info(f"동시 요청 완료: {len(results)}/3 성공")
 
 
 # =============================================================================

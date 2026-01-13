@@ -2,6 +2,8 @@
 API 클라이언트 단위 테스트
 """
 
+import sys
+from pathlib import Path
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
@@ -25,11 +27,7 @@ def api_client():
 @pytest.mark.asyncio
 async def test_client_initialization():
     """클라이언트 초기화 테스트"""
-    client = AIServerClient(
-        base_url="http://test:8000",
-        timeout=300,
-        connect_timeout=5
-    )
+    client = AIServerClient(base_url="http://test:8000", timeout=300, connect_timeout=5)
 
     assert client.base_url == "http://test:8000"
     assert client.timeout == 300
@@ -56,10 +54,10 @@ async def test_check_health(api_client):
         "server_time": 1234567890.0,
         "total_jobs": 5,
         "active_jobs": 1,
-        "system_metrics": None
+        "system_metrics": None,
     }
 
-    with patch.object(api_client, '_request') as mock_request:
+    with patch.object(api_client, "_request") as mock_request:
         mock_request.return_value = MagicMock(json=lambda: mock_response)
 
         result = await api_client.check_health()
@@ -76,7 +74,7 @@ async def test_get_fonts(api_client):
         "fonts": ["NanumGothic/NanumGothic.ttf", "NanumSquare/NanumSquareB.ttf"]
     }
 
-    with patch.object(api_client, '_request') as mock_request:
+    with patch.object(api_client, "_request") as mock_request:
         mock_request.return_value = MagicMock(json=lambda: mock_response)
 
         result = await api_client.get_fonts()
@@ -94,15 +92,12 @@ async def test_start_generation(api_client):
         input_image="fake_base64_image",
         bg_prompt="Test background",
         text_content="TEST",
-        text_model_prompt="Test style"
+        text_model_prompt="Test style",
     )
 
-    mock_response = {
-        "job_id": "test-job-123",
-        "status": "started"
-    }
+    mock_response = {"job_id": "test-job-123", "status": "started"}
 
-    with patch.object(api_client, '_request') as mock_request:
+    with patch.object(api_client, "_request") as mock_request:
         mock_request.return_value = MagicMock(json=lambda: mock_response)
 
         result = await api_client.start_generation(params)
@@ -129,10 +124,10 @@ async def test_get_status(api_client):
         "parameters": {},
         "step1_result": None,
         "step2_result": None,
-        "final_result": None
+        "final_result": None,
     }
 
-    with patch.object(api_client, '_request') as mock_request:
+    with patch.object(api_client, "_request") as mock_request:
         mock_request.return_value = MagicMock(json=lambda: mock_response)
 
         result = await api_client.get_status("test-job-123")
@@ -147,11 +142,9 @@ async def test_get_status(api_client):
 async def test_error_handling_404(api_client):
     """404 에러 처리 테스트"""
     # _request가 AIServerError를 발생시키도록 설정
-    with patch.object(api_client, '_request') as mock_request:
+    with patch.object(api_client, "_request") as mock_request:
         error = AIServerError(
-            "API 요청 실패: 404",
-            status_code=404,
-            detail="Job not found"
+            "API 요청 실패: 404", status_code=404, detail="Job not found"
         )
         mock_request.side_effect = error
 
@@ -164,12 +157,12 @@ async def test_error_handling_404(api_client):
 @pytest.mark.asyncio
 async def test_error_handling_503(api_client):
     """503 에러 (서버 사용 중) 처리 테스트"""
-    with patch.object(api_client, '_request') as mock_request:
+    with patch.object(api_client, "_request") as mock_request:
         # 503 에러를 발생시키도록 설정
         error = AIServerError(
             "서버가 계속 사용 중입니다. 나중에 다시 시도하세요.",
             status_code=503,
-            retry_after=5
+            retry_after=5,
         )
         mock_request.side_effect = error
 
@@ -199,7 +192,7 @@ async def test_wait_for_completion_success(api_client):
             "parameters": {},
             "step1_result": None,
             "step2_result": None,
-            "final_result": None
+            "final_result": None,
         },
         {
             "job_id": "test-job",
@@ -215,8 +208,8 @@ async def test_wait_for_completion_success(api_client):
             "parameters": {},
             "step1_result": "step1_base64",
             "step2_result": "step2_base64",
-            "final_result": "final_base64"
-        }
+            "final_result": "final_base64",
+        },
     ]
 
     call_count = 0
@@ -227,11 +220,11 @@ async def test_wait_for_completion_success(api_client):
         call_count += 1
         return StatusResponse(**response_data)
 
-    with patch.object(api_client, 'get_status', side_effect=mock_get_status):
+    with patch.object(api_client, "get_status", side_effect=mock_get_status):
         result = await api_client.wait_for_completion(
             "test-job",
             poll_interval=0.1,  # 빠른 테스트를 위해 짧은 간격
-            max_retries=10
+            max_retries=10,
         )
 
         assert result.status == "completed"
@@ -256,10 +249,10 @@ async def test_wait_for_completion_failure(api_client):
         parameters={},
         step1_result=None,
         step2_result=None,
-        final_result=None
+        final_result=None,
     )
 
-    with patch.object(api_client, 'get_status', return_value=mock_status):
+    with patch.object(api_client, "get_status", return_value=mock_status):
         with pytest.raises(AIServerError) as exc_info:
             await api_client.wait_for_completion("test-job")
 
@@ -274,7 +267,7 @@ async def test_generate_and_wait(api_client):
         input_image="test_image",
         bg_prompt="Test",
         text_content="TEST",
-        text_model_prompt="Style"
+        text_model_prompt="Style",
     )
 
     mock_gen_response = GenerateResponse(job_id="test-job", status="started")
@@ -293,11 +286,13 @@ async def test_generate_and_wait(api_client):
         parameters={},
         step1_result=None,
         step2_result=None,
-        final_result="final_result_base64"
+        final_result="final_result_base64",
     )
 
-    with patch.object(api_client, 'start_generation', return_value=mock_gen_response):
-        with patch.object(api_client, 'wait_for_completion', return_value=mock_final_status):
+    with patch.object(api_client, "start_generation", return_value=mock_gen_response):
+        with patch.object(
+            api_client, "wait_for_completion", return_value=mock_final_status
+        ):
             result = await api_client.generate_and_wait(params)
 
             assert result.status == "completed"

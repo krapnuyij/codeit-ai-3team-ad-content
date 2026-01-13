@@ -8,9 +8,8 @@ import sys
 import requests
 from pathlib import Path
 
-project_root = Path(__file__).parent.parent.parent
 
-
+@pytest.mark.docker
 def test_docker_containers(require_docker_server):
     """Docker 컨테이너 상태 확인"""
     import subprocess
@@ -48,6 +47,7 @@ def test_docker_containers(require_docker_server):
         pytest.fail(f"Docker 상태 확인 실패: {e}")
 
 
+@pytest.mark.docker
 def test_aiserver_health(require_docker_server):
     """AI 서버 헬스체크"""
     response = requests.get("http://localhost:8000/health", timeout=5)
@@ -59,6 +59,7 @@ def test_aiserver_health(require_docker_server):
     print(f"  - GPU: {len(data.get('system_metrics', {}).get('gpu_info', []))}개")
 
 
+@pytest.mark.docker
 def test_mcpserver_running(require_docker_server):
     """MCP 서버 실행 확인 (SSE 엔드포인트)"""
 
@@ -80,6 +81,7 @@ def test_mcpserver_running(require_docker_server):
         print("✓ MCP 서버 SSE 연결 가능 (timeout은 정상)")
 
 
+@pytest.mark.docker
 def test_aiserver_fonts(require_docker_server):
     """AI 서버 폰트 목록 조회"""
     response = requests.get("http://localhost:8000/fonts", timeout=5)

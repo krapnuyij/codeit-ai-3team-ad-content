@@ -8,8 +8,7 @@ import requests
 import base64
 from pathlib import Path
 import time
-
-project_root = Path(__file__).parent.parent.parent
+from tqdm import tqdm
 
 
 def create_dummy_image_base64():
@@ -44,25 +43,32 @@ def test_aiserver_generate_dummy():
             print(f"  - 작업 시작: {job_id}")
 
             # 상태 확인 (더미 모드는 빠름)
-            for i in range(10):
-                time.sleep(1)
-                status_response = requests.get(
-                    f"http://localhost:8000/status/{job_id}", timeout=5
-                )
+            print("  - 작업 진행 중... 잠시 기다려주세요")
+            with tqdm(total=100, desc="  - 진행률", unit="%") as pbar:
+                last_progress = 0
+                for i in range(10):
+                    time.sleep(1)
+                    status_response = requests.get(
+                        f"http://localhost:8000/status/{job_id}", timeout=5
+                    )
 
-                if status_response.status_code == 200:
-                    status_data = status_response.json()
-                    status = status_data.get("status")
-                    progress = status_data.get("progress_percent", 0)
+                    if status_response.status_code == 200:
+                        status_data = status_response.json()
+                        status = status_data.get("status")
+                        progress = status_data.get("progress_percent", 0)
 
-                    print(f"  - 진행률: {progress}% ({status})")
+                        # tqdm 업데이트
+                        pbar.update(progress - last_progress)
+                        last_progress = progress
+                        pbar.set_postfix_str(status)
 
-                    if status == "completed":
-                        print("✓ 더미 광고 생성 성공")
-                        return True
-                    elif status == "failed":
-                        print(f"✗ 생성 실패: {status_data.get('message')}")
-                        return False
+                        if status == "completed":
+                            pbar.update(100 - last_progress)
+                            print("\n✓ 더미 광고 생성 성공")
+                            return True
+                        elif status == "failed":
+                            print(f"\n✗ 생성 실패: {status_data.get('message')}")
+                            return False
 
             print("✗ 타임아웃 (10초 초과)")
             return False
@@ -104,19 +110,23 @@ def test_aiserver_step_by_step_dummy():
         job_id = response.json().get("job_id")
 
         # 완료 대기
-        for i in range(10):
-            time.sleep(1)
-            status_response = requests.get(
-                f"http://localhost:8000/status/{job_id}", timeout=5
-            )
-            if status_response.status_code == 200:
-                status = status_response.json().get("status")
-                if status == "completed":
-                    print("    ✓ Step 1 완료")
-                    break
-                elif status == "failed":
-                    print("    ✗ Step 1 실패")
-                    return False
+        print("    작업 대기 중...")
+        with tqdm(total=10, desc="    대기 시간", unit="s") as pbar:
+            for i in range(10):
+                time.sleep(1)
+                pbar.update(1)
+                status_response = requests.get(
+                    f"http://localhost:8000/status/{job_id}", timeout=5
+                )
+                if status_response.status_code == 200:
+                    status = status_response.json().get("status")
+                    pbar.set_postfix_str(status)
+                    if status == "completed":
+                        print("\n    ✓ Step 1 완료")
+                        break
+                    elif status == "failed":
+                        print("\n    ✗ Step 1 실패")
+                        return False
 
         print("✓ 단계별 생성 테스트 통과")
         return True

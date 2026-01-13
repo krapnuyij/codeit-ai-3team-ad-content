@@ -5,11 +5,10 @@ Docker 없이 로컬 환경에서 직접 테스트
 
 import subprocess
 import json
-import sys
 from pathlib import Path
 
+# 프로젝트 루트 경로
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
 
 
 def test_mcp_server_stdio():

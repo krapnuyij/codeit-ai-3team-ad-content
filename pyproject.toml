@@ -52,6 +52,10 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=4.1.0",
+    "pytest-timeout>=2.2.0",
+    "pytest-html>=4.0.0",
+    "pytest-metadata>=3.0.0",
+    "pytest-xdist>=3.5.0",
 
     # Code quality
     "black>=24.0.0",
@@ -119,10 +123,46 @@ ignore = [
 # Pytest 설정
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --strict-markers"
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "-v",
+    "--tb=short",
+    "--maxfail=5",
+    "--disable-warnings",
+]
 testpaths = ["tests"]
 pythonpath = ["src"]
 asyncio_mode = "auto"
+timeout = 300
+asyncio_default_fixture_loop_scope = "function"
+
+# 커스텀 마커 정의
+markers = [
+    "unit: 단위 테스트 (기본, 빠른 실행)",
+    "integration: 실제 AI 서버와 연동하는 통합 테스트 (서버 실행 필요)",
+    "slow: 실행 시간이 오래 걸리는 테스트 (30초 이상)",
+    "docker: Docker 컨테이너 환경이 필요한 테스트",
+    "requires_aiserver: AI 서버(8000 포트) 실행 필요",
+    "requires_mcpserver: MCP 서버(3000 포트) 실행 필요",
+]
+
+# 테스트 디렉토리별 타임아웃 설정
+[tool.pytest.timeout]
+timeout = 300
+timeout_method = "thread"
+func_only = true
+
+# 경고 필터
+filterwarnings = [
+    "ignore:builtin type SwigPyPacked has no __module__ attribute:DeprecationWarning",
+    "ignore:builtin type SwigPyObject has no __module__ attribute:DeprecationWarning",
+    "ignore:builtin type swigvarlink has no __module__ attribute:DeprecationWarning",
+    "ignore::DeprecationWarning:importlib._bootstrap",
+    "ignore::DeprecationWarning:httpx",
+    "ignore::DeprecationWarning:torch",
+    "ignore::UserWarning:torch",
+]
 
 # MyPy 설정
 [tool.mypy]

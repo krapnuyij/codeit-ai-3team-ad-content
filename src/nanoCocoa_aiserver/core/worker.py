@@ -58,6 +58,11 @@ def worker_process(
     logger.info(f"[Worker] input_data")
     print_dic_tree(input_data)
 
+    # 워커 시작 시 GPU 메모리 초기화
+    logger.info(f"[Worker] Clearing GPU memory at start for job {job_id}")
+    flush_gpu()
+    logger.info(f"[Worker] GPU memory cleared")
+
     # 파라미터 추출
     test_mode = input_data.get("test_mode", False)
     step1_count = step_stats_manager.get_stat("step1_count")

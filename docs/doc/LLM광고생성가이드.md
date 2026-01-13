@@ -453,9 +453,448 @@ user_request = f"""
 
 ---
 
-## 9. 트러블슈팅
+## 9. 개발자를 위한 빠른 테스트 전략
 
-### 9.1. job_id를 찾을 수 없음
+### 9.1. 문제 상황
+
+**일반 광고 생성 시간: 15~20분**
+
+개발 중 가장 큰 장애물은 긴 작업 시간입니다:
+- 배경 생성: 5~7분
+- 제품 합성: 3~5분
+- 텍스트 생성: 4~6분
+- 최종 합성: 3~5분
+
+이로 인해:
+- 파라미터 조정 시 매번 20분 대기
+- 버그 수정 후 검증에 20분 소요
+- 하루에 테스트 가능한 횟수 제한 (3~4회)
+
+### 9.2. 전략 1: 테스트 모드 사용 (권장)
+
+**특징**
+- 실제 모델 추론 생략
+- 더미 이미지 즉시 반환
+- 작업 시간: **1~2초**
+- API/파라미터 검증에 최적
+
+**사용법**
+
+```python
+user_request = f"""
+사용자: 바나나 특가 광고 만들어줘
+
+- product_image_path: "{product_image_path}"
+- save_output_path: "{output_image_path}"
+- text_content: "맛있는바나나 2500원"
+- test_mode: true  # ⭐ 테스트 모드 활성화
+- wait_for_completion: false
+
+모든 프롬프트는 영문으로 작성하세요.
+"""
+
+async with LLMAdapter(...) as adapter:
+    response = await adapter.chat(user_request, max_tool_calls=1)
+```
+
+**언제 사용하나요?**
+- API 연동 개발 초기 단계
+- 요청/응답 구조 검증
+- 파라미터 전달 테스트
+- CI/CD 파이프라인 테스트
+
+**주의사항**
+- 더미 이미지는 품질 검증 불가
+- 프롬프트 효과 확인 불가
+- 실제 배포 전 `test_mode: false`로 전환 필수
+
+### 9.3. 전략 2: 작업 강제 중단 후 테스트
+
+**특징**
+- 이전 작업 강제 중단
+- 새 작업 즉시 시작
+- 서버 리소스 즉시 확보
+
+**기본 구현**
+
+```python
+async def force_stop_all_and_start():
+    """모든 작업 중단 후 새 광고 생성"""
+    
+    async with MCPClient(
+        base_url=mcp_server_url,
+        timeout=30
+    ) as client:
+        
+        # Step 1: 모든 작업 목록 조회
+        all_jobs = await client.call_tool("get_all_jobs", {})
+        jobs_data = json.loads(all_jobs)
+        
+        # Step 2: 실행 중/대기 중 작업 강제 중단
+        for job in jobs_data.get("jobs", []):
+            status = job.get("status")
+            job_id = job.get("job_id")
+            
+            if status in ["pending", "running"]:
+                print(f"강제 중단 시도: {job_id} (status={status})")
+                await client.call_tool("stop_generation", {"job_id": job_id})
+        
+        # Step 3: 새 광고 생성 시작
+        # ... (이전 예제 코드)
+```
+
+**문제점: 중단이 즉시 되지 않음**
+
+모델 로딩 중에는 중단 불가:
+- Stable Diffusion 로딩: 30~60초
+- ControlNet 로딩: 20~40초
+- Shap-E 로딩: 15~30초
+
+### 9.4. 전략 3: 재시도 기반 강제 중단 (권장)
+
+**특징**
+- 작업 상태를 지속적으로 확인
+- 중단될 때까지 반복 요청
+- 타임아웃 설정으로 안전장치 추가
+
+**개선된 구현**
+
+```python
+import asyncio
+import json
+from mcpadapter import MCPClient
+
+async def force_stop_with_retry(
+    max_attempts: int = 30,
+    interval: int = 2,
+    timeout: int = 60
+):
+    """
+    재시도 기반 작업 강제 중단
+    
+    Args:
+        max_attempts: 최대 시도 횟수 (기본값: 30)
+        interval: 재시도 간격(초, 기본값: 2)
+        timeout: 전체 타임아웃(초, 기본값: 60)
+    
+    Returns:
+        모든 작업이 중단되었는지 여부
+    """
+    async with MCPClient(
+        base_url=mcp_server_url,
+        timeout=30
+    ) as client:
+        
+        start_time = asyncio.get_event_loop().time()
+        attempt = 0
+        
+        while attempt < max_attempts:
+            elapsed = asyncio.get_event_loop().time() - start_time
+            
+            # 타임아웃 체크
+            if elapsed > timeout:
+                print(f"⏰ 타임아웃: {timeout}초 초과")
+                return False
+            
+            # Step 1: 현재 작업 목록 조회
+            all_jobs = await client.call_tool("get_all_jobs", {})
+            jobs_data = json.loads(all_jobs)
+            
+            # Step 2: 실행/대기 중인 작업 필터링
+            active_jobs = [
+                job for job in jobs_data.get("jobs", [])
+                if job.get("status") in ["pending", "running"]
+            ]
+            
+            if not active_jobs:
+                print("✅ 모든 작업이 중단되었습니다.")
+                return True
+            
+            # Step 3: 각 작업에 중단 요청
+            for job in active_jobs:
+                job_id = job.get("job_id")
+                status = job.get("status")
+                
+                print(f"[{attempt+1}/{max_attempts}] 중단 요청: {job_id} (status={status}, 경과: {elapsed:.1f}초)")
+                
+                try:
+                    result = await client.call_tool(
+                        "stop_generation",
+                        {"job_id": job_id}
+                    )
+                    print(f"   중단 응답: {result}")
+                except Exception as e:
+                    print(f"   중단 실패: {e}")
+            
+            # Step 4: 재시도 대기
+            await asyncio.sleep(interval)
+            attempt += 1
+        
+        print(f"⚠️ 최대 시도 횟수 도달: {max_attempts}회")
+        return False
+
+# 사용 예
+success = await force_stop_with_retry(
+    max_attempts=30,  # 30회 시도
+    interval=2,       # 2초마다
+    timeout=60        # 총 60초 제한
+)
+
+if success:
+    print("새 광고 생성 시작 가능")
+else:
+    print("강제 중단 실패 - 서버 재시작 고려")
+```
+
+### 9.5. 전략 4: 전체 작업 삭제 (완료/실패 작업 정리)
+
+**특징**
+- 완료/실패한 작업 이력 삭제
+- 실행/대기 중인 작업은 자동 건너뜀
+- 서버 메모리 정리
+
+**사용법**
+
+```python
+async def cleanup_completed_jobs():
+    """완료된 작업 정리"""
+    async with MCPClient(
+        base_url=mcp_server_url,
+        timeout=30
+    ) as client:
+        
+        result = await client.call_tool("delete_all_jobs", {})
+        print(result)
+```
+
+### 9.6. 추천 개발 워크플로우
+
+#### Phase 1: 초기 개발 (test_mode)
+
+```python
+# ✅ 빠른 반복 (1~2초/회)
+user_request = f"""
+- test_mode: true
+- wait_for_completion: true  # 즉시 완료
+"""
+```
+
+**장점**: API 구조 검증, 파라미터 전달 테스트
+
+#### Phase 2: 프롬프트 튜닝 (강제 중단)
+
+```python
+# 1. 이전 작업 강제 중단
+await force_stop_with_retry()
+
+# 2. 새 광고 생성 (실제 모델)
+user_request = f"""
+- test_mode: false
+- wait_for_completion: false
+"""
+```
+
+**장점**: 실제 이미지 품질 확인, 프롬프트 효과 검증
+
+#### Phase 3: 최종 검증 (전체 프로세스)
+
+```python
+# 작업 정리 후 처음부터 끝까지 실행
+await cleanup_completed_jobs()
+
+user_request = f"""
+- test_mode: false
+- wait_for_completion: true  # 완료까지 대기
+"""
+```
+
+**장점**: 실제 운영 환경과 동일한 조건
+
+### 9.7. 시간 비교표
+
+| 전략 | 작업 시간 | 이미지 품질 | 용도 |
+|------|-----------|-------------|------|
+| 일반 실행 | **15~20분** | ⭐⭐⭐⭐⭐ | 최종 검증 |
+| 테스트 모드 | **1~2초** | ❌ (더미) | 초기 개발 |
+| 강제 중단 + 재시작 | **1~2분** | ⭐⭐⭐⭐⭐ | 프롬프트 튜닝 |
+| 작업 정리 | **1초** | N/A | 환경 초기화 |
+
+### 9.8. 실전 팁
+
+1. **개발 초기**: `test_mode=true`로 시작
+2. **프롬프트 조정**: 강제 중단 후 즉시 재시작
+3. **중단 안 될 때**: 2초마다 재시도 (최대 60초)
+4. **하루 마무리**: `delete_all_jobs()`로 정리
+5. **최종 배포 전**: `test_mode=false` + 전체 프로세스 검증
+
+### 9.9. 서버 즉시 초기화 (Server Reset API) ⭐⭐⭐
+
+**가장 빠르고 확실한 초기화 방법**
+
+모든 작업 중단 + 메모리 정리를 한 번의 API 호출로 수행합니다.
+
+**특징**
+- 소요 시간: **1~3초** (모델 로딩 중일 경우 최대 10초)
+- 모든 작업 강제 중단 + 삭제 + GPU 메모리 정리
+- 재시도 로직 내장 (프로세스 kill까지 수행)
+- 100% 확실한 초기화 보장
+
+**REST API 직접 호출**
+
+```bash
+# cURL
+curl -X POST http://localhost:8000/server-reset
+
+# HTTPie
+http POST http://localhost:8000/server-reset
+```
+
+**Python 코드**
+
+```python
+import httpx
+import json
+
+async def reset_server_and_start_new():
+    """서버 초기화 후 새 광고 생성"""
+    
+    async with httpx.AsyncClient() as client:
+        # Step 1: 서버 초기화
+        reset_resp = await client.post("http://localhost:8000/server-reset")
+        result = reset_resp.json()
+        
+        print("=" * 60)
+        print("서버 초기화 완료")
+        print("=" * 60)
+        print(f"상태: {result['status']}")
+        print(f"중단된 작업: {result['statistics']['stopped_jobs']}개")
+        print(f"삭제된 작업: {result['statistics']['deleted_jobs']}개")
+        print(f"종료된 프로세스: {result['statistics']['terminated_processes']}개")
+        print(f"GPU 메모리: {result['statistics']['gpu_memory_mb']} MB")
+        print(f"소요 시간: {result['statistics']['elapsed_sec']}초")
+        print("=" * 60)
+        
+        # Step 2: 즉시 새 광고 생성 시작
+        # ... (이전 예제 코드)
+
+# 실행
+await reset_server_and_start_new()
+```
+
+**LLMAdapter와 함께 사용**
+
+```python
+import httpx
+from mcpadapter import LLMAdapter
+
+async def quick_reset_and_generate():
+    """초기화 후 즉시 광고 생성 (전체 워크플로우)"""
+    
+    # Step 1: 서버 초기화
+    async with httpx.AsyncClient() as client:
+        await client.post("http://localhost:8000/server-reset")
+        print("✅ 서버 초기화 완료")
+    
+    # Step 2: 즉시 새 광고 생성
+    async with LLMAdapter(
+        openai_api_key=openai_api_key,
+        mcp_server_url=mcp_server_url,
+        model="gpt-4o"
+    ) as adapter:
+        
+        user_request = f"""
+사용자: 바나나 특가 광고 만들어줘
+
+- product_image_path: "{product_image_path}"
+- save_output_path: "{output_image_path}"
+- text_content: "맛있는바나나 2500원"
+- wait_for_completion: false
+
+모든 프롬프트는 영문으로 작성하세요.
+"""
+        
+        response = await adapter.chat(user_request, max_tool_calls=1)
+        print("✅ 광고 생성 시작")
+
+# 실행
+await quick_reset_and_generate()
+```
+
+**언제 사용하나요?**
+- ⭐ **프롬프트 변경 후 즉시 재테스트** (가장 많이 사용)
+- 강제 중단(stop_job)이 실패할 때
+- 여러 작업이 쌓였을 때
+- 개발 세션 시작/종료 시
+- 서버 재시작이 부담스러울 때
+
+**응답 예시**
+
+```json
+{
+  "status": "success",
+  "message": "Server reset completed successfully",
+  "statistics": {
+    "stopped_jobs": 2,
+    "deleted_jobs": 5,
+    "terminated_processes": 2,
+    "gpu_memory_mb": 234.56,
+    "elapsed_sec": 2.34
+  }
+}
+```
+
+**주의사항**
+- **개발 전용**: 운영 환경 사용 금지
+- 모든 작업 결과 삭제 (복구 불가)
+- 실행 중인 작업이 즉시 중단됨
+- GPU 메모리 정리 시간이 추가로 소요될 수 있음
+
+**전략 4 (delete_all_jobs)와의 차이**
+
+| 기능 | delete_all_jobs | server-reset |
+|------|-----------------|--------------|
+| 완료된 작업 삭제 | ✅ | ✅ |
+| 실행 중 작업 중단 | ❌ | ✅ |
+| 프로세스 강제 종료 | ❌ | ✅ |
+| GPU 메모리 정리 | ❌ | ✅ |
+| 소요 시간 | 1초 | 1~3초 |
+| 확실성 | 중간 | **100%** |
+
+**실전 개발 워크플로우 (업데이트)**
+
+```python
+# 🔥 권장: 서버 초기화 사용
+await reset_server_and_start_new()
+
+# 기존 방식 (비교)
+# await force_stop_with_retry()  # 30~60초 소요
+# await cleanup_completed_jobs()  # 실행 중 작업은 남음
+```
+
+---
+
+## 10. 트러블슈팅
+
+### 10.1. 강제 중단이 안 되는 경우
+
+**증상**: `stop_generation()` 호출했으나 작업이 계속 실행됨
+
+**원인**:
+- 모델 로딩 중 (Stable Diffusion, ControlNet, Shap-E)
+- GPU 메모리 할당 중
+- 추론 단계 전환 중
+
+**해결**:
+```python
+# 재시도 기반 강제 중단 사용 (섹션 9.4 참고)
+await force_stop_with_retry(
+    max_attempts=30,
+    interval=2,
+    timeout=60
+)
+```
+
+### 10.2. job_id를 찾을 수 없음
 
 **증상**: `job_id를 찾을 수 없습니다` 경고
 

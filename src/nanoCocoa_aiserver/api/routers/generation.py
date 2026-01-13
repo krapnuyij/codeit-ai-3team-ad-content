@@ -335,3 +335,125 @@ async def delete_job(job_id: str):
         "status": "deleted",
         "message": "Job successfully deleted from memory",
     }
+
+
+@router.post(
+    "/server-reset",
+    summary="서버 상태 초기화 (Server Reset) - 개발 전용",
+    response_description="초기화 결과 및 통계",
+    status_code=status.HTTP_200_OK,
+)
+async def server_reset():
+    """
+    개발 중 빠른 테스트를 위한 서버 상태 초기화 API
+
+    ### 수행 작업
+    1. **모든 실행 중인 작업 강제 중단**
+       - running/pending 상태의 모든 작업에 중단 신호 전송
+       - 프로세스 강제 종료 (terminate → kill)
+
+    2. **모든 작업 기록 삭제**
+       - JOBS, PROCESSES, STOP_EVENTS 딕셔너리 초기화
+       - 메모리에서 모든 작업 정보 제거
+
+    3. **GPU 메모리 정리**
+       - torch.cuda.empty_cache() 호출
+       - 가비지 컬렉션 강제 실행
+
+    ### 사용 시나리오
+    - 개발 중 파라미터 변경 후 즉시 재테스트
+    - 긴 작업 중단 대기 없이 즉시 새 작업 시작
+    - 서버 재시작 없이 메모리 정리
+    - 테스트 후 환경 초기화
+    - 강제 중단(stop_job)이 실패할 때
+
+    ### 주의사항
+    - **개발 전용**: 운영 환경에서는 사용하지 마세요
+    - 모든 작업 결과가 삭제됩니다 (복구 불가)
+    - 실행 중인 작업이 즉시 중단되어 불완전한 결과가 남을 수 있습니다
+
+    ### 예상 소요 시간
+    - 일반적으로 1~3초
+    - 모델 로딩 중인 경우 최대 5~10초
+
+    ### 반환 정보
+    - stopped_jobs: 중단된 작업 수
+    - deleted_jobs: 삭제된 작업 수
+    - terminated_processes: 종료된 프로세스 수
+    - gpu_memory_mb: GPU 메모리 사용량 (MB)
+    - elapsed_sec: 소요 시간 (초)
+    """
+    import gc
+    import torch
+
+    # 통계 정보 수집
+    stats = {
+        "stopped_jobs": 0,
+        "deleted_jobs": 0,
+        "terminated_processes": 0,
+        "start_time": time.time(),
+    }
+
+    # Step 1: 모든 실행 중인 작업 강제 중단
+    logger.info("[Server Reset] Step 1: Stopping all active jobs...")
+
+    for job_id in list(JOBS.keys()):
+        state = JOBS.get(job_id, {})
+        if state.get("status") in ("running", "pending"):
+            # 중단 이벤트 설정
+            if job_id in STOP_EVENTS:
+                STOP_EVENTS[job_id].set()
+                stats["stopped_jobs"] += 1
+
+            # 프로세스 강제 종료
+            if job_id in PROCESSES:
+                p = PROCESSES[job_id]
+                if p.is_alive():
+                    # 1차 시도: join (정상 종료)
+                    p.join(timeout=1)
+                    if p.is_alive():
+                        # 2차 시도: terminate (강제 종료)
+                        p.terminate()
+                        p.join(timeout=1)
+                        if p.is_alive():
+                            # 3차 시도: kill (즉시 종료)
+                            p.kill()
+                            p.join(timeout=1)
+                    stats["terminated_processes"] += 1
+
+    # Step 2: 모든 작업 기록 삭제
+    logger.info("[Server Reset] Step 2: Clearing all job records...")
+
+    stats["deleted_jobs"] = len(JOBS)
+
+    JOBS.clear()
+    PROCESSES.clear()
+    STOP_EVENTS.clear()
+
+    # Step 3: GPU 메모리 정리
+    logger.info("[Server Reset] Step 3: Cleaning GPU memory...")
+
+    try:
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            gc.collect()
+
+            # GPU 메모리 상태 확인
+            gpu_memory_mb = torch.cuda.memory_allocated() / 1024 / 1024
+            stats["gpu_memory_mb"] = round(gpu_memory_mb, 2)
+        else:
+            stats["gpu_memory_mb"] = 0
+    except Exception as e:
+        logger.warning(f"GPU memory cleanup failed: {e}")
+        stats["gpu_memory_mb"] = -1
+
+    stats["elapsed_sec"] = round(time.time() - stats["start_time"], 2)
+
+    logger.info(f"[Server Reset] Completed: {stats}")
+
+    return {
+        "status": "success",
+        "message": "Server reset completed successfully",
+        "statistics": stats,
+    }
