@@ -137,7 +137,7 @@ graph TB
 
     subgraph "백엔드 계층 (Docker Container 2)"
         Backend["FastAPI 서버<br/>비즈니스 로직<br/>LLM 연동<br/>Port: 8080"]
-        LLM["OpenAI GPT-4o<br/>프롬프트 생성"]
+        LLM["OpenAI GPT-5-mini<br/>프롬프트 생성"]
     end
 
     subgraph "Docker Network: nanococoa-network"
@@ -179,7 +179,7 @@ sequenceDiagram
     participant User as 사용자
     participant FE as 프론트엔드<br/>(FastAPI)
     participant BE as 백엔드<br/>(FastAPI)
-    participant LLM as OpenAI<br/>GPT-4o
+    participant LLM as OpenAI<br/>GPT-5-mini
     participant MS as 모델서빙<br/>(FastAPI)
     participant GPU as L4 GPU
 

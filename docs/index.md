@@ -95,7 +95,7 @@ Port: External"]
 비즈니스 로직
 LLM 연동
 Port: 8080"]
-        LLM["OpenAI GPT-4o
+        LLM["OpenAI GPT-5-mini
 프롬프트 생성"]
     end
 
@@ -137,7 +137,7 @@ sequenceDiagram
     participant User as 사용자
     participant FE as 프론트엔드 (FastAPI)
     participant BE as 백엔드 (FastAPI)
-    participant LLM as OpenAI GPT-4o
+    participant LLM as OpenAI GPT-5-mini
     participant MS as 모델서빙 (FastAPI)
     participant GPU as L4 GPU
 
