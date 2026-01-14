@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Ad Example Generation (L4 Optimized)</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+
+<body>
+
+    <header style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1>AI 광고 예시 생성 (Example Generation)</h1>
+            <span style="font-size: 12px; color: var(--text-muted);">L4 최적화 단계별 생성 (Step-by-Step Generation)</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="cancelJob()" class="btn-secondary" id="btn_cancel"
+                style="display: none; background: #d32f2f;">작업 취소</button>
+            <button onclick="resetAll()" class="btn-secondary">화면 초기화</button>
+            <label
+                style="display: flex; align-items: center; gap: 6px; font-size: 13px; background: var(--panel-bg); padding: 4px 12px; border-radius: 20px; border: 1px solid var(--border-color);">
+                <input type="checkbox" id="test_mode" checked> 더미 모드 (GPU 미사용)
+            </label>
+        </div>
+    </header>
+
+    <div class="layout">
+        <!-- Sidebar Controls -->
+        <div class="sidebar">
+            <!-- Execution Control -->
+            <div class="panel">
+                <div class="panel-header">실행 범위 설정</div>
+                <div style="display: flex; gap: 12px;">
+                    <label><input type="radio" name="start_step" value="1" checked onchange="updateUI()"> 1단계
+                        (전체)</label>
+                    <label><input type="radio" name="start_step" value="2" onchange="updateUI()"> 2단계 (텍스트)</label>
+                    <label><input type="radio" name="start_step" value="3" onchange="updateUI()"> 3단계 (합성)</label>
+                </div>
+            </div>
+
+            <!-- Step 1 Params -->
+            <div class="panel" id="panel_step1">
+                <div class="panel-header">1단계: 배경 생성</div>
+
+                <div class="control-group">
+                    <label>입력 이미지 (상품)</label>
+                    <input type="file" id="input_image_file" accept="image/*"
+                        onchange="encodeImage(this, 'input_image_b64')">
+                    <input type="hidden" id="input_image_b64">
+                    <div id="input_preview"
+                        style="height: 60px; background: #222; margin-top: 5px; border-radius: 4px; display: none; align-items: center; justify-content: center;">
+                        <img src="" style="height: 100%; object-fit: contain;">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>배경 프롬프트 (영문)</label>
+                    <textarea
+                        id="bg_prompt">A photorealistic close-up shot of a ripe yellow banana lying naturally on a rustic wooden table., Heavy contact shadows, ambient occlusion, wood texture reflection, warm sunlight, cinematic lighting, 8k, extremely detailed.</textarea>
+                </div>
+
+                <div class="control-group">
+                    <label>배경 부정 프롬프트 (영문)</label>
+                    <input type="text" id="bg_negative_prompt"
+                        value="blurry, low quality, distorted, ugly, bad lighting, overexposed, underexposed, artificial, plastic">
+                </div>
+
+                <div class="control-group">
+                    <label>배경 합성 프롬프트 (Background Composition, 영문)</label>
+                    <textarea id="bg_composition_prompt"
+                        rows="3">A photorealistic object lying naturally on a rustic wooden table. Heavy contact shadows, ambient occlusion, wood texture reflection, warm sunlight, cinematic lighting, 8k, extremely detailed.</textarea>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        배경과 상품을 자연스럽게 합성하기 위한 프롬프트
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>배경 합성 부정 프롬프트 (영문)</label>
+                    <input type="text" id="bg_composition_negative_prompt"
+                        value="floating, disconnected, unrealistic shadows, artificial lighting, cut out, sticker effect">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        배경 합성에서 제외할 요소
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>배경 합성 강도 (Composition Strength, 0.0 - 1.0)</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="range" id="strength" min="0" max="1" step="0.01" value="0.6" style="flex: 1;">
+                        <span id="strength_val" style="width: 30px; text-align: right; font-size: 12px;">0.6</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2 Params -->
+            <div class="panel" id="panel_step2">
+                <div class="panel-header">2단계: 3D 텍스트</div>
+
+                <div class="control-group">
+                    <label>텍스트 내용</label>
+                    <input type="text" id="text_content" value="맛있는 바나나">
+                </div>
+
+                <div class="control-group">
+                    <label>폰트 선택</label>
+                    <select id="font_name"></select>
+                    <div id="font_preview"
+                        style="font-size: 24px; color: #fff; margin-top: 8px; text-align: center; height: 40px; line-height: 40px; background: #222; border-radius: 4px;">
+                        ABC 가나다</div>
+                </div>
+
+                <div class="control-group">
+                    <label>텍스트 재질 프롬프트 (영문)</label>
+                    <textarea
+                        id="text_prompt">3D render of gold foil balloon text, inflated letters, shiny metallic reflective texture, smooth surface, floating in air, studio lighting, sharp details, high quality, isolated on black background</textarea>
+                </div>
+
+                <div class="control-group">
+                    <label>텍스트 모델 부정 프롬프트 (영문)</label>
+                    <input type="text" id="text_negative_prompt"
+                        value="low quality, ugly, distorted, flat, 2d, blurry, pixelated, deformed text, unreadable">
+                </div>
+            </div>
+
+            <!-- Step 3 Params (텍스트 합성 파라미터) -->
+            <div class="panel" id="panel_step3">
+                <div class="panel-header">3단계: 텍스트 합성 (Text Composition)</div>
+
+                <div class="control-group">
+                    <label>텍스트 합성 모드 (Text Composition Mode)</label>
+                    <select id="composition_mode">
+                        <option value="overlay" selected>위에 덮기 (Overlay) - 명확한 텍스트</option>
+                        <option value="blend">자연스럽게 섞기 (Blend) - 조화로운 통합</option>
+                        <option value="behind">뒤에 배치 (Behind) - 깊이감 연출</option>
+                    </select>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        텍스트와 배경의 합성 방식
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>텍스트 위치 (Text Position)</label>
+                    <select id="text_position">
+                        <option value="top" selected>상단 (Top)</option>
+                        <option value="center">중앙 (Center)</option>
+                        <option value="bottom">하단 (Bottom)</option>
+                        <option value="auto">자동 (Auto) - 최적 위치</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>텍스트 합성 프롬프트 (Text Composition Prompt, 선택, 영문)</label>
+                    <textarea id="composition_prompt"
+                        placeholder="예: with subtle shadow, glowing effect, integrated with lighting"
+                        rows="2"></textarea>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        합성 시 추가 효과 지정 (비워두면 자동 생성)
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>텍스트 합성 네거티브 프롬프트 (선택, 영문)</label>
+                    <input type="text" id="composition_negative_prompt"
+                        placeholder="예: floating, disconnected, unrealistic shadows">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        합성에서 제외할 요소 (비워두면 기본값 사용)
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>텍스트 합성 강도 (Text Composition Strength)</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="range" id="composition_strength" min="0" max="1" step="0.05" value="0.4"
+                            style="flex: 1;">
+                        <span id="composition_strength_val"
+                            style="width: 35px; text-align: right; font-size: 12px;">0.4</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        낮을수록 원본 보존, 높을수록 프롬프트 반영
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>텍스트 합성 인퍼런스 스텝 (Inference Steps)</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="range" id="composition_steps" min="10" max="50" step="1" value="28"
+                            style="flex: 1;">
+                        <span id="composition_steps_val"
+                            style="width: 35px; text-align: right; font-size: 12px;">28</span>
+                    </div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        높을수록 품질↑ 시간↑ (28~35 권장)
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>텍스트 합성 가이던스 스케일</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="range" id="composition_guidance_scale" min="1" max="7" step="0.1" value="3.5"
+                            style="flex: 1;">
+                        <span id="composition_guidance_val"
+                            style="width: 35px; text-align: right; font-size: 12px;">3.5</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Common Params -->
+            <div class="panel">
+                <div class="panel-header">공통 파라미터</div>
+                <div class="control-group">
+                    <label>가이던스 스케일 (Guidance Scale)</label>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="range" id="guidance_scale" min="1" max="5" step="0.1" value="2.0" style="flex: 1;">
+                        <span id="guidance_val" style="width: 30px; text-align: right; font-size: 12px;">2.0</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>시드 (Seed, 선택)</label>
+                    <input type="number" id="seed" placeholder="Random (랜덤)">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        동일한 시드 값과 파라미터는 동일한 결과를 생성합니다 (재현성 보장)
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="startGeneration()">광고 생성 시작</button>
+            <div id="error_msg" style="color: var(--error-color); font-size: 12px; margin-top: 10px; min-height: 16px;">
+            </div>
+        </div>
+
+        <!-- Main Display -->
+        <div style="display: flex; flex-direction: column; gap: 16px; min-height: 0;">
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="status_icon">●</span>
+                    <span id="status_text" style="color: #fff; font-weight: 500;">준비됨 (Ready)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span id="step_info" style="color: var(--text-muted);">단계: -</span>
+                    <span id="eta_info" style="color: var(--accent-color); font-size: 12px;">예상 시간: -</span>
+                    <span id="progress_info" style="color: var(--primary-color); font-weight: bold;">0%</span>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div
+                style="background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                    <span style="font-size: 12px; color: var(--text-muted);" id="sub_step_info">-</span>
+                    <span style="font-size: 12px; color: var(--primary-color);" id="progress_text">0%</span>
+                </div>
+                <div style="width: 100%; height: 8px; background: #222; border-radius: 4px; overflow: hidden;">
+                    <div id="progress_bar"
+                        style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--accent-color)); transition: width 0.3s ease;">
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Metrics -->
+            <div style="background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; display: none;"
+                id="metrics_panel">
+                <div style="font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--text-muted);">시스템 사용률
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">CPU</div>
+                        <div style="font-size: 10px;" id="cpu_usage">-</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 3px;">RAM</div>
+                        <div style="font-size: 10px;" id="ram_usage">-</div>
+                    </div>
+                    <div id="gpu_metrics_container">
+                        <!-- GPU metrics will be inserted here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Grid -->
+            <div class="results">
+                <!-- Step 1 Result -->
+                <div class="result-card">
+                    <div class="panel-header">1단계: 배경 결과</div>
+                    <div class="image-container" id="container_step1">
+                        <span class="placeholder">대기 중...</span>
+                    </div>
+                </div>
+
+                <!-- Step 2 Result -->
+                <div class="result-card">
+                    <div class="panel-header">2단계: 텍스트 에셋</div>
+                    <div class="image-container" id="container_step2">
+                        <span class="placeholder">대기 중...</span>
+                    </div>
+                </div>
+
+                <!-- Final Result -->
+                <div class="result-card" style="border-color: var(--primary-color);">
+                    <div class="panel-header" style="color: #fff;">🏆 최종 결과</div>
+                    <div class="image-container" id="container_final">
+                        <span class="placeholder">결과가 여기에 표시됩니다</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load JS modules in order -->
+    <script src="/static/js/storage.js"></script>
+    <script src="/static/js/ui.js"></script>
+    <script src="/static/js/timing.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+
+</html>
