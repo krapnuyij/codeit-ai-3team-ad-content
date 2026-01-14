@@ -17,14 +17,14 @@ services:
     env_file:
       - .env
     ports:
-      - "8080:8080"
+      - "8890:8890"
     depends_on:
       - customer_db
       - homepage_generator
     environment:
       - DATABASE_URL=postgresql://owner:owner1234@customer_db:5432/customer_db
-      - HOMEPAGE_GENERATOR_URL=http://homepage_generator:8081
-    command: uvicorn app:app --host 0.0.0.0 --port 8080 --reload
+      - HOMEPAGE_GENERATOR_URL=http://homepage_generator:8891
+    command: uvicorn app:app --host 0.0.0.0 --port 8890 --reload
     restart: on-failure
 
   customer_db:
@@ -46,9 +46,10 @@ services:
       - .env
     environment:
       - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://owner:owner1234@customer_db:5432/customer_db
     ports:
-      - "8081:8081"
-    command: uvicorn api:app --host 0.0.0.0 --port 8081
+      - "8891:8891"
+    command: uvicorn api:app --host 0.0.0.0 --port 8891
     volumes:
       - generated_sites:/app/generated_ad
 
@@ -58,7 +59,7 @@ services:
     volumes:
       - generated_sites:/usr/share/nginx/html/sites
     ports:
-      - "3000:80"
+      - "8892:80"
 
 volumes:
   postgres_data:
