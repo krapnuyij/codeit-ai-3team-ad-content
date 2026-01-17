@@ -76,6 +76,7 @@ class AIModelEngine:
         negative_prompt: str = None,
         guidance_scale: float = 3.5,
         seed: int = None,
+        auto_unload: bool = True,
     ) -> Image.Image:
         """
         Flux 모델을 로드하여 배경 이미지를 생성하고 즉시 언로드합니다.
@@ -104,7 +105,12 @@ class AIModelEngine:
             return self._create_dummy_image(1024, 1024, "lightblue")
 
         return self.flux_gen.generate_background(
-            prompt, negative_prompt, guidance_scale, seed, self.progress_callback
+            prompt,
+            negative_prompt,
+            guidance_scale,
+            seed,
+            self.progress_callback,
+            auto_unload=auto_unload,
         )
 
     def run_flux_refinement(
@@ -115,6 +121,7 @@ class AIModelEngine:
         strength: float = 0.6,
         guidance_scale: float = 3.5,
         seed: int = None,
+        autounload: bool = True,
     ) -> Image.Image:
         """
         Flux Img2Img 모델을 로드하여 초안 이미지를 리터칭(배경 합성)하고 언로드합니다.
@@ -156,6 +163,7 @@ class AIModelEngine:
             guidance_scale=guidance_scale,
             seed=seed,
             progress_callback=self.progress_callback,
+            autounload=autounload,
         )
 
     def run_flux_inpaint_injection(
@@ -169,6 +177,7 @@ class AIModelEngine:
         strength: float = 0.5,
         guidance_scale: float = 3.5,
         seed: int = None,
+        autounload: bool = True,
     ) -> Image.Image:
         """
         Flux Inpainting을 사용하여 상품 특성을 배경에 주입합니다.
@@ -213,6 +222,7 @@ class AIModelEngine:
             strength=strength,
             guidance_scale=guidance_scale,
             seed=seed,
+            autounload=autounload,
             progress_callback=self.progress_callback,
         )
 

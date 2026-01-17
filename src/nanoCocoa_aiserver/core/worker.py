@@ -31,9 +31,11 @@ from utils import (
     get_system_metrics,
 )
 from core.engine import AIModelEngine
+from core import processors
 from core.processors import (
     process_step1_background,
     process_step2_text,
+    process_step2_llm_text,
     process_step3_composite,
 )
 
@@ -268,6 +270,64 @@ def worker_process(
         # ==========================================
         # Step 2: 텍스트 에셋 생성 (Text Asset Gen)
         # ==========================================
+        # LLM 모드 체크 (processors.USE_LLM_TEXT 글로벌 변수 사용)
+        use_llm_text = processors.USE_LLM_TEXT
+
+        if use_llm_text:
+            # LLM 기반 텍스트 합성 (Step 2+3 통합)
+            logger.info("[Worker] Using LLM-based text generation (Step 2+3 integrated)")
+            try:
+                s2_start = time.time()
+                final_result = process_step2_llm_text(
+                    engine, input_data, shared_state, stop_event
+                )
+                s2_dur = time.time() - s2_start
+
+                if not test_mode:
+                    step_stats_manager.update_stat("step2_llm_text", s2_dur)
+                    step_stats_manager.update_stat(
+                        "step2_count", shared_state["step_count"]
+                    )
+                    step_stats_manager.update_stat(
+                        "step3_count", shared_state["step_count"]
+                    )
+                    step_stats_manager.update_stat(
+                        "total_count", shared_state["step_count"]
+                    )
+                    step_stats_manager.update_stat(
+                        "total_time", time.time() - shared_state["start_time"]
+                    )
+
+                if final_result:
+                    # LLM 결과를 최종 이미지로 직접 설정 (Step 3 생략)
+                    shared_state["images"]["final_result"] = pil_to_base64(final_result)
+                    shared_state["progress_percent"] = 100
+                    logger.info(
+                        "[Worker] LLM text generation completed, Step 3 skipped (integrated)"
+                    )
+                else:
+                    raise ValueError("LLM text generation returned None")
+
+            except Exception as e:
+                logger.error(
+                    f"[Worker] LLM text generation failed for job {job_id}: {e}",
+                    exc_info=True,
+                )
+                shared_state["status"] = "error"
+                shared_state["message"] = f"LLM 텍스트 생성 실패: {str(e)}"
+                return
+
+            # LLM 모드에서는 Step 3를 건너뛰고 완료 처리
+            if stop_event.is_set():
+                shared_state["status"] = "stopped"
+                shared_state["message"] = "Job stopped by user."
+            else:
+                shared_state["status"] = "completed"
+                shared_state["message"] = "LLM text generation completed successfully."
+            return
+
+        # 기존 SDXL 기반 텍스트 생성 (use_llm_text=False)
+        logger.info("[Worker] Using SDXL-based text generation (traditional Step 2+3)")
         if start_step <= 2:
             try:
                 s2_start = time.time()
