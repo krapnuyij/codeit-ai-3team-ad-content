@@ -1,0 +1,28 @@
+# Core Deep Learning
+torch>=2.4.0
+torchvision>=0.19.0
+
+# Diffusion Models
+diffusers>=0.30.0
+
+# Transformers & VLMs
+transformers>=4.44.0
+accelerate>=0.33.0
+qwen-vl-utils>=0.0.8
+
+# Image Processing
+opencv-python>=4.9.0
+pillow>=10.0.0
+
+# Model Utilities
+sentencepiece>=0.2.0
+protobuf>=4.25.0
+bitsandbytes>=0.44.0
+
+# Optional: For better performance
+# flash-attn>=2.5.0  # Requires CUDA - uncomment if needed
+
+# Jupyter & Visualization
+jupyter>=1.0.0
+matplotlib>=3.8.0
+ipython>=8.18.0

@@ -18,7 +18,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers \
     HF_HUB_CACHE=/root/.cache/huggingface/hub
 
-# 시스템 패키지 설치
+# 시스템 패키지 설치 (Playwright 의존성 포함)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3.11 \
     python3.11-dev \
@@ -36,6 +36,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     gcc \
     g++ \
+    # Playwright Chromium 의존성
+    libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libdbus-1-3 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libasound2 \
+    libatspi2.0-0 \
+    libwayland-client0 \
+    xvfb \
+    fonts-liberation \
+    fonts-noto-color-emoji \
+    libfontconfig1 \
+    libfreetype6 \
     && rm -rf /var/lib/apt/lists/*
 
 # Python 3.11을 기본으로 설정
@@ -59,6 +83,9 @@ RUN pip install --no-cache-dir \
 # 나머지 패키지 설치 (torch 관련 제외)
 RUN grep -v "^torch" requirements-docker.txt | grep -v "^--index-url" > /tmp/requirements-no-torch.txt && \
     pip install --no-cache-dir -r /tmp/requirements-no-torch.txt
+
+# Playwright 브라우저 설치
+RUN playwright install chromium --with-deps
 
 # 애플리케이션 코드 복사
 COPY . .
