@@ -10,6 +10,8 @@ project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
 import gc
+import os
+import asyncio
 import torch
 
 from PIL import Image, ImageDraw, ImageFont
@@ -24,6 +26,12 @@ from utils import (
     get_available_fonts,
     get_font_path,
 )
+
+# ==========================================
+# 설정 (Configuration)
+# ==========================================
+# LLM 기반 텍스트 생성 사용 여부 (True: LLM, False: SDXL)
+USE_LLM_TEXT = True
 
 
 def process_step1_background(
@@ -73,7 +81,6 @@ def process_step1_background(
     from utils import get_system_metrics
 
     shared_state["system_metrics"] = get_system_metrics()
-    product_fg, mask = engine.run_segmentation(raw_img)
 
     # 2. 배경 생성 (Flux Text-to-Image)
     shared_state["sub_step"] = "flux_background_generation"
@@ -87,7 +94,12 @@ def process_step1_background(
         negative_prompt=bg_negative_prompt,
         guidance_scale=guidance_scale,
         seed=seed,
+        auto_unload=True,
     )
+
+    # 입력 이미지가 없는 경우, 배경 이미지만 반환
+    if not input_img_b64:
+        return bg_img  # 입력 이미지가 없는 경우, 배경 이미지만 반환
 
     # 3. 이미지 특성 주입 (Feature Injection via Inpainting)
     shared_state["sub_step"] = "flux_feature_injection"
@@ -96,6 +108,10 @@ def process_step1_background(
     # 3-1. 상품 배치 계산
     bg_w, bg_h = bg_img.size
     scale = 0.4
+
+    # 상품 이미지에서 전경 및 마스크 추출
+    product_fg, mask = engine.run_segmentation(raw_img)
+
     fg_resized = product_fg.resize(
         (int(product_fg.width * scale), int(product_fg.height * scale)), Image.LANCZOS
     )
@@ -224,6 +240,156 @@ def process_step2_text(
     transparent_text, _ = engine.run_segmentation(raw_3d_text)
 
     return transparent_text
+
+
+def process_step2_llm_text(
+    engine, input_data: dict, shared_state: dict, stop_event
+) -> Image.Image:
+    """
+    Step 2 (LLM): LLM 기반 텍스트 합성 (배경+텍스트 통합 생성)
+
+    LLMTexttoHTML을 사용하여 Step 1 배경 이미지에 광고 문구를 합성합니다.
+    이 함수는 Step 2와 Step 3를 통합하여 최종 이미지를 직접 생성합니다.
+
+    Args:
+        engine: AIModelEngine 인스턴스 (미사용, 인터페이스 호환성 유지)
+        input_data: 입력 데이터
+        shared_state: 공유 상태 딕셔너리
+        stop_event: 중단 이벤트
+
+    Returns:
+        Image.Image: 배경+텍스트가 합성된 최종 이미지 (1024x1024)
+
+    Raises:
+        ValueError: OPENAI_API_KEY 미설정, LLM 생성 실패, 렌더링 실패 시
+    """
+    if stop_event.is_set():
+        return None
+
+    shared_state["current_step"] = "step2_llm_text"
+    shared_state["message"] = "Step 2: Generating LLM Text... (LLM 텍스트 합성 중)"
+
+    # Step 1 모델 언로드 (auto_unload 활성화 시)
+    if hasattr(engine, "auto_unload") and engine.auto_unload:
+        logger.info("[Step2 LLM] Step 1 모델 언로드 시작")
+        engine.unload_step1_models()
+
+        # 명시적 GPU 메모리 정리
+        import time
+
+        time.sleep(0.5)
+        gc.collect()
+        torch.cuda.synchronize()
+        torch.cuda.empty_cache()
+        if hasattr(torch.cuda, "ipc_collect"):
+            torch.cuda.ipc_collect()
+        logger.info("[Step2 LLM] Step 1 모델 언로드 완료")
+
+    # 1. LLM 초기화
+    shared_state["sub_step"] = "llm_initialization"
+    from utils import get_system_metrics
+
+    shared_state["system_metrics"] = get_system_metrics()
+
+    # OpenAI API 키 검증
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        error_msg = (
+            "OPENAI_API_KEY not found in environment variables. "
+            "Please set it in your .env file or system environment."
+        )
+        logger.error(f"[Step2 LLM] {error_msg}")
+        raise ValueError(error_msg)
+
+    logger.info("[Step2 LLM] OPENAI_API_KEY found, initializing LLMTexttoHTML...")
+
+    # LLMTexttoHTML import (지연 import로 의존성 격리)
+    try:
+        from models.llm_text import LLMTexttoHTML
+    except ImportError as e:
+        error_msg = f"Failed to import LLMTexttoHTML: {str(e)}"
+        logger.error(f"[Step2 LLM] {error_msg}", exc_info=True)
+        raise ValueError(error_msg)
+
+    # 2. Step 1 배경 이미지 로드
+    step1_result_b64 = shared_state.get("images", {}).get("step1_result")
+    if not step1_result_b64:
+        error_msg = "Step 1 result image not found in shared_state"
+        logger.error(f"[Step2 LLM] {error_msg}")
+        raise ValueError(error_msg)
+
+    try:
+        step1_image = base64_to_pil(step1_result_b64)
+        logger.info(f"[Step2 LLM] Step 1 image loaded: {step1_image.size}")
+    except Exception as e:
+        error_msg = f"Failed to decode step1_result from base64: {str(e)}"
+        logger.error(f"[Step2 LLM] {error_msg}", exc_info=True)
+        raise ValueError(error_msg)
+
+    # 3. 입력 파라미터 추출
+    ad_text = input_data.get("text_content", "맛있는 바나나")
+    text_prompt = input_data.get("text_prompt")
+    composition_prompt = input_data.get("composition_prompt")
+
+    logger.info(
+        f"[Step2 LLM] Parameters - ad_text: '{ad_text}', "
+        f"text_prompt: '{text_prompt}', composition_prompt: '{composition_prompt}'"
+    )
+
+    # 4. LLMTexttoHTML 인스턴스 생성
+    try:
+        llm_generator = LLMTexttoHTML(
+            api_key=api_key,
+            model="gpt-5-mini",
+            temperature=1.0,
+            max_completion_tokens=16000,
+        )
+        logger.info("[Step2 LLM] LLMTexttoHTML initialized successfully")
+    except Exception as e:
+        error_msg = f"Failed to initialize LLMTexttoHTML: {str(e)}"
+        logger.error(f"[Step2 LLM] {error_msg}", exc_info=True)
+        raise ValueError(error_msg)
+
+    # 5. HTML 생성 및 렌더링
+    shared_state["sub_step"] = "llm_html_generation"
+    shared_state["system_metrics"] = get_system_metrics()
+    shared_state["message"] = (
+        "Step 2: LLM HTML Generation... (LLM HTML 생성 중, ~5-10초 소요)"
+    )
+
+    try:
+        logger.info("[Step2 LLM] Starting generate_prompt_png (HTML + Playwright)...")
+        logger.info(
+            "[Step2 LLM] Note: First run may take 10-15 seconds for Playwright initialization"
+        )
+
+        # 비동기 함수를 동기적으로 실행
+        result_image = asyncio.run(
+            llm_generator.generate_prompt_png(
+                image=step1_image,
+                ad_text=ad_text,
+                text_prompt=text_prompt,
+                composition_prompt=composition_prompt,
+            )
+        )
+
+        logger.info(
+            f"[Step2 LLM] LLM PNG generation completed: {result_image.size}, mode={result_image.mode}"
+        )
+
+    except Exception as e:
+        error_msg = f"LLM PNG generation failed: {str(e)}"
+        logger.error(f"[Step2 LLM] {error_msg}", exc_info=True)
+        raise ValueError(error_msg)
+
+    # 6. 최종 이미지 검증
+    if not result_image or result_image.size != (1024, 1024):
+        logger.warning(
+            f"[Step2 LLM] Unexpected result image size: {result_image.size if result_image else 'None'}"
+        )
+
+    logger.info("[Step2 LLM] LLM text composition completed successfully")
+    return result_image
 
 
 def process_step3_composite(
