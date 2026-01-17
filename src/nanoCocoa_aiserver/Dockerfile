@@ -84,8 +84,8 @@ RUN pip install --no-cache-dir \
 RUN grep -v "^torch" requirements-docker.txt | grep -v "^--index-url" > /tmp/requirements-no-torch.txt && \
     pip install --no-cache-dir -r /tmp/requirements-no-torch.txt
 
-# Playwright 브라우저 설치
-RUN playwright install chromium --with-deps
+# Playwright 브라우저 설치 (Python 모듈로 직접 실행)
+RUN python3 -m playwright install chromium --with-deps
 
 # 애플리케이션 코드 복사
 COPY . .
