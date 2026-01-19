@@ -309,7 +309,7 @@ async def generate_ai_response_async(user_message: str):
   - 영어: "generate", "create now", "start generation"
 
 - **도구 호출 전 확인 금지 표현:**
-  - "어떤가요?", "괜찮나요?", "의견 있으세요?", "수정할 부분?"
+  - "어떤가요?", "괜찮나요?", "의견 있으세요?", "수정할 부분?", "의견은?"
   - 이런 질문은 **기획 단계**이므로 도구 호출하지 말 것
 
 - **생성 후 추가 대화:**
