@@ -27,34 +27,28 @@
 이 프로젝트는 **Microservices Architecture**를 채택하여 각 기능이 독립적인 컨테이너로 동작하며, Docker Compose를 통해 통합 관리됩니다.
 
 ```mermaid
-graph TD
-    User["User / Client"]
-    
-    subgraph Docker Network
-        direction TB
-        Nginx["Nginx<br/>(Static Hosting)"]
-        Backend["SaaS Backend<br/>FastAPI + Jinja2"]
-        HP_Gen["Homepage Generator<br/>LangGraph Agent"]
-        Nano["NanoCocoa AI Server<br/>PyTorch / Diffusers"]
+---
+config:
+  layout: elk
+---
+flowchart TB
+ subgraph subGraph0["Docker Network"]
+    direction TB
+        Nginx["Nginx<br>(Static Hosting)"]
+        Backend["SaaS Backend<br>FastAPI + Jinja2"]
+        HP_Gen["Homepage Generator<br>LangGraph Agent"]
+        Nano["NanoCocoa AI Server<br>PyTorch / Diffusers"]
         DB[("PostgreSQL")]
-        
-        %% Volumes
         Vol_Sites[["Volume: generated_sites"]]
-    end
-    
-    %% Flows
-    User -->|Web UI 접속 :8890| Backend
-    User -->|홈페이지 조회 :8893| Nginx
-    
-    Backend -->|광고 이미지 요청| Nano
-    Backend -->|홈페이지 생성 요청| HP_Gen
-    Backend -->|데이터 저장/조회| DB
-    
-    HP_Gen -->|HTML 생성 및 저장| Vol_Sites
-    Nginx -->|정적 파일 서빙| Vol_Sites
-    
-    %% Config Dependencies
-    HP_Gen -.->|고객 정보 로드| DB
+  end
+    User["User"] -- Web UI 접속 :8890 --> Backend
+    Client["Client"] -- 홈페이지 조회 :8893 --> Nginx
+    Backend -- 광고 이미지 요청 --> Nano
+    Backend -- 홈페이지 생성 요청 --> HP_Gen
+    Backend -- 데이터 저장/조회 --> DB
+    HP_Gen -- HTML 생성 및 저장 --> Vol_Sites
+    Vol_Sites -- 정적 파일 서빙 --> Nginx
+    HP_Gen -. 고객 정보 로드 .-> DB
 ```
 
 ### 주요 서비스 구성
