@@ -17,6 +17,7 @@ import os
 from typing import Union
 from dotenv import load_dotenv
 import httpx
+import asyncio
 
 # 데이터베이스 모듈 import
 from customer_db import init_db, save_customer, get_customer_by_id
@@ -118,6 +119,111 @@ def process_with_onnx(image_data: bytes, ort_session) -> AdPrompt:
             status_code=500,
             detail=f"ONNX 모델 처리 실패: {str(e)}"
         )
+
+async def process_with_aiserver(
+    image_data: bytes,
+    ad_prompt: AdPrompt,
+    text_content: str,
+    text_style: str,
+    text_position: str
+) -> str:
+    """AI 서버에 이미지 생성 요청 및 결과 폴링"""
+    try:
+        encoded_image = to_base64(image_data)
+
+        # AI 서버 URL (환경변수 또는 기본값)
+        ai_server_url = os.getenv("NANOCOCOA_URL", "http://nanocacao_aiserver:8892")
+
+        # 텍스트 스타일을 영문 프롬프트로 변환
+        text_style_prompts = {
+            "골드 풍선": "3D render of Gold foil balloon text, inflated, shiny metallic texture, floating in air, cinematic lighting, sharp details, isolated on black background",
+            "네온 글로우": "3D render of neon glowing text, bright luminous effect, cyberpunk style, electric glow, vibrant colors, dramatic lighting, isolated on black background",
+            "우드 텍스처": "3D render of wooden carved text, natural wood grain texture, rustic style, carved depth, realistic wood material, warm lighting, isolated on black background",
+            "크롬 메탈": "3D render of chrome metallic text, highly reflective surface, polished metal, mirror effect, studio lighting, sleek modern style, isolated on black background",
+            "페이퍼 컷": "3D render of paper cut text, layered paper style, subtle shadows, clean edges, minimalist design, soft lighting, isolated on white background"
+        }
+
+        text_prompt = text_style_prompts.get(text_style, text_style_prompts["골드 풍선"])
+
+        # 한국어 텍스트 감지 및 폰트 선택
+        font_name = None
+        if any('\uac00' <= char <= '\ud7a3' for char in text_content):
+            # 한국어가 포함된 경우
+            font_name = "NanumGothic/NanumGothicBold.ttf"
+
+        # 1. 생성 요청 (전체 파이프라인: Step 1 → 2 → 3)
+        payload = {
+            "start_step": 1,
+            "input_image": encoded_image,
+            "text_content": text_content,  # ✅ 활성화
+            "bg_prompt": ad_prompt.positive_prompt,
+            "bg_negative_prompt": ad_prompt.negative_prompt,
+            "text_prompt": text_prompt,  # ✅ 텍스트 스타일 프롬프트
+            "text_position": text_position,  # ✅ 텍스트 위치
+            "auto_unload": True
+        }
+
+        # 한국어 폰트 추가
+        if font_name:
+            payload["font_name"] = font_name
+
+        async with httpx.AsyncClient() as client:
+            # 타임아웃 넉넉하게 설정
+            resp = await client.post(
+                f"{ai_server_url}/generate",
+                json=payload,
+                timeout=300
+            )
+
+            if resp.status_code != 200:
+                print(f"❌ AI 서버 요청 실패: {resp.text}")
+                return None
+
+            job_data = resp.json()
+            job_id = job_data.get("job_id")
+
+            if not job_id:
+                return None
+
+            print(f"✅ 작업 시작: {job_id}")
+
+            # 2. 결과 폴링 (최대 30분 대기)
+            max_retries = 1800  # 30분 = 1800초
+            for i in range(max_retries):
+                await asyncio.sleep(5)
+
+                status_resp = await client.get(
+                    f"{ai_server_url}/status/{job_id}",
+                    timeout=10.0
+                )
+
+                if status_resp.status_code != 200:
+                    continue
+
+                status_data = status_resp.json()
+                status = status_data.get("status")
+                progress = status_data.get("progress", 0)
+
+                # 진행 상황 출력 (10초마다)
+                if i % 10 == 0:
+                    print(f"⏳ 진행 중... {progress}% (경과: {i}초)")
+
+                if status == "completed":
+                    print(f"✅ 생성 완료! (총 {i}초 소요)")
+                    # 최종 결과 이미지 반환
+                    return status_data.get("final_result")
+
+                if status == "failed":
+                    error_msg = status_data.get("message", "알 수 없는 오류")
+                    print(f"❌ 작업 실패: {error_msg}")
+                    return None
+
+            print("⚠️ 작업 시간 초과 (30분)")
+            return None
+
+    except Exception as e:
+        print(f"⚠️ AI 서버 통신 중 오류: {e}")
+        return None
 
 # Lifespan 이벤트
 @asynccontextmanager
@@ -245,8 +351,11 @@ async def manager_dashboard(request: Request):
 async def generate_ad(
         request: Request,
         file: UploadFile = File(...),
+        text_content: str = Form(...),
         purpose: str = Form(...),
         mood: str = Form(...),
+        text_style: str = Form(...),
+        text_position: str = Form("center"),
         client=Depends(get_client),
         use_openai=Depends(get_use_openai)
 ):
@@ -255,13 +364,34 @@ async def generate_ad(
         image_data = await file.read()
 
         if use_openai:
+            # 1. 프롬프트 생성
             result = process_with_openai(image_data, purpose, mood, client)
+
+            # 2. 이미지 생성 (AI Server)
+            generated_image_b64 = await process_with_aiserver(
+                image_data,
+                result,
+                text_content,
+                text_style,
+                text_position
+            )
+
+            image_url = None
+            if generated_image_b64:
+                # base64 헤더가 없는 경우 추가
+                if not generated_image_b64.startswith("data:image"):
+                    image_url = f"data:image/png;base64,{generated_image_b64}"
+                else:
+                    image_url = generated_image_b64
         else:
             result = process_with_onnx(image_data, client)
+            # ONNX 모드일 때는 이미지 생성 안함 (또는 추후 구현)
+            image_url = None
 
         return templates.TemplateResponse("user.html", {
             "request": request,
-            "result": result  # ← 결과 전달!
+            "result": result,  # 프롬프트 결과
+            "image_url": image_url # 생성된 이미지
         })
 
     except Exception as e:

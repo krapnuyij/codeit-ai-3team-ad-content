@@ -1,16 +1,4 @@
 services:
-#  db:
-#    image: postgres:16
-#    container_name: customer_db
-#    env_file:
-#      - .env
-#    environment:
-#      POSTGRES_USER: postgres
-#      POSTGRES_PASSWORD: ${DB_PASSWORD}
-#      POSTGRES_DB: customer_db
-#    ports:
-#      - "5432:5432"
-
   backend:
     build: ./backend
     container_name: SaaS_backend
@@ -21,9 +9,11 @@ services:
     depends_on:
       - customer_db
       - homepage_generator
+      - nanococoa_aiserver
     environment:
       - DATABASE_URL=postgresql://owner:owner1234@customer_db:5432/customer_db
       - HOMEPAGE_GENERATOR_URL=http://homepage_generator:8891
+      - NANOCOCOA_URL=http://nanococoa_aiserver:8892
     command: uvicorn app:app --host 0.0.0.0 --port 8890 --reload
     restart: on-failure
 
@@ -53,14 +43,51 @@ services:
     volumes:
       - generated_sites:/app/generated_ad
 
+  nanococoa_aiserver:
+    build: ./nanoCocoa_aiserver
+    container_name: nanococoa_aiserver
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTORCH_ALLOC_CONF=expandable_segments:True
+      - HF_HOME=/root/.cache/huggingface
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers
+      - HF_HUB_CACHE=/root/.cache/huggingface/hub
+      - HF_TOKEN=${HF_TOKEN}
+    ports:
+      - "8892:8892"
+    volumes:
+      - /opt/huggingface:/root/.cache/huggingface
+      - nanococoa_results:/app/static/results
+      - nanococoa_uploads:/app/static/uploads
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: uvicorn main:app --host 0.0.0.0 --port 8892 --workers 1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://34.44.205.198:8892/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
+
   nginx:
     image: nginx:alpine
     container_name: saas_nginx
     volumes:
       - generated_sites:/usr/share/nginx/html/sites
     ports:
-      - "8892:80"
+      - "8893:80"
 
 volumes:
   postgres_data:
   generated_sites:
+  huggingface_cache:
+  nanococoa_results:
+  nanococoa_uploads:
