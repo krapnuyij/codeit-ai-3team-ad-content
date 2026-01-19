@@ -1,0 +1,50 @@
+<header class="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+  <div class="container mx-auto px-4 md:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16 md:h-20">
+      <!-- Logo -->
+      <a href="index.html" class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+        <img src="{{ logo_url }}" alt="{{ store_name }} 로고" class="h-8 md:h-10 w-auto">
+        <span class="text-xl md:text-2xl font-bold text-gray-900">{{ store_name }}</span>
+      </a>
+
+      <!-- Desktop Navigation -->
+      <nav class="hidden md:flex items-center space-x-8">
+        {% for page in pages %}
+        <a href="{{ page.url }}" class="text-gray-700 hover:text-blue-600 font-medium transition-colors {{ 'text-blue-600' if page.is_current else '' }}" {{ 'aria-current="page"' if page.is_current else '' }}>
+          {{ page.name }}
+        </a>
+        {% endfor %}
+      </nav>
+
+      <!-- CTA Button (Desktop) -->
+      {% if cta_text %}
+      <button class="hidden md:block px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all duration-200" data-action="{{ cta_action }}">
+        {{ cta_text }}
+      </button>
+      {% endif %}
+
+      <!-- Mobile Menu Button -->
+      <button class="md:hidden p-2 text-gray-700 hover:text-blue-600 transition-colors" data-action="toggle_mobile_menu" aria-label="메뉴 열기">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile Navigation (Hidden by default) -->
+    <div class="md:hidden hidden" data-mobile-menu>
+      <nav class="py-4 space-y-2">
+        {% for page in pages %}
+        <a href="{{ page.url }}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors {{ 'bg-blue-50 text-blue-600' if page.is_current else '' }}">
+          {{ page.name }}
+        </a>
+        {% endfor %}
+        {% if cta_text %}
+        <button class="w-full mt-4 px-6 py-2.5 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-all duration-200" data-action="{{ cta_action }}">
+          {{ cta_text }}
+        </button>
+        {% endif %}
+      </nav>
+    </div>
+  </div>
+</header>

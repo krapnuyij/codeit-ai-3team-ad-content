@@ -1,0 +1,84 @@
+{
+  "hero_split": {
+    "name": "Split Hero",
+    "description": "좌우 2열 레이아웃. 좌측에 텍스트, 우측에 이미지 배치",
+    "preview_image": "hero_split_preview.png",
+    "use_cases": [
+      "제품/서비스 소개",
+      "브랜드 스토리 전달",
+      "명확한 메시지와 비주얼 강조"
+    ],
+    "required_fields": {
+      "headline": "string - 주요 헤드라인",
+      "tagline": "string - 부제목/태그라인",
+      "cta_text": "string - CTA 버튼 텍스트",
+      "cta_action": "string - CTA 버튼 액션 (예: open_reservation_form)",
+      "image_url": "string - 이미지 URL",
+      "image_alt": "string - 이미지 대체 텍스트"
+    },
+    "optional_fields": {
+      "subheading": "string - 서브 헤딩",
+      "body": "string - 본문 텍스트",
+      "secondary_cta_text": "string - 보조 CTA 버튼 텍스트",
+      "secondary_cta_action": "string - 보조 CTA 버튼 액션"
+    },
+    "best_for": "이미지를 강조하면서도 텍스트 가독성을 확보해야 하는 경우. B2B 서비스, 제품 랜딩페이지에 적합",
+    "responsive": true,
+    "tailwind": true
+  },
+  "hero_centered": {
+    "name": "Centered Hero",
+    "description": "중앙 정렬 레이아웃. 텍스트 중심, 하단에 선택적 이미지",
+    "preview_image": "hero_centered_preview.png",
+    "use_cases": [
+      "미니멀 브랜드",
+      "포트폴리오",
+      "심플한 랜딩페이지",
+      "메시지 집중형 페이지"
+    ],
+    "required_fields": {
+      "headline": "string - 주요 헤드라인",
+      "tagline": "string - 부제목/태그라인",
+      "cta_text": "string - CTA 버튼 텍스트",
+      "cta_action": "string - CTA 버튼 액션"
+    },
+    "optional_fields": {
+      "subheading": "string - 서브 헤딩",
+      "body": "string - 본문 텍스트",
+      "image_url": "string - 이미지 URL (하단에 표시)",
+      "image_alt": "string - 이미지 대체 텍스트",
+      "secondary_cta_text": "string - 보조 CTA 버튼 텍스트",
+      "secondary_cta_action": "string - 보조 CTA 버튼 액션"
+    },
+    "best_for": "간결하고 집중된 메시지 전달. SaaS, 앱 랜딩페이지, 이벤트 페이지에 적합",
+    "responsive": true,
+    "tailwind": true
+  },
+  "hero_full_width": {
+    "name": "Full Width Background Hero",
+    "description": "전체 화면 배경 이미지 위에 텍스트 오버레이",
+    "preview_image": "hero_full_width_preview.png",
+    "use_cases": [
+      "강렬한 시각적 임팩트 필요",
+      "라이프스타일 브랜드",
+      "호텔/여행/레스토랑",
+      "감성적 브랜딩"
+    ],
+    "required_fields": {
+      "headline": "string - 주요 헤드라인 (흰색 텍스트)",
+      "tagline": "string - 부제목/태그라인",
+      "cta_text": "string - CTA 버튼 텍스트",
+      "cta_action": "string - CTA 버튼 액션",
+      "background_image": "string - 배경 이미지 URL"
+    },
+    "optional_fields": {
+      "subheading": "string - 서브 헤딩",
+      "secondary_cta_text": "string - 보조 CTA 버튼 텍스트",
+      "secondary_cta_action": "string - 보조 CTA 버튼 액션"
+    },
+    "best_for": "감성적이고 몰입감 있는 경험 제공. 비주얼이 강한 브랜드, 프리미엄 서비스에 적합",
+    "responsive": true,
+    "tailwind": true,
+    "notes": "배경 이미지는 고해상도 필수. 오버레이로 텍스트 가독성 확보"
+  }
+}

@@ -1,0 +1,66 @@
+services:
+#  db:
+#    image: postgres:16
+#    container_name: customer_db
+#    env_file:
+#      - .env
+#    environment:
+#      POSTGRES_USER: postgres
+#      POSTGRES_PASSWORD: ${DB_PASSWORD}
+#      POSTGRES_DB: customer_db
+#    ports:
+#      - "5432:5432"
+
+  backend:
+    build: ./backend
+    container_name: SaaS_backend
+    env_file:
+      - .env
+    ports:
+      - "8890:8890"
+    depends_on:
+      - customer_db
+      - homepage_generator
+    environment:
+      - DATABASE_URL=postgresql://owner:owner1234@customer_db:5432/customer_db
+      - HOMEPAGE_GENERATOR_URL=http://homepage_generator:8891
+    command: uvicorn app:app --host 0.0.0.0 --port 8890 --reload
+    restart: on-failure
+
+  customer_db:
+    image: postgres:15
+    container_name: customer_db
+    environment:
+      POSTGRES_USER: owner
+      POSTGRES_PASSWORD: owner1234
+      POSTGRES_DB: customer_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/customer_data
+
+  homepage_generator:
+    build: ./homepage_generator
+    container_name: homepage_generator
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://owner:owner1234@customer_db:5432/customer_db
+    ports:
+      - "8891:8891"
+    command: uvicorn api:app --host 0.0.0.0 --port 8891
+    volumes:
+      - generated_sites:/app/generated_ad
+
+  nginx:
+    image: nginx:alpine
+    container_name: saas_nginx
+    volumes:
+      - generated_sites:/usr/share/nginx/html/sites
+    ports:
+      - "8892:80"
+
+volumes:
+  postgres_data:
+  generated_sites:

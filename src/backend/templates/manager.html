@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}CODEIT AD MANAGER | 광고 관리자{% endblock %}
+
+{% block body_class %}class="admin-body"{% endblock %}
+
+{% block content %}
+<div class="dashboard-content">
+    <div class="generator-card">
+        <div class="archive-header">
+                <h3>PREVIOUS ADS</h3>
+                <button class="action-btn">전체 다운로드</button>
+        </div>
+        <div class="ad-grid">
+            <div class="ad-card">
+                <div class="ad-thumb" style="background-image: url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?q=80&w=200&auto=format&fit=crop');">
+                    <div class="ad-overlay">
+                        <button class="view-btn">확대보기</button>
+                    </div>
+                </div>
+                <div class="ad-info">
+                    <h4>겨울 시즌 라떼 광고</h4>
+                    <p>생성일: 2025.12.24</p>
+                    <span class="status-badge active">사용중</span>
+                </div>
+            </div>
+                <div class="ad-card">
+                    <div class="ad-thumb" style="background-image: url('https://images.unsplash.com/photo-1511920170033-f8396924c348?q=80&w=200&auto=format&fit=crop');">
+                        <div class="ad-overlay">
+                            <button class="view-btn">확대보기</button>
+                        </div>
+                    </div>
+                    <div class="ad-info">
+                        <h4>오후의 디저트 타임</h4>
+                        <p>생성일: 2025.12.20</p>
+                        <span class="status-badge inactive">보관됨</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+

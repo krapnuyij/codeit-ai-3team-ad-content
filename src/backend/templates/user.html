@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}CODEIT AD MANAGER | 광고 관리자{% endblock %}
+
+{% block body_class %}class="admin-body"{% endblock %}
+
+{% block content %}
+    <!-- 메인 컨텐츠 -->
+    <div class="dashboard-content">
+        <div class="generator-layout">
+
+            <!-- 중앙: AI AD GENERATOR -->
+            <div class="generator-card">
+                <h3>AI AD GENERATOR</h3>
+                <p class="section-desc">귀하의 상품 사진을 업로드하면 AI가 최적의 광고 카피와 디자인을 입혀줍니다.</p>
+
+                <form action="/generate-ad" method="POST" enctype="multipart/form-data">
+                    <div class="form-grid">
+                    <!-- 왼쪽: 이미지 업로드 -->
+                        <div class="upload-zone">
+                            <div class="upload-icon">📸</div>
+
+                            <input type="file"
+                                id="fileInput"
+                                name="file"
+                                accept="image/*"
+                                style="display:none"
+                                required>
+                            <label for="fileInput" class="cta-btn">파일 선택</label>
+                        </div>
+
+                        <!-- 오른쪽: 옵션 -->
+                        <div class="generator-options">
+                            <div class="option-group">
+                                <label>광고 목적</label>
+                                <select name="purpose" class="option-group" required>
+                                    <option value="신메뉴 홍보">신메뉴 홍보</option>
+                                    <option value="시즌 할인 이벤트">시즌 할인 이벤트</option>
+                                    <option value="브랜드 인지도 상승">브랜드 인지도 상승</option>
+                                </select>
+                            </div>
+                            <div class="option-group">
+                                <label>분위기 설정</label>
+                                <select name="mood" class="option-group" required>
+                                    <option value="감성적인">감성적인</option>
+                                    <option value="화려한">화려한</option>
+                                    <option value="심플한">심플한</option>
+                                    <option value="강렬한">강렬한</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <div>
+                            <div class="image-container">
+                              {% if image_url %}
+                                <img src="{{ image_url }}" alt="result image" />
+                              {% else %}
+                                <div class="placeholder"> 광고를 생성하세요. </div>
+                              {% endif %}
+                            </div>
+                        </div>
+                        <!-- 하단 전체 버튼 -->
+                        <button type="submit" class="generate-submit-btn">
+                        광고 생성하기 (1 크레딧 소모)
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <!-- 결과 표시 (생성 후) -->
+            {% if result %}
+            <div class="generator-options">
+                <h3 style="color: #4096ee;">✅ 생성 완료!</h3>
+                <div class="result-card">
+                    <h4>Positive Prompt:</h4>
+                    <p style="background: #1a1a1a; padding: 15px; border-radius: 8px; font-size: 14px;">
+                        {{ result.positive_prompt }}
+                    </p>
+
+                    <h4>Negative Prompt:</h4>
+                    <p style="background: #1a1a1a; padding: 15px; border-radius: 8px; font-size: 14px;">
+                        {{ result.negative_prompt }}
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

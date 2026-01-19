@@ -1,0 +1,959 @@
+/* ============================================
+   CODEIT 4기 3팀 - 통합 스타일시트 (정리됨)
+   ============================================ */
+
+/* === 기본 설정 === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-size: 18px;
+}
+
+body {
+    background-color: #000;
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
+    overflow-x: hidden;
+}
+
+/* === 헤더 === */
+header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 0;
+}
+
+.logo {
+    text-align: center;
+    letter-spacing: 8px;
+    margin-bottom: 30px;
+}
+
+.logo h1 {
+    font-size: 2.5rem;
+    font-weight: 300;
+}
+
+.logo span {
+    font-size: 0.8rem;
+    display: block;
+    margin-top: -5px;
+}
+
+nav ul {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: #999;
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: all 0.3s;
+}
+
+nav ul li a.active {
+    color: #fff;
+    border-bottom: 2px solid #fff;
+    padding-bottom: 5px;
+}
+
+nav ul li a:hover {
+    color: #fff;
+    padding-bottom: 5px;
+}
+
+/* === 히어로 섹션 === */
+.hero {
+    position: relative;
+    height: 20vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.gradient-bg {
+    position: absolute;
+    width: 500px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(64, 150, 238, 0.4) 0%, rgba(157, 78, 221, 0.3) 50%, rgba(0, 0, 0, 0) 70%);
+    filter: blur(40px);
+    z-index: -1;
+}
+
+.hero-content h2 {
+    font-size: 3rem;
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+}
+
+.cta-btn {
+    background-color: #fff;
+    color: #000;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.cta-btn:hover {
+    background-color: #000;
+    color: #fff;
+}
+
+/* === 메인 컨텐츠 그리드 (index.html) === */
+.content-grid {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    padding: 50px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.project-card,
+.login-card {
+    flex: 1;
+    text-align: center;
+}
+
+.card-box {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    border: 1px solid #333;
+    background-color: #050505;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.content-grid p,
+.content-grid h4 {
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    color: #ccc;
+}
+
+.card-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.card-box.clickable {
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    position: relative;
+    overflow: hidden;
+}
+
+.card-box.clickable:hover {
+    border-color: #4096ee;
+    box-shadow: 0 0 20px rgba(64, 150, 238, 0.3);
+    transform: translateY(-5px);
+}
+
+/* 로그인 폼 */
+.login-form-container h3 {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    margin-bottom: 25px;
+    font-weight: 400;
+}
+
+.input-group {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.input-group input {
+    width: 100%;
+    background: transparent;
+    border: 1px solid #444;
+    padding: 12px;
+    color: #fff;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.7rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+    border-color: #9d4edd;
+}
+
+.login-btn {
+    width: 100%;
+    background-color: transparent;
+    border: 1px solid #fff;
+    color: #fff;
+    padding: 10px;
+    font-weight: 700;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.login-btn:hover {
+    background-color: #fff;
+    color: #000;
+}
+
+.login-footer {
+    margin-top: 15px;
+}
+
+.login-footer a {
+    color: #666;
+    font-size: 0.6rem;
+    text-decoration: none;
+}
+
+.login-footer a:hover {
+    color: #fff;
+}
+
+/* === ABOUT 페이지 === */
+.about-content {
+    max-width: 1200px;
+    margin: 50px auto;
+    padding: 0 20px;
+}
+
+.about-section {
+    text-align: center;
+    margin-bottom: 80px;
+}
+
+.about-section h3 {
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    margin-bottom: 30px;
+    font-weight: 300;
+}
+
+.about-section p {
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: #999;
+}
+
+.team-section {
+    margin-top: 100px;
+}
+
+.team-section h3 {
+    text-align: center;
+    font-size: 1.5rem;
+    letter-spacing: 3px;
+    margin-bottom: 50px;
+    font-weight: 300;
+}
+
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 40px;
+    margin-top: 40px;
+}
+
+.team-member {
+    text-align: center;
+}
+
+.member-photo {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1px solid #333;
+}
+
+.member-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.team-member h4 {
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    font-weight: 400;
+}
+
+.team-member p {
+    font-size: 0.7rem;
+    color: #666;
+}
+
+/* === SERVICES 페이지 === */
+.services-content {
+    max-width: 1400px;
+    margin: 80px auto;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 40px;
+}
+
+.service-card {
+    background-color: #050505;
+    border: 1px solid #333;
+    padding: 40px;
+    transition: all 0.3s;
+}
+
+.service-card:hover {
+    border-color: #4096ee;
+    box-shadow: 0 0 20px rgba(64, 150, 238, 0.2);
+    transform: translateY(-5px);
+}
+
+.service-icon {
+    font-size: 3rem;
+    font-weight: 300;
+    color: #4096ee;
+    margin-bottom: 20px;
+}
+
+.service-card h3 {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    font-weight: 400;
+}
+
+.service-card p {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #999;
+    margin-bottom: 25px;
+}
+
+.service-features {
+    list-style: none;
+    padding: 0;
+}
+
+.service-features li {
+    font-size: 0.75rem;
+    color: #666;
+    padding: 8px 0;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+.service-features li:last-child {
+    border-bottom: none;
+}
+
+/* === PORTFOLIO 페이지 === */
+.portfolio-filter {
+    text-align: center;
+    margin: 60px 0 40px;
+}
+
+.filter-btn {
+    background: transparent;
+    border: 1px solid #333;
+    color: #999;
+    padding: 10px 25px;
+    margin: 0 5px;
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+    border-color: #4096ee;
+    color: #fff;
+    background-color: rgba(64, 150, 238, 0.1);
+}
+
+.portfolio-grid {
+    max-width: 1400px;
+    margin: 0 auto 80px;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 30px;
+}
+
+.portfolio-item {
+    background-color: #050505;
+    border: 1px solid #333;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.portfolio-item:hover {
+    border-color: #4096ee;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(64, 150, 238, 0.2);
+}
+
+.portfolio-image {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background: linear-gradient(135deg, rgba(64, 150, 238, 0.2), rgba(157, 78, 221, 0.2));
+    position: relative;
+}
+
+.portfolio-info {
+    padding: 25px;
+}
+
+.portfolio-info h3 {
+    font-size: 1rem;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    font-weight: 400;
+}
+
+.portfolio-info p {
+    font-size: 0.75rem;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.portfolio-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    color: #4096ee;
+    border: 1px solid #4096ee;
+    padding: 5px 12px;
+    letter-spacing: 1px;
+}
+
+/* === CONTACT 페이지 === */
+.contact-container {
+    max-width: 1400px;
+    margin: 80px auto;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 80px;
+}
+
+.contact-info h3,
+.contact-form-wrapper h3 {
+    font-size: 1.3rem;
+    letter-spacing: 2px;
+    margin-bottom: 40px;
+    font-weight: 300;
+}
+
+.info-item {
+    margin-bottom: 35px;
+    padding-bottom: 35px;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+.info-item h4 {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    color: #4096ee;
+    margin-bottom: 15px;
+    font-weight: 400;
+}
+
+.info-item p {
+    font-size: 0.85rem;
+    color: #999;
+    line-height: 1.8;
+}
+
+.social-links {
+    padding-top: 20px;
+}
+
+.social-icons {
+    display: flex;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.social-icon {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    color: #999;
+    font-size: 0.7rem;
+    transition: all 0.3s;
+}
+
+.social-icon:hover {
+    border-color: #4096ee;
+    color: #fff;
+}
+
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group input,
+.form-group textarea {
+    background: #050505;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 15px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #4096ee;
+}
+
+.submit-btn {
+    background-color: #fff;
+    color: #000;
+    border: none;
+    padding: 15px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.submit-btn:hover {
+    background-color: #4096ee;
+    color: #fff;
+}
+
+/* === PROMOTE STORE 페이지 === */
+.launch-content {
+    max-width: 1400px;
+    margin: 80px auto;
+    padding: 0 40px;
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 60px;
+}
+
+.project-form-container {
+    background-color: #050505;
+    border: 1px solid #333;
+    padding: 50px;
+}
+
+.project-form h3 {
+    font-size: 1.3rem;
+    letter-spacing: 2px;
+    margin-bottom: 40px;
+    font-weight: 300;
+}
+
+.form-section {
+    margin-bottom: 30px;
+}
+
+.form-section label {
+    display: block;
+    font-size: 0.8rem;
+    color: #999;
+    margin-bottom: 10px;
+}
+
+.form-section input,
+.form-section select,
+.form-section textarea {
+    width: 100%;
+    background: #000;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 15px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+.form-section input:focus,
+.form-section select:focus,
+.form-section textarea:focus {
+    border-color: #4096ee;
+}
+
+.process-info {
+    background-color: #050505;
+    border: 1px solid #333;
+    padding: 40px;
+}
+
+.process-info h3 {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    margin-bottom: 40px;
+    font-weight: 300;
+}
+
+.process-step {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 40px;
+}
+
+.step-number {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #4096ee;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #4096ee;
+    flex-shrink: 0;
+}
+
+.step-content h4 {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+    letter-spacing: 1px;
+    font-weight: 400;
+}
+
+.step-content p {
+    font-size: 0.75rem;
+    color: #666;
+    line-height: 1.6;
+}
+
+/* === DASHBOARD (공통) === */
+.admin-body {
+    background-color: #000;
+}
+
+.dashboard-content {
+    flex: 1;
+    width: 85%;
+    margin: 0 auto;
+    padding: 40px;
+    box-sizing: border-box;
+}
+
+/* === MANAGER 페이지 === */
+.section-desc {
+    color: #666;
+    font-size: 0.8rem;
+    margin-bottom: 30px;
+}
+
+.generator-card {
+    background-color: #050505;
+    border: 1px solid #333;
+    padding: 40px;
+}
+
+.generator-card h3 {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+    font-weight: 400;
+}
+
+.upload-zone {
+    border: 2px dashed #333;
+    padding: 60px;
+    text-align: center;
+    margin-bottom: 30px;
+    transition: all 0.3s;
+}
+
+.upload-zone:hover {
+    border-color: #9d4edd;
+    background-color: rgba(157, 78, 221, 0.05);
+}
+
+.upload-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+
+.generator-options {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.option-group label {
+    display: block;
+    font-size: 0.75rem;
+    color: #999;
+    margin-bottom: 10px;
+}
+
+.option-group select {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 12px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.generate-submit-btn {
+    background: linear-gradient(90deg, #9d4edd, #4096ee);
+    border: none;
+    color: #fff;
+    padding: 15px;
+    font-weight: 700;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.generate-submit-btn:hover {
+    color: #000;
+}
+
+.archive-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.archive-header h3 {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    font-weight: 400;
+}
+
+.ad-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.ad-card {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    overflow: hidden;
+}
+
+.ad-thumb {
+    height: 200px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.ad-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: 0.3s;
+}
+
+.ad-card:hover .ad-overlay {
+    opacity: 1;
+}
+
+.ad-info {
+    padding: 15px;
+}
+
+.ad-info h4 {
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+}
+
+.ad-info p {
+    font-size: 0.7rem;
+    color: #555;
+    margin-bottom: 10px;
+}
+
+.status-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 4px 10px;
+    border: 1px solid;
+}
+
+.status-badge.active {
+    color: #4096ee;
+    border-color: #4096ee;
+}
+
+.status-badge.inactive {
+    color: #666;
+    border-color: #666;
+}
+
+.view-btn {
+    background: #fff;
+    border: none;
+    padding: 8px 15px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.action-btn {
+    background-color: #fff;
+    color: #000;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 25px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.action-btn:hover {
+    background-color: #000;
+    color: #fff;
+    border: 1px solid #fff;
+}
+
+/* === USER 페이지 === */
+.generator-layout {
+    max-width: 1200px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 40px;
+    margin-bottom: 30px;
+}
+
+.result-card {
+    background: #0a0a0a;
+    padding: 30px;
+    border-radius: 12px;
+    border: 1px solid #333;
+}
+
+.result-card h4 {
+    color: #4096ee;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.result-card h4:first-child {
+    margin-top: 0;
+}
+
+.image-container {
+  width: 300px;
+  height: 300px;
+  border: 1px dashed #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.resultImage {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.placeholder {
+  color: #999;
+}
+
+/* === 푸터 === */
+footer {
+    text-align: center;
+    padding: 40px 0;
+    font-size: 0.6rem;
+    color: #555;
+}
+
+/* === 반응형 디자인 === */
+@media (max-width: 768px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 1024px) {
+    .contact-container,
+    .launch-content {
+        grid-template-columns: 1fr;
+        gap: 60px;
+        padding: 0 20px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 900px) {
+    .content-grid {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .project-card,
+    .login-card {
+        width: 100%;
+        max-width: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .services-content,
+    .portfolio-grid {
+        grid-template-columns: 1fr;
+        padding: 0 20px;
+    }
+
+    nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .hero-content h2 {
+        font-size: 2rem;
+    }
+}
