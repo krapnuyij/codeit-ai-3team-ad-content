@@ -10,6 +10,7 @@ import json
 import asyncio
 import logging
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 from config import (
     OPENAI_MODEL,
@@ -26,7 +27,7 @@ from config import (
     POLLING_INTERVAL,
 )
 from services import LLMAdapter, MongoManager, MCPClient, get_job_store
-from utils.state_manager import add_chat_message, get_session_value, set_page
+from utils.state_manager import add_chat_message, get_session_value, set_page, logout
 import time
 from PIL import Image as PILImage
 
@@ -47,12 +48,12 @@ def render_chat_ui() -> None:
     # 상단 메뉴
     col1, col2, col3 = st.columns([3, 1, 1])
     with col2:
-        if st.button("📁 히스토리", use_container_width=True):
+        if st.button("📁 히스토리", width="content"):
             set_page("history")
             st.rerun()
     with col3:
-        if st.button("🚪 로그아웃", use_container_width=True):
-            st.session_state.clear()
+        if st.button("🚪 로그아웃", width="content"):
+            logout()
             st.rerun()
 
     st.markdown("---")
@@ -79,13 +80,15 @@ def render_chat_ui() -> None:
         # AI 응답 생성 (LLMAdapter - 자동 MCP 도구 호출)
         with st.chat_message("assistant"):
             with st.spinner("생각 중..."):
-                response, job_id = asyncio.run(generate_ai_response_async(user_input))
+                response, job_id, tool_params = asyncio.run(
+                    generate_ai_response_async(user_input)
+                )
                 st.write(response)
                 add_chat_message("assistant", response)
 
                 # job_id가 있으면 MongoDB에 저장 및 안내
                 if job_id:
-                    handle_job_creation(job_id, user_input)
+                    handle_job_creation(job_id, user_input, tool_params)
 
         st.rerun()
 
@@ -98,7 +101,7 @@ async def generate_ai_response_async(user_message: str):
         user_message: 사용자 메시지
 
     Returns:
-        (AI 응답 텍스트, job_id 또는 None)
+        (AI 응답 텍스트, job_id 또는 None, 도구 파라미터 또는 None)
     """
     api_key = get_session_value("openai_key")
 
@@ -132,7 +135,8 @@ async def generate_ai_response_async(user_message: str):
 **응답 가이드:**
 - 도구 호출 후 "광고 생성 작업이 시작되었습니다. 작업 ID: [job_id]" 형식으로 안내
 - 작업은 15~30분 소요되며, 히스토리 페이지에서 진행 상황 확인 가능함을 안내
-- 모든 프롬프트는 영문으로 작성
+- **중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지. 단위, 문맥 등은 적당하게 수정 가능
+- background_prompt, text_prompt 등 이미지 생성 prompt(프롬프트)만 영문으로 작성
 """
 
     try:
@@ -161,7 +165,7 @@ async def generate_ai_response_async(user_message: str):
             )
 
             # LLM 응답 생성 (필요 시 자동으로 MCP 도구 호출)
-            response = await adapter.chat(user_message, max_tool_calls=3)
+            response, tool_params = await adapter.chat(user_message, max_tool_calls=3)
 
             # job_id 추출 (도구 호출 결과에서)
             job_id = None
@@ -173,11 +177,11 @@ async def generate_ai_response_async(user_message: str):
                         logger.info(f"job_id 추출 성공: {job_id}")
                         break
 
-            return response, job_id
+            return response, job_id, tool_params
 
     except Exception as e:
         logger.error(f"LLMAdapter 오류: {e}")
-        return f"오류가 발생했습니다: {str(e)}", None
+        return f"오류가 발생했습니다: {str(e)}", None, None
 
 
 def extract_job_id(tool_response: str):
@@ -210,23 +214,37 @@ def extract_job_id(tool_response: str):
     return None
 
 
-def handle_job_creation(job_id: str, user_message: str) -> None:
+def handle_job_creation(
+    job_id: str, user_message: str, tool_params: Optional[Dict[str, Any]] = None
+) -> None:
     """
     작업 생성 후 저장, 사용자 안내 및 모니터링 시작
 
     Args:
         job_id: 작업 ID
         user_message: 사용자 요청 메시지
+        tool_params: 실제 사용된 도구 파라미터 (재현성)
     """
-    # 생성 파라미터 추출 (재현성을 위해)
-    product_image = UPLOADS_DIR / "test_product.png"
-    generation_params = {
-        "text_content": user_message,
-        "product_image_path": str(product_image),
-        "composition_mode": "overlay",
-        "model": OPENAI_MODEL,
-        "mcp_server_url": MCP_SERVER_URL,
-    }
+    # 재현성을 위해 실제 사용된 파라미터 저장
+    if tool_params and tool_params.get("parameters"):
+        generation_params = tool_params["parameters"].copy()
+        # 사용자 원문 메시지도 추가
+        generation_params["user_message"] = user_message
+        generation_params["model"] = OPENAI_MODEL
+        generation_params["mcp_server_url"] = MCP_SERVER_URL
+        logger.info(f"실제 도구 파라미터 저장: {list(generation_params.keys())}")
+    else:
+        # fallback: 기본 파라미터
+        product_image = UPLOADS_DIR / "test_product.png"
+        generation_params = {
+            "user_message": user_message,
+            "text_content": user_message,
+            "product_image_path": str(product_image),
+            "composition_mode": "overlay",
+            "model": OPENAI_MODEL,
+            "mcp_server_url": MCP_SERVER_URL,
+        }
+        logger.warning("도구 파라미터 없음, 기본값 사용")
 
     try:
         # 작업 저장 (파일 기반)
@@ -485,9 +503,7 @@ def display_completed_job_result(job: dict) -> None:
     if result_path:
         result_file = Path(result_path)
         if result_file.exists():
-            st.image(
-                str(result_file), caption="생성된 광고 이미지", use_container_width=True
-            )
+            st.image(str(result_file), caption="생성된 광고 이미지", width="content")
         else:
             st.warning(f"⚠️ 이미지 파일을 찾을 수 없습니다: {result_path}")
 

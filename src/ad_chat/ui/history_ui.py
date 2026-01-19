@@ -13,7 +13,12 @@ from pathlib import Path
 
 from config import STATUS_PROCESSING, STATUS_COMPLETED, STATUS_FAILED, POLLING_INTERVAL
 from services import MCPClient, MongoManager, get_job_store
-from utils.state_manager import set_page, get_session_value, set_session_value
+from utils.state_manager import (
+    set_page,
+    get_session_value,
+    set_session_value,
+    load_job_to_chat,
+)
 
 # 작업 저장소
 job_store = get_job_store()
@@ -30,11 +35,11 @@ def render_history_ui() -> None:
     # 상단 메뉴
     col1, col2, col3 = st.columns([3, 1, 1])
     with col2:
-        if st.button("💬 채팅", use_container_width=True):
+        if st.button("💬 채팅", width="content"):
             set_page("chat")
             st.rerun()
     with col3:
-        if st.button("🔄 새로고침", use_container_width=True):
+        if st.button("🔄 새로고침", width="content"):
             st.rerun()
 
     st.markdown("---")
@@ -156,7 +161,7 @@ def render_completed_status(job: dict) -> None:
     # 결과 이미지 표시
     result_image_path = job.get("result_image_path")
     if result_image_path and Path(result_image_path).exists():
-        st.image(result_image_path, caption="생성된 광고", use_container_width=True)
+        st.image(result_image_path, caption="생성된 광고", width="content")
 
         # 다운로드 버튼
         with open(result_image_path, "rb") as f:
@@ -182,10 +187,39 @@ def render_completed_status(job: dict) -> None:
         with st.expander("🔄 생성 파라미터 (재현 가능)", expanded=False):
             st.json(metadata)
 
-            # 재생성 버튼
-            if st.button("🔁 동일 설정으로 재생성", key=f"regenerate_{job['job_id']}"):
-                st.info("재생성 기능은 추후 구현 예정입니다.")
-                # TODO: 동일 파라미터로 새 작업 생성
+    # 액션 버튼
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        if st.button(
+            "📝 불러오기", key=f"load_{job['job_id']}", use_container_width=True
+        ):
+            load_job_to_chat(job)
+            set_page("chat")
+            st.success("작업을 채팅에 불러왔습니다!")
+            st.rerun()
+
+    with col2:
+        if st.button(
+            "🗑️ 삭제",
+            key=f"delete_{job['job_id']}",
+            use_container_width=True,
+            type="secondary",
+        ):
+            if job_store.delete_job(job["job_id"]):
+                st.success("작업이 삭제되었습니다.")
+                st.rerun()
+            else:
+                st.error("삭제 실패")
+
+    with col3:
+        if st.button(
+            "🔁 동일 설정으로 재생성",
+            key=f"regenerate_{job['job_id']}",
+            use_container_width=True,
+        ):
+            st.info("재생성 기능은 추후 구현 예정입니다.")
+            # TODO: 동일 파라미터로 새 작업 생성
 
 
 def render_failed_status(job: dict) -> None:
@@ -197,6 +231,16 @@ def render_failed_status(job: dict) -> None:
     """
     error_msg = job.get("error_message", "알 수 없는 오류")
     st.error(f"❌ 작업 실패: {error_msg}")
+
+    # 삭제 버튼
+    if st.button(
+        "🗑️ 삭제", key=f"delete_failed_{job['job_id']}", use_container_width=True
+    ):
+        if job_store.delete_job(job["job_id"]):
+            st.success("작업이 삭제되었습니다.")
+            st.rerun()
+        else:
+            st.error("삭제 실패")
 
 
 def check_job_status(job_id: str) -> None:

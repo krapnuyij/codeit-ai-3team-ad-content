@@ -84,6 +84,16 @@ def set_authenticated(api_key: str) -> None:
     st.session_state.current_page = "chat"
 
 
+def logout() -> None:
+    """
+    로그아웃 처리 (인증 상태만 초기화)
+    """
+    st.session_state.authenticated = False
+    st.session_state.current_page = "auth"
+    # openai_key는 유지 (재로그인 시 재사용 가능)
+    # 채팅 히스토리 등은 유지
+
+
 def add_chat_message(role: str, content: str) -> None:
     """
     채팅 메시지 추가
@@ -123,3 +133,45 @@ def set_session_value(key: str, value: Any) -> None:
         value: 저장할 값
     """
     st.session_state[key] = value
+
+
+def load_job_to_chat(job: dict) -> None:
+    """
+    히스토리 작업을 채팅에 불러오기
+
+    LLM이 이해할 수 있는 형식으로 저장된 파라미터를 채팅 히스토리에 추가
+
+    Args:
+        job: 불러올 작업 데이터
+    """
+    metadata = job.get("metadata", {})
+    user_message = metadata.get("user_message", job.get("prompt", ""))
+
+    # LLM이 이해할 수 있는 형식으로 변환
+    formatted_context = f"""이전 작업을 불러왔습니다:
+
+**원본 요청:** {user_message}
+
+**사용된 파라미터:**
+- 텍스트 내용: {metadata.get('text_content', 'N/A')}
+- 배경 프롬프트: {metadata.get('background_prompt', 'N/A')[:100]}...
+- 텍스트 스타일 프롬프트: {metadata.get('text_prompt', 'N/A')[:100]}...
+- 합성 모드: {metadata.get('composition_mode', 'overlay')}
+- 강도: {metadata.get('strength', 0.35)}
+- 가이드 스케일: {metadata.get('guidance_scale', 4.5)}
+
+이 설정을 기반으로 수정하고 싶은 부분을 말씀해주세요.
+(예: "글자 색을 빨간색으로 해주세요", "배경을 더 밝게 해주세요")
+"""
+
+    # 채팅 히스토리에 추가
+    st.session_state.chat_history.append(
+        {
+            "role": "assistant",
+            "content": formatted_context,
+        }
+    )
+
+    # 현재 불러온 작업 ID 저장 (참조용)
+    st.session_state.loaded_job_id = job.get("job_id")
+    st.session_state.loaded_job_metadata = metadata

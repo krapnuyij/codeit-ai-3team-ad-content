@@ -81,6 +81,7 @@ STATIC_BASE, UPLOADS_DIR, RESULTS_DIR = get_static_paths()
 # ===================================================================
 # OpenAI API 설정
 # ===================================================================
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # .env에서 로드 (선택적)
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5-mini")
 OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "1.0"))
 OPENAI_MAX_COMPLETION_TOKENS = int(os.getenv("OPENAI_MAX_COMPLETION_TOKENS", "128000"))

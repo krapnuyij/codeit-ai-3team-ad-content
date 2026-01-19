@@ -8,6 +8,7 @@ import streamlit as st
 from openai import OpenAI
 from openai import OpenAIError
 
+from config import OPENAI_API_KEY
 from utils.state_manager import set_authenticated
 
 
@@ -39,6 +40,18 @@ def render_auth_ui() -> None:
     st.title("🎨 AI 광고 생성 시스템")
     st.markdown("---")
 
+    # .env에서 키가 있으면 자동 로그인
+    if OPENAI_API_KEY:
+        with st.spinner("환경 변수에서 API 키를 확인하는 중..."):
+            if validate_openai_key(OPENAI_API_KEY):
+                st.success("환경 변수에서 API 키를 불러왔습니다!")
+                set_authenticated(OPENAI_API_KEY)
+                st.rerun()
+            else:
+                st.error(
+                    ".env의 OPENAI_API_KEY가 유효하지 않습니다. 수동으로 입력해주세요."
+                )
+
     st.header("🔑 시작하기")
     st.write("AI 광고 생성을 위해 OpenAI API 키를 입력해주세요.")
 
@@ -47,13 +60,13 @@ def render_auth_ui() -> None:
         "OpenAI API Key",
         type="password",
         placeholder="sk-...",
-        help="https://platform.openai.com/api-keys 에서 발급받으세요.",
+        help="https://platform.openai.com/api-keys 에서 발급받으세요. (또는 .env 파일에 OPENAI_API_KEY 설정)",
     )
 
     # 로그인 버튼
     col1, col2, col3 = st.columns([1, 1, 2])
     with col1:
-        if st.button("시작하기", type="primary", use_container_width=True):
+        if st.button("시작하기", type="primary", width="content"):
             if not api_key_input:
                 st.error("API 키를 입력해주세요.")
                 return

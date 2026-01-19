@@ -57,6 +57,9 @@ class LLMAdapter:
         # 대화 히스토리
         self.conversation_history: List[Dict[str, Any]] = []
 
+        # 마지막 도구 호출 파라미터 (재현성을 위해 저장)
+        self.last_tool_call_params: Optional[Dict[str, Any]] = None
+
     async def __aenter__(self):
         """비동기 컨텍스트 매니저 진입"""
         await self.mcp_client.__aenter__()
@@ -167,7 +170,7 @@ class LLMAdapter:
                 "  composition_prompt='Text floating naturally with soft shadows, consistent lighting',\n"
                 "  composition_negative_prompt='artificial looking, halos, color mismatch'\n"
                 ")\n\n"
-                "모든 프롬프트는 영문으로 작성하세요."
+                "**중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지. 단위, 문맥 등은 적당하게 수정 가능, 나머지 프롬프트(background_prompt, text_prompt, ...prompt 등)는 영문으로 작성하세요."
             )
             return base_prompt
 
@@ -208,7 +211,7 @@ class LLMAdapter:
         self,
         user_message: str,
         max_tool_calls: int = 5,
-    ) -> str:
+    ) -> tuple[str, Optional[Dict[str, Any]]]:
         """
         자연어 메시지를 처리하여 응답 생성
 
@@ -220,7 +223,7 @@ class LLMAdapter:
             max_tool_calls: 최대 도구 호출 횟수
 
         Returns:
-            LLM의 최종 응답 텍스트
+            (LLM의 최종 응답 텍스트, 사용된 도구 파라미터 또는 None)
         """
         # 시스템 프롬프트 추가 (첫 메시지인 경우에만)
         if not self.conversation_history:
@@ -255,7 +258,7 @@ class LLMAdapter:
                 self.conversation_history.append(
                     {"role": "assistant", "content": message.content}
                 )
-                return message.content
+                return message.content, self.last_tool_call_params
 
             # 어시스턴트 메시지 추가
             self.conversation_history.append(
@@ -327,6 +330,13 @@ class LLMAdapter:
                         )
                         logger.info("background_negative_prompt 자동 생성됨 (기본값)")
 
+                # 재현성을 위해 실제 사용된 파라미터 저장
+                if tool_name == "generate_ad_image":
+                    self.last_tool_call_params = {
+                        "tool_name": tool_name,
+                        "parameters": tool_args.copy(),
+                    }
+
                 logger.info(f"MCP 도구 호출 tool_name={tool_name}")
                 logger.info(f"MCP 도구 호출 tool_args={tool_args}")
 
@@ -354,7 +364,7 @@ class LLMAdapter:
 
         # 최대 호출 횟수 초과
         logger.warning(f"최대 도구 호출 횟수({max_tool_calls}) 초과")
-        return "작업을 완료할 수 없습니다. 너무 많은 도구 호출이 필요합니다."
+        return "작업을 완료할 수 없습니다. 너무 많은 도구 호출이 필요합니다.", None
 
     async def _get_mcp_tools_schema(self) -> List[Dict[str, Any]]:
         """
