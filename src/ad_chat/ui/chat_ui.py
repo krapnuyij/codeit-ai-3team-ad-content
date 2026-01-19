@@ -11,6 +11,7 @@ import asyncio
 import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
+from helper_streamlit_utils import *
 
 from config import (
     OPENAI_MODEL,
@@ -27,7 +28,13 @@ from config import (
     POLLING_INTERVAL,
 )
 from services import LLMAdapter, MongoManager, MCPClient, get_job_store
-from utils.state_manager import add_chat_message, get_session_value, set_page, logout
+from utils.state_manager import (
+    add_chat_message,
+    get_session_value,
+    set_page,
+    logout,
+    reset_for_new_ad,
+)
 import time
 from PIL import Image as PILImage
 
@@ -37,26 +44,149 @@ logger = logging.getLogger(__name__)
 job_store = get_job_store()
 
 
+async def _get_current_time_async():
+    """현재 시간 반환 (비동기 래퍼)"""
+    from datetime import datetime
+
+    return datetime.now().isoformat()
+
+
+async def reset_chat_and_server() -> None:
+    """
+    새로운 광고를 위한 채팅 및 서버 초기화
+
+    1. MCP 서버 상태 초기화 (모든 작업 중단 및 삭제)
+    2. 세션 상태 초기화 (채팅 히스토리, 작업 컨텍스트 등)
+    """
+    try:
+        # 1. MCP 서버 초기화 (REST API 호출)
+        async with MCPClient(base_url=MCP_SERVER_URL, timeout=MCP_TIMEOUT) as client:
+            result = await client.server_reset()
+            logger.info(f"서버 초기화 완료: {result}")
+
+        # 2. 세션 상태 초기화
+        reset_for_new_ad()
+
+        logger.info("새로운 광고를 위한 초기화 완료")
+
+    except Exception as e:
+        logger.error(f"서버 초기화 실패: {e}", exc_info=True)
+        st.error(f"초기화 중 오류 발생: {str(e)}")
+
+
+async def load_fonts_async() -> Optional[list]:
+    """
+    MCP 서버에서 폰트 메타데이터 로드
+
+    Returns:
+        폰트 메타데이터 리스트 (JSON) 또는 None (로드 실패 시)
+    """
+    max_retries = 2
+    retry_delay = 2  # 초
+
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"폰트 메타데이터 로드 시도 {attempt + 1}/{max_retries}")
+            logger.info(f"MCP 서버 URL: {MCP_SERVER_URL}, 타임아웃: {MCP_TIMEOUT}초")
+
+            # 타임아웃을 60초로 증가 (폰트 메타데이터는 한 번만 로드)
+            async with MCPClient(base_url=MCP_SERVER_URL, timeout=60) as client:
+                result = await client.call_tool("get_fonts_metadata", {})
+
+                logger.info(f"폰트 메타데이터 응답 수신: 타입={type(result)}")
+
+                # 결과 파싱
+                if isinstance(result, str):
+                    fonts = json.loads(result)
+                else:
+                    fonts = result
+
+                if not fonts:
+                    logger.warning("폰트 메타데이터가 비어 있습니다")
+                    return []
+
+                logger.info(f"✓ 폰트 메타데이터 로드 완료: {len(fonts)}개")
+                return fonts
+
+        except json.JSONDecodeError as e:
+            logger.error(
+                f"폰트 메타데이터 JSON 파싱 실패 (시도 {attempt + 1}): {e}",
+                exc_info=True,
+            )
+        except Exception as e:
+            logger.error(
+                f"폰트 로드 실패 (시도 {attempt + 1}/{max_retries}): {type(e).__name__}: {e}",
+                exc_info=True,
+            )
+
+        # 마지막 시도가 아니면 재시도 대기
+        if attempt < max_retries - 1:
+            logger.info(f"{retry_delay}초 후 재시도...")
+            await asyncio.sleep(retry_delay)
+
+    logger.error(f"모든 재시도 실패 ({max_retries}회). None 반환")
+    return None  # 실패 시 None 반환하여 에러 상태 명확히 구분
+
+
 def render_chat_ui() -> None:
     """
     채팅 인터페이스 렌더링
 
     LLMAdapter를 통한 대화형 광고 기획 및 MCP 서버 작업 요청
     """
-    st.title("💬 AI 광고 기획 채팅")
+    # 폰트 메타데이터 로드 (1회만)
+    if st.session_state.font_metadata is None:
+        with st.spinner("폰트 목록 로딩 중..."):
+            st.session_state.font_metadata = asyncio.run(load_fonts_async())
+
+    # 폰트 로드 실패 경고 (None인 경우에만, 빈 리스트는 정상)
+    if st.session_state.font_metadata is None:
+        st.error("❌ 폰트 목록 로드 실패. 기본 폰트를 사용합니다.")
+    elif len(st.session_state.font_metadata) == 0:
+        st.info("ℹ️ 사용 가능한 폰트가 없습니다. 기본 폰트를 사용합니다.")
 
     # 상단 메뉴
-    col1, col2, col3 = st.columns([3, 1, 1])
+    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+    with col1:
+        st.subheader("💬 AI 광고 기획 채팅")
+
     with col2:
+        if st.button("➕ 새로운 광고", width="content"):
+            # 채팅 히스토리가 있으면 확인 팝업
+            if st.session_state.chat_history:
+                st.session_state.show_reset_confirm = True
+            else:
+                # 히스토리가 없으면 바로 초기화
+                asyncio.run(reset_chat_and_server())
+            st.rerun()
+
+    with col3:
         if st.button("📁 히스토리", width="content"):
             set_page("history")
             st.rerun()
-    with col3:
+    with col4:
         if st.button("🚪 로그아웃", width="content"):
             logout()
             st.rerun()
 
-    st.markdown("---")
+    # 초기화 확인 팝업
+    if get_session_value("show_reset_confirm", False):
+        with st.container():
+            st.warning(
+                "⚠️ 현재 대화 내용과 진행 중인 작업이 모두 초기화됩니다. 계속하시겠습니까?"
+            )
+            col_yes, col_no, col_spacer = st.columns([1, 1, 3])
+            with col_yes:
+                if st.button("✅ 예", key="confirm_reset"):
+                    st.session_state.show_reset_confirm = False
+                    asyncio.run(reset_chat_and_server())
+                    st.rerun()
+            with col_no:
+                if st.button("❌ 아니오", key="cancel_reset"):
+                    st.session_state.show_reset_confirm = False
+                    st.rerun()
+
+    st_div_divider()
 
     # 모니터링 중인 작업 확인 및 완료 알림
     check_and_display_completed_jobs()
@@ -110,33 +240,110 @@ async def generate_ai_response_async(user_message: str):
     if not product_image.exists():
         create_test_product_image(product_image)
 
-    # 시스템 프롬프트 (MCP 도구 사용 안내 포함)
+    # 폰트 메타데이터 가져오기
+    font_metadata = st.session_state.get("font_metadata", [])
+    font_info_section = ""
+
+    if font_metadata:
+        # 폰트 정보를 간결하게 포맷팅
+        font_list = []
+        for font in font_metadata[:10]:  # 상위 10개만 표시 (토큰 절약)
+            name = font.get("name", "Unknown")
+            style = font.get("style", "")
+            weight = font.get("weight", "")
+            usage = ", ".join(font.get("usage", [])[:3])  # 용도 3개만
+            font_list.append(f"  - {name} ({style}, {weight}) - 용도: {usage}")
+
+        font_info_section = f"""
+
+**사용 가능한 폰트 (상위 10개):**
+{chr(10).join(font_list)}
+
+더 많은 폰트가 필요하면 `list_fonts_with_metadata` 도구를 호출하거나,
+광고 유형에 맞는 폰트 추천이 필요하면 `recommend_font` 도구를 사용하세요.
+- recommend_font 파라미터: text_content, ad_type (sale/premium/casual/promotion), tone (energetic/elegant/friendly), weight (light/bold/heavy)
+"""
+    else:
+        font_info_section = """
+
+**경고:** 폰트 목록을 불러올 수 없습니다. 기본 폰트를 사용합니다.
+"""
+
+    # 현재 작업 컨텍스트 확인
+    current_job_context = st.session_state.get("current_job_context")
+    context_info = ""
+    if current_job_context:
+        context_info = f"""
+
+**현재 작업 컨텍스트:**
+- 작업 ID: {current_job_context.get('job_id', 'N/A')}
+- 상태: {current_job_context.get('status', 'N/A')}
+- 프롬프트: {current_job_context.get('prompt', 'N/A')[:100]}...
+
+이 작업에 대한 추가 논의나 수정 요청인 경우, 새로운 광고를 생성하지 말고 의견만 제시하세요.
+새로운 광고를 생성하려면 사용자가 명확히 "새 광고 생성", "다시 만들어줘" 등을 표현해야 합니다.
+"""
+
+    # 시스템 프롬프트 (2단계 프로세스: 기획 → 확인 → 생성)
     system_prompt = f"""당신은 나노코코아(nanoCocoa) AI 광고 생성 시스템의 전문 어시스턴트입니다.
 
 **역할:**
-1. 사용자와 대화하며 효과적인 광고 컨셉 제안
-2. 광고 생성 요청 시 자동으로 MCP 도구를 호출하여 실제 광고 이미지 생성
+1. 사용자와 대화하며 효과적인 광고 컨셉 제안 (기획 단계)
+2. 최종 확인 후 광고 이미지 생성 (실행 단계)
+{context_info}
 
-**광고 생성 프로세스:**
-1. 제품/서비스 정보 파악
-2. 타겟 고객층 확인
-3. 광고 톤앤매너 결정 (세일/프리미엄/캐주얼)
-4. 핵심 메시지 및 카피 제안
-5. 비주얼 컨셉 제안
+**광고 생성 2단계 프로세스:**
 
-**MCP 도구 사용 규칙:**
-- 사용자가 "광고 생성", "만들어줘", "생성", "나노코코아로", "create", "generate" 등 광고 생성 의도를 표현하면 즉시 `generate_ad_content` 도구 호출
-- 필수 파라미터:
-  - product_image_path: "{str(product_image)}" (기본값)
-  - text_content: 사용자가 언급한 광고 텍스트 (예: "특가 세일", "50% 할인") 또는 대화 문맥에서 추출
+### 1단계: 기획 및 의견 교환 (도구 호출 없음)
+- 제품/서비스 정보 파악
+- 타겟 고객층 확인
+- 광고 톤앤매너 결정 (세일/프리미엄/캐주얼)
+- 핵심 메시지 및 카피 제안
+- 비주얼 컨셉 제안
+- 폰트 추천 (필요 시 `recommend_font` 도구 사용)
+
+### 2단계: 최종 확인 및 생성 실행
+- **중요:** 사용자가 다음 표현을 **명확히** 사용할 때만 `generate_ad_image` 도구 호출:
+  - "생성해줘", "만들어줘", "광고 생성", "시작", "실행"
+  - "지금 만들어", "이제 생성", "OK 생성", "확인 생성"
+  - 영어: "generate", "create now", "start generation"
+
+- **도구 호출 전 확인 금지 표현:**
+  - "어떤가요?", "괜찮나요?", "의견 있으세요?", "수정할 부분?"
+  - 이런 질문은 **기획 단계**이므로 도구 호출하지 말 것
+
+- **생성 후 추가 대화:**
+  - 광고가 이미 생성되었으면 추가 의견 교환 시 **새로운 광고 생성하지 말 것**
+  - "새 광고", "다시 생성", "another one" 등 명시적 요청 시에만 재생성
+{font_info_section}
+
+**MCP 도구 호출 규칙:**
+- `generate_ad_image` 필수 파라미터:
+  - background_prompt: 영문 배경 설명 (15-30단어)
+    * **중요**: 제품 이미지(product_image_path)를 제공하지 않는 경우, 
+      background_prompt에 제품 상세 설명을 반드시 포함해야 함
+    * 제품 이미지 있음: "Elegant marble surface with soft lighting, luxury background"
+    * 제품 이미지 없음: "Premium red apples on golden traditional Korean bojagi cloth, 
+      juicy and fresh, photorealistic, Korean ink painting style background 
+      with magpie and yut game elements"
+  - text_content: 광고 텍스트 (원문 언어 유지)
+  - text_prompt: 3D 텍스트 스타일 (10-20단어, '3D render' 필수)
+  
+- 선택 파라미터:
+  - product_image_path: 제품 이미지 경로 (제공 안 하면 배경에 제품 포함하여 생성)
   - composition_mode: "overlay" (기본값)
   - wait_for_completion: false (비동기 처리)
 
+- **제품 이미지 제공 여부에 따른 처리**:
+  1. **제품 이미지 있음**: product_image_path 제공 + background_prompt는 배경만 설명
+  2. **제품 이미지 없음**: product_image_path 생략 + background_prompt에 제품+배경 모두 설명
+
 **응답 가이드:**
-- 도구 호출 후 "광고 생성 작업이 시작되었습니다. 작업 ID: [job_id]" 형식으로 안내
+- 기획 단계: 컨셉 제안 후 "생성을 원하시면 '생성해줘'라고 말씀해주세요" 안내
+- 도구 호출 후: "광고 생성 작업이 시작되었습니다. 작업 ID: [job_id]" 형식으로 안내
 - 작업은 15~30분 소요되며, 히스토리 페이지에서 진행 상황 확인 가능함을 안내
-- **중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지. 단위, 문맥 등은 적당하게 수정 가능
-- background_prompt, text_prompt 등 이미지 생성 prompt(프롬프트)만 영문으로 작성
+- **중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지
+- background_prompt, text_prompt 등 이미지 생성 prompt만 영문으로 작성
 """
 
     try:
@@ -225,6 +432,15 @@ def handle_job_creation(
         user_message: 사용자 요청 메시지
         tool_params: 실제 사용된 도구 파라미터 (재현성)
     """
+    # 현재 작업 컨텍스트 업데이트 (작업 ID별 대화 추적)
+    st.session_state.current_job_context = {
+        "job_id": job_id,
+        "status": "processing",
+        "prompt": user_message,
+        "created_at": asyncio.run(_get_current_time_async()),
+    }
+    logger.info(f"작업 컨텍스트 업데이트: {job_id}")
+
     # 재현성을 위해 실제 사용된 파라미터 저장
     if tool_params and tool_params.get("parameters"):
         generation_params = tool_params["parameters"].copy()
@@ -467,11 +683,25 @@ def check_and_display_completed_jobs() -> None:
                 display_completed_job_result(job)
                 completed_jobs.append(job_id)
 
+                # 작업 컨텍스트 업데이트
+                if (
+                    st.session_state.current_job_context
+                    and st.session_state.current_job_context.get("job_id") == job_id
+                ):
+                    st.session_state.current_job_context["status"] = "completed"
+
             elif status == "failed":
                 st.error(
                     f"❌ 작업 실패: {job_id}\n{job.get('error_message', 'Unknown error')}"
                 )
                 completed_jobs.append(job_id)
+
+                # 작업 컨텍스트 제거
+                if (
+                    st.session_state.current_job_context
+                    and st.session_state.current_job_context.get("job_id") == job_id
+                ):
+                    st.session_state.current_job_context = None
 
         # 완료된 작업을 모니터링 목록에서 제거
         for job_id in completed_jobs:

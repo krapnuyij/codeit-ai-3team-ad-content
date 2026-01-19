@@ -38,6 +38,18 @@ def init_session_state() -> None:
     if "auto_refresh_enabled" not in st.session_state:
         st.session_state.auto_refresh_enabled = False
 
+    # 폰트 메타데이터 (1회만 로드)
+    if "font_metadata" not in st.session_state:
+        st.session_state.font_metadata = None
+
+    # 광고 생성 대기 상태 (최종 확인 대기 중인 광고 파라미터)
+    if "pending_ad_generation" not in st.session_state:
+        st.session_state.pending_ad_generation = None
+
+    # 현재 작업 컨텍스트 (작업 ID별 대화 추적)
+    if "current_job_context" not in st.session_state:
+        st.session_state.current_job_context = None
+
 
 def set_page(page_name: str) -> None:
     """
@@ -175,3 +187,25 @@ def load_job_to_chat(job: dict) -> None:
     # 현재 불러온 작업 ID 저장 (참조용)
     st.session_state.loaded_job_id = job.get("job_id")
     st.session_state.loaded_job_metadata = metadata
+
+
+def reset_for_new_ad() -> None:
+    """
+    새로운 광고 생성을 위한 초기화
+
+    채팅 히스토리, 작업 컨텍스트, 모니터링 작업 목록 초기화
+    """
+    st.session_state.chat_history = []
+    st.session_state.current_job_context = None
+    st.session_state.pending_ad_generation = None
+    st.session_state.selected_job_id = None
+
+    # 모니터링 작업 목록 초기화
+    if "monitoring_jobs" in st.session_state:
+        st.session_state.monitoring_jobs = []
+
+    # 불러온 작업 정보 초기화
+    if "loaded_job_id" in st.session_state:
+        del st.session_state.loaded_job_id
+    if "loaded_job_metadata" in st.session_state:
+        del st.session_state.loaded_job_metadata

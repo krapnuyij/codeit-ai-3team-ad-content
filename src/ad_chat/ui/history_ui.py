@@ -10,6 +10,7 @@ import asyncio
 from datetime import datetime
 from PIL import Image
 from pathlib import Path
+from helper_streamlit_utils import *
 
 from config import STATUS_PROCESSING, STATUS_COMPLETED, STATUS_FAILED, POLLING_INTERVAL
 from services import MCPClient, MongoManager, get_job_store
@@ -30,10 +31,12 @@ def render_history_ui() -> None:
 
     작업 목록, 진행률, 결과 표시
     """
-    st.title("📁 작업 히스토리")
 
     # 상단 메뉴
     col1, col2, col3 = st.columns([3, 1, 1])
+    with col1:
+        st.subheader("📁 작업 히스토리")
+
     with col2:
         if st.button("💬 채팅", width="content"):
             set_page("chat")
@@ -42,7 +45,7 @@ def render_history_ui() -> None:
         if st.button("🔄 새로고침", width="content"):
             st.rerun()
 
-    st.markdown("---")
+    st_div_divider()
 
     # 자동 갱신 토글
     auto_refresh = st.toggle(
@@ -73,6 +76,10 @@ def render_history_ui() -> None:
             st.info(
                 f"진행 중인 작업 {len(processing_jobs)}개를 {POLLING_INTERVAL}초 후 자동 갱신합니다..."
             )
+            # MCP 서버에서 실제 상태 확인 및 업데이트
+            for job in processing_jobs:
+                asyncio.run(_check_job_status_async(job["job_id"]))
+
             time.sleep(POLLING_INTERVAL)
             st.rerun()
 
