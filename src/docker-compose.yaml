@@ -1,5 +1,22 @@
 services:
-  # ==================== Database ====================
+  backend:
+    build: ./backend
+    container_name: SaaS_backend
+    env_file:
+      - .env
+    ports:
+      - "8890:8890"
+    depends_on:
+      - customer_db
+      - homepage_generator
+      - nanococoa_aiserver
+    environment:
+      - DATABASE_URL=postgresql://owner:owner1234@customer_db:5432/customer_db
+      - HOMEPAGE_GENERATOR_URL=http://homepage_generator:8891
+      - NANOCOCOA_URL=http://nanococoa_aiserver:8892
+    command: uvicorn app:app --host 0.0.0.0 --port 8890 --reload
+    restart: on-failure
+
   customer_db:
     image: postgres:15
     container_name: customer_db
@@ -11,95 +28,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/customer_data
-    networks:
-      - app-network
-    restart: unless-stopped
 
-  # ==================== AI Services ====================
-  nanococoa-aiserver:
-    build:
-      context: ./nanoCocoa_aiserver
-      dockerfile: Dockerfile
-    image: nanococoa-aiserver:latest
-    container_name: nanococoa-aiserver
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-    ports:
-      - "8000:8000"
-    volumes:
-      - /opt/huggingface:/root/.cache/huggingface
-      - ./nanoCocoa_aiserver/static/uploads:/app/static/uploads
-      - ./nanoCocoa_aiserver/static/results:/app/static/results
-      - ./nanoCocoa_aiserver/logs:/app/logs
-    env_file:
-      - .env
-    environment:
-      - RUNTIME_ENV=docker
-      - STATIC_BASE_PATH=/app/static
-      - PYTORCH_ALLOC_CONF=expandable_segments:True
-      - HF_HOME=/root/.cache/huggingface
-      - TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers
-      - HF_HUB_CACHE=/root/.cache/huggingface/hub
-      - DEVICE=cuda
-      - AUTO_UNLOAD_DEFAULT=true
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    networks:
-      - app-network
-
-  nanococoa-mcpserver:
-    build:
-      context: ./nanoCocoa_mcpserver
-      dockerfile: Dockerfile
-    image: nanococoa-mcpserver:latest
-    container_name: nanococoa-mcpserver
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./nanoCocoa_aiserver/static/uploads:/app/static/uploads
-      - ./nanoCocoa_aiserver/static/results:/app/static/results
-    environment:
-      - RUNTIME_ENV=docker
-      - STATIC_BASE_PATH=/app/static
-      - MCP_TRANSPORT=sse
-      - MCP_PORT=3000
-      - MCP_HOST=0.0.0.0
-      - AISERVER_BASE_URL=http://nanococoa-aiserver:8000
-      - LOG_LEVEL=INFO
-    depends_on:
-      nanococoa-aiserver:
-        condition: service_healthy
-    restart: unless-stopped
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    networks:
-      - app-network
-
-  # ==================== Application Services ====================
   homepage_generator:
     build: ./homepage_generator
     container_name: homepage_generator
@@ -113,56 +42,52 @@ services:
     command: uvicorn api:app --host 0.0.0.0 --port 8891
     volumes:
       - generated_sites:/app/generated_ad
-    depends_on:
-      - customer_db
-    networks:
-      - app-network
-    restart: unless-stopped
 
-  backend:
-    build: ./backend
-    container_name: SaaS_backend
+  nanococoa_aiserver:
+    build: ./nanoCocoa_aiserver
+    container_name: nanococoa_aiserver
     env_file:
       - .env
-    ports:
-      - "8890:8890"
-    depends_on:
-      customer_db:
-        condition: service_started
-      homepage_generator:
-        condition: service_started
-      nanococoa-mcpserver:
-        condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://owner:owner1234@customer_db:5432/customer_db
-      - HOMEPAGE_GENERATOR_URL=http://homepage_generator:8891
-      - AISERVER_BASE_URL=http://nanococoa-aiserver:8000
-      - MCPSERVER_BASE_URL=http://nanococoa-mcpserver:3000
-    command: uvicorn app:app --host 0.0.0.0 --port 8890 --reload
-    networks:
-      - app-network
-    restart: on-failure
+      - PYTHONUNBUFFERED=1
+      - PYTORCH_ALLOC_CONF=expandable_segments:True
+      - HF_HOME=/root/.cache/huggingface
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface/transformers
+      - HF_HUB_CACHE=/root/.cache/huggingface/hub
+      - HF_TOKEN=${HF_TOKEN}
+    ports:
+      - "8892:8892"
+    volumes:
+      - /opt/huggingface:/root/.cache/huggingface
+      - nanococoa_results:/app/static/results
+      - nanococoa_uploads:/app/static/uploads
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: uvicorn main:app --host 0.0.0.0 --port 8892 --workers 1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://34.44.205.198:8892/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+    restart: unless-stopped
 
-  # ==================== Web Server ====================
-  # ==================== Web Server ====================
   nginx:
     image: nginx:alpine
     container_name: saas_nginx
     volumes:
       - generated_sites:/usr/share/nginx/html/sites
     ports:
-      - "8892:80"
-    depends_on:
-      - homepage_generator
-    networks:
-      - app-network
-    restart: unless-stopped
+      - "8893:80"
 
 volumes:
   postgres_data:
   generated_sites:
-
-networks:
-  app-network:
-    name: app-network
-    driver: bridge
+  huggingface_cache:
+  nanococoa_results:
+  nanococoa_uploads:
