@@ -98,11 +98,11 @@ RUN mkdir -p \
     /root/.cache/huggingface
 
 # 포트 노출
-EXPOSE 8000
+EXPOSE 8892
 
 # 헬스체크
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # 실행 명령
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8892", "--workers", "1"]

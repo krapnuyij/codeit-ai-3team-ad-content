@@ -1,9 +1,0 @@
-logs/
-_layouts/
-_assets/
-_includes
-.env
-.gitignore
-index.md
-
-

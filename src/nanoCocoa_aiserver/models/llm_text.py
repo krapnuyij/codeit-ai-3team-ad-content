@@ -8,27 +8,29 @@ import io
 import re
 import tempfile
 import shutil
-import base64
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, Dict
 
 from PIL import Image
 from playwright.async_api import async_playwright
 from openai import OpenAI
 from helper_dev_utils import get_auto_logger
 
+from .qwen_analyzer import QwenAnalyzer
+
 logger = get_auto_logger()
 
 
 class LLMTexttoHTML:
     """
-    OpenAI Vision API와 Playwright를 사용한 LLM 기반 HTML 광고 생성기
+    QwenAnalyzer와 OpenAI LLM을 사용한 HTML 광고 생성기
 
     이미지와 광고 문구를 입력받아 LLM이 HTML 광고 템플릿을 생성하고,
     Playwright로 실제 이미지로 렌더링합니다.
 
     특징:
-    - JPEG 압축으로 LLM 입력 토큰 최적화 (70-90% 절감)
+    - QwenAnalyzer로 이미지 상세 분석 (공간, 색감, 조명, 분위기)
+    - 텍스트 기반 프롬프트로 토큰 효율 최적화
     - gpt-5-mini 모델 지원 (128K 출력 토큰)
     - 비동기 Playwright로 HTML 렌더링
     - 완전한 HTML 생성 보장 (finish_reason 검증)
@@ -59,56 +61,6 @@ class LLMTexttoHTML:
             f"LLMTexttoHTML 초기화: model={model}, max_tokens={max_completion_tokens}"
         )
 
-    def _image_to_base64_jpeg(
-        self,
-        image_path: str,
-        max_size: int = 1024,
-        quality: int = 95,
-    ) -> str:
-        """
-        이미지를 JPEG로 변환 후 Base64 인코딩 (LLM 토큰 효율 최적화)
-
-        PNG는 무손실이지만 파일 크기가 크고, LLM은 압축된 JPEG도 잘 이해합니다.
-        1024px 썸네일 + quality 95 설정으로 70-90% 크기 절감
-
-        Args:
-            image_path: 입력 이미지 경로
-            max_size: 최대 너비/높이 (기본값: 1024px)
-            quality: JPEG 품질 (1-100, 기본값: 95)
-
-        Returns:
-            Base64 인코딩된 JPEG 문자열
-        """
-        img = Image.open(image_path)
-
-        # 비율 유지하며 리사이즈
-        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
-
-        # RGBA나 P 모드는 RGB로 변환 (JPEG는 투명도 미지원)
-        if img.mode in ("RGBA", "P", "LA"):
-            # 흰색 배경 생성
-            background = Image.new("RGB", img.size, (255, 255, 255))
-            if img.mode == "RGBA" or img.mode == "LA":
-                background.paste(img, mask=img.split()[-1])  # 알파 채널 사용
-            else:
-                background.paste(img)
-            img = background
-        elif img.mode != "RGB":
-            img = img.convert("RGB")
-
-        # JPEG로 압축
-        buffer = io.BytesIO()
-        img.save(buffer, format="JPEG", quality=quality, optimize=True)
-        encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-        original_size = Path(image_path).stat().st_size
-        compressed_size = len(buffer.getvalue())
-        logger.info(
-            f"이미지 압축: {original_size:,}B → {compressed_size:,}B ({compressed_size/original_size*100:.1f}%)"
-        )
-
-        return encoded
-
     def generate_html(
         self,
         image_path: str,
@@ -124,12 +76,15 @@ class LLMTexttoHTML:
             style_hint: 스타일 힌트 (예: "modern", "elegant", "energetic")
 
         Returns:
-            생성된 HTML 문자열 (Base64 이미지 포함)
+            생성된 HTML 문자열
         """
         logger.info(f"HTML 생성 시작: image={image_path}, text={ad_text}")
 
-        # 이미지를 JPEG로 변환 및 Base64 인코딩 (LLM 효율 최적화)
-        image_b64 = self._image_to_base64_jpeg(image_path)
+        # QwenAnalyzer로 이미지 상세 분석
+        logger.info("QwenAnalyzer로 이미지 분석 중...")
+        qwen = QwenAnalyzer()
+        image = Image.open(image_path)
+        analysis = qwen.analyze_image_details(image, auto_unload=True)
 
         # 프롬프트 구성
         system_prompt = f"""당신은 전문 HTML 광고 디자이너입니다.
@@ -152,39 +107,35 @@ class LLMTexttoHTML:
 - </html> 태그로 반드시 종료
 - 중간에 생략하지 말 것"""
 
-        user_prompt = f"""이미지를 분석하여 다음 광고 문구가 포함된 완전한 HTML을 생성해주세요:
+        user_prompt = f"""다음 이미지 분석 정보를 바탕으로 광고 문구가 포함된 완전한 HTML을 생성해주세요:
 
-광고 문구: "{ad_text}"
-{f'스타일 힌트: {style_hint}' if style_hint else ''}
+[이미지 분석 정보]
+- 전체 장면: {analysis['overall']}
+- 색감/재질: {analysis['color_material']}
+- 조명/분위기: {analysis['lighting_mood']}
+- 공간 배치: {analysis['spatial']}
+- 이미지 크기: {analysis['image_size'][0]}x{analysis['image_size'][1]}px
 
-요구사항:
-- 이미지의 주요 색상과 분위기를 파악하여 조화로운 디자인
+[광고 정보]
+- 광고 문구: "{ad_text}"
+{f'- 스타일 힌트: {style_hint}' if style_hint else ''}
+
+[요구사항]
+- 위 이미지 분석 정보를 참고하여 조화로운 디자인 구성
 - 광고 문구 레이어 투명
 - 광고 문구를 눈에 띄게 배치
 - 텍스트 크기와 색상은 배경과 대비되도록 설정
 - {image_path} 백그라운드로 사용
 - 백그라운드 크기 고정 width: 1024px, height:1024px
 
-출력 형식:
+[출력 형식]
 - 완성된 HTML 코드만 출력 (설명 없이)
 - 반드시 <!DOCTYPE html>부터 </html>까지 전체 코드 출력
 - 코드 블록 마크다운(```) 사용하지 말고 순수 HTML만 출력"""
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": user_prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{image_b64}",
-                            "detail": "high",
-                        },
-                    },
-                ],
-            },
+            {"role": "user", "content": user_prompt},
         ]
 
         # OpenAI API 호출
@@ -256,25 +207,28 @@ class LLMTexttoHTML:
         Args:
             image_path: 분석할 이미지 경로
             ad_text: 광고 문구 (예: "특가세일 2500원")
-            style_hint: 스타일 힌트 (예: "modern", "elegant", "energetic")
+            text_prompt: 텍스트 프롬프트 (선택)
+            composition_prompt: 구성 프롬프트 (선택)
 
         Returns:
-            생성된 HTML 문자열 (Base64 이미지 포함)
+            생성된 HTML 문자열
         """
         logger.info(f"HTML 생성 시작: image={image_path}, text={ad_text}")
 
-        # 이미지를 JPEG로 변환 및 Base64 인코딩 (LLM 효율 최적화)
-        image_b64 = self._image_to_base64_jpeg(image_path)
+        # QwenAnalyzer로 이미지 상세 분석
+        logger.info("QwenAnalyzer로 이미지 분석 중...")
+        qwen = QwenAnalyzer()
+        image = Image.open(image_path)
+        analysis = qwen.analyze_image_details(image, auto_unload=True)
 
         # 프롬프트 구성
         system_prompt = f"""당신은 전문 HTML 광고 디자이너입니다.
-이미지를 분석하여 이미지와 어울리는 완전한 광고 HTML을 생성합니다.
+이미지 분석 정보를 바탕으로 이미지와 어울리는 완전한 광고 HTML을 생성합니다.
 
 [핵심 요구사항]
 - 반드시 완전한 HTML 문서를 생성 (<!DOCTYPE html>부터 </html>까지)
 - 인라인 CSS 스타일 포함
 - 반응형 디자인 (width: 1024px, height:1024px)
-- 제공된 jpg Base64 이미지는 html 제작을 위한 분석용으로 사용
 - {image_path} 배경 이미지로 사용
 - 이미지는 비율유지 full cover
 - 텍스트 오버레이로 광고 문구 배치
@@ -287,40 +241,36 @@ class LLMTexttoHTML:
 - </html> 태그로 반드시 종료
 - 중간에 생략하지 말 것"""
 
-        user_prompt = f"""이미지를 분석하여 다음 광고 문구가 포함된 완전한 HTML을 생성해주세요:
+        user_prompt = f"""다음 이미지 분석 정보를 바탕으로 광고 문구가 포함된 완전한 HTML을 생성해주세요:
 
-광고 문구: "{ad_text}"
-{f'텍스트 프롬프트: {text_prompt}' if text_prompt else ''}
-{f'구성 프롬프트: {composition_prompt}' if composition_prompt else ''}
+[이미지 분석 정보]
+- 전체 장면: {analysis['overall']}
+- 색감/재질: {analysis['color_material']}
+- 조명/분위기: {analysis['lighting_mood']}
+- 공간 배치: {analysis['spatial']}
+- 이미지 크기: {analysis['image_size'][0]}x{analysis['image_size'][1]}px
 
-요구사항:
-- 이미지의 주요 색상과 분위기를 파악하여 조화로운 디자인
+[광고 정보]
+- 광고 문구: "{ad_text}"
+{f'- 텍스트 프롬프트: {text_prompt}' if text_prompt else ''}
+{f'- 구성 프롬프트: {composition_prompt}' if composition_prompt else ''}
+
+[요구사항]
+- 위 이미지 분석 정보를 참고하여 조화로운 디자인 구성
 - 광고 문구 레이어 투명
 - 광고 문구를 눈에 띄게 배치
 - 텍스트 크기와 색상은 배경과 대비되도록 설정
 - {image_path} 백그라운드로 사용
 - 백그라운드 크기 고정 width: 1024px, height:1024px
 
-출력 형식:
+[출력 형식]
 - 완성된 HTML 코드만 출력 (설명 없이)
 - 반드시 <!DOCTYPE html>부터 </html>까지 전체 코드 출력
 - 코드 블록 마크다운(```) 사용하지 말고 순수 HTML만 출력"""
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": user_prompt},
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/jpeg;base64,{image_b64}",
-                            "detail": "high",
-                        },
-                    },
-                ],
-            },
+            {"role": "user", "content": user_prompt},
         ]
 
         # OpenAI API 호출

@@ -1,0 +1,21 @@
+fastapi
+uvicorn[standard]
+
+jinja2
+python-multipart
+python-dotenv
+
+openai
+onnxruntime
+
+numpy
+opencv-python
+pydantic
+
+# Database
+sqlalchemy
+asyncpg
+psycopg2-binary
+
+# HTTP Client
+httpx

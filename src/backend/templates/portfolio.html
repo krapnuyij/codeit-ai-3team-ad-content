@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}CODEIT 4기 3팀 | Portfolio{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="gradient-bg"></div>
+    <div class="hero-content">
+        <h2>PORTFOLIO</h2>
+        <p style="margin-top: 20px; font-size: 1rem; color: #999;">우리의 작업물을 확인해보세요</p>
+    </div>
+</section>
+
+<section class="portfolio-filter">
+    <button class="filter-btn active" data-filter="all">ALL</button>
+    <button class="filter-btn" data-filter="web">WEB</button>
+    <button class="filter-btn" data-filter="mobile">MOBILE</button>
+    <button class="filter-btn" data-filter="design">DESIGN</button>
+</section>
+
+<section class="portfolio-grid">
+    <div class="portfolio-item" data-category="web">
+        <div class="portfolio-image"></div>
+        <div class="portfolio-info">
+            <h3>RESTAURANT AD</h3>
+            <p>강남 고기집 AI 타겟팅 광고 - 예약률 40% 증가</p>
+            <span class="portfolio-tag">WEB</span>
+        </div>
+    </div>
+
+    <div class="portfolio-item" data-category="mobile">
+        <div class="portfolio-image"></div>
+        <div class="portfolio-info">
+            <h3>CAFE PROMOTION</h3>
+            <p>신규 카페 인스타그램 릴스 홍보 - 방문자 수 급증</p>
+            <span class="portfolio-tag">MOBILE</span>
+        </div>
+    </div>
+
+    <div class="portfolio-item" data-category="design">
+        <div class="portfolio-image"></div>
+        <div class="portfolio-info">
+            <h3>BRAND VISUALS</h3>
+            <p>프랜차이즈 매장 SNS 전용 카드뉴스 디자인</p>
+            <span class="portfolio-tag">DESIGN</span>
+        </div>
+    </div>
+
+    <div class="portfolio-item" data-category="web">
+        <div class="portfolio-image"></div>
+        <div class="portfolio-info">
+            <h3>LOCAL SERVICE AD</h3>
+            <p>필라테스 스튜디오 위치 기반 광고 - 신규 등록 25% 증대</p>
+            <span class="portfolio-tag">WEB</span>
+        </div>
+    </div>
+
+    <div class="portfolio-item" data-category="mobile">
+        <div class="portfolio-image"></div>
+        <div class="portfolio-info">
+            <h3>DELIVERY APP AD</h3>
+            <p>배달 전문점 타겟 고객 최적화 - 주문 건수 상승</p>
+            <span class="portfolio-tag">MOBILE</span>
+        </div>
+    </div>
+
+    <div class="portfolio-item" data-category="design">
+        <div class="portfolio-image"></div>
+        <div class="portfolio-info">
+            <h3>EVENT BANNER</h3>
+            <p>시즌 한정 메뉴 출시 홍보 배너 및 상세페이지</p>
+            <span class="portfolio-tag">DESIGN</span>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const portfolioItems = document.querySelectorAll('.portfolio-item');
+
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const filter = btn.dataset.filter;
+
+            portfolioItems.forEach(item => {
+                if (filter === 'all' || item.dataset.category === filter) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

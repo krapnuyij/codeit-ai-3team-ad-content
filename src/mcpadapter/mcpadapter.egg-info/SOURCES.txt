@@ -1,0 +1,7 @@
+README.md
+pyproject.toml
+mcpadapter.egg-info/PKG-INFO
+mcpadapter.egg-info/SOURCES.txt
+mcpadapter.egg-info/dependency_links.txt
+mcpadapter.egg-info/requires.txt
+mcpadapter.egg-info/top_level.txt

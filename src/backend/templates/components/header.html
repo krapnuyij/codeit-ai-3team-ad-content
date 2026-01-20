@@ -1,0 +1,15 @@
+<header>
+    <div class="logo">
+        <h1>CODEIT</h1>
+        <span>4기 3팀</span>
+    </div>
+    <nav>
+        <ul>
+            <li><a href="/" {% if request.url.path == '/' %}class="active"{% endif %}>HOME</a></li>
+            <li><a href="/about" {% if request.url.path == '/about' %}class="active"{% endif %}>ABOUT</a></li>
+            <li><a href="/services" {% if request.url.path == '/services' %}class="active"{% endif %}>SERVICES</a></li>
+            <li><a href="/portfolio" {% if request.url.path == '/portfolio' %}class="active"{% endif %}>PORTFOLIO</a></li>
+            <li><a href="/contact" {% if request.url.path == '/contact' %}class="active"{% endif %}>CONTACT</a></li>
+        </ul>
+    </nav>
+</header>

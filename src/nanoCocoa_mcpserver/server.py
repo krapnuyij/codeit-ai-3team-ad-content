@@ -63,8 +63,8 @@ async def get_api_client() -> AIServerClient:
 
 
 async def generate_ad_image(
-    product_image_path: str,
-    text_content: str,
+    product_image_path: Optional[str] = None,
+    text_content: str = "",
     font_name: Optional[str] = None,
     background_prompt: Optional[str] = None,
     background_negative_prompt: Optional[str] = None,
@@ -306,9 +306,30 @@ async def generate_ad_image(
     try:
         client = await get_api_client()
 
-        # 이미지 로드 및 Base64 변환
-        logger.info(f"제품 이미지 로드: {product_image_path}")
-        product_image_b64 = image_file_to_base64(product_image_path)
+        # 제품 이미지 처리
+        if product_image_path:
+            # 제품 이미지가 제공된 경우
+            logger.info(f"제품 이미지 로드: {product_image_path}")
+            product_image_b64 = image_file_to_base64(product_image_path)
+        else:
+            # 제품 이미지가 없는 경우: 투명/빈 이미지 생성
+            logger.info("제품 이미지 없음 - 배경 프롬프트에 제품이 포함되어야 함")
+            from PIL import Image
+            import io
+            import base64
+
+            # 512x512 투명 이미지 생성
+            transparent_img = Image.new("RGBA", (512, 512), (255, 255, 255, 0))
+            buffer = io.BytesIO()
+            transparent_img.save(buffer, format="PNG")
+            buffer.seek(0)
+            product_image_b64 = base64.b64encode(buffer.read()).decode("utf-8")
+
+        # 프롬프트 기본값 처리
+        if not background_prompt:
+            background_prompt = "Clean white background, studio lighting, minimal style"
+        if not text_prompt:
+            text_prompt = "3D render of bold text, modern style, clean design"
 
         # 요청 파라미터 구성
         params = GenerateRequest(
