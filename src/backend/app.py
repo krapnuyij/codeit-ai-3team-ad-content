@@ -25,6 +25,7 @@ from customer_db import init_db, save_customer, get_customer_by_id
 # 환경변수 로드
 load_dotenv()
 
+
 # Pydantic 모델
 class AdPrompt(BaseModel):
     positive_prompt: str
@@ -36,36 +37,43 @@ def get_client(request: Request):
     """클라이언트 인스턴스 반환"""
     return request.app.state.client
 
+
 def get_use_openai(request: Request):
     """OpenAI 사용 여부 반환"""
     return request.app.state.use_openai
 
+
 # 유틸리티 함수
 def to_base64(image_bytes: bytes) -> str:
     """이미지 바이트를 base64 문자열로 변환"""
-    encoded = base64.b64encode(image_bytes).decode('utf-8')
+    encoded = base64.b64encode(image_bytes).decode("utf-8")
     return f"data:image/png;base64,{encoded}"
 
-def process_with_openai(image_data: bytes, purpose:str, mood:str, client: OpenAI) -> AdPrompt:
+
+def process_with_openai(
+    image_data: bytes, purpose: str, mood: str, client: OpenAI
+) -> AdPrompt:
     """OpenAI Responses API를 사용하여 프롬프트 생성"""
     try:
         encoded_image = to_base64(image_data)
         # Responses API의 parse 메서드 사용
         response = client.responses.parse(
             model="gpt-5-mini",
-            input=[{
-                "role": "user",
-                "content": [
-                    {
-                        "type": "input_text",
-                        "text": f"이 이미지를 참고해서 '{purpose}' 목적의 '{mood}' 분위기 광고용 이미지 생성을 위한 프롬프트를 만들어줘."
-                    },
-                    {
-                        "type": "input_image",
-                        "image_url": encoded_image  # ✅ 직접 문자열로 전달
-                    }
-                ]
-            }],
+            input=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "input_text",
+                            "text": f"이 이미지를 참고해서 '{purpose}' 목적의 '{mood}' 분위기 광고용 이미지 생성을 위한 프롬프트를 만들어줘.",
+                        },
+                        {
+                            "type": "input_image",
+                            "image_url": encoded_image,  # ✅ 직접 문자열로 전달
+                        },
+                    ],
+                }
+            ],
             text_format=AdPrompt,  # Pydantic 모델로 자동 파싱
         )
         # ✅ JSON 문자열 → 딕셔너리 → AdPrompt 객체
@@ -74,23 +82,20 @@ def process_with_openai(image_data: bytes, purpose:str, mood:str, client: OpenAI
 
         return AdPrompt(
             positive_prompt=parsed["positive_prompt"],
-            negative_prompt=parsed["negative_prompt"]
+            negative_prompt=parsed["negative_prompt"],
         )
 
     except Exception as e:
         raise HTTPException(
-            status_code=500,
-            detail=f"OpenAI Responses API 호출 실패: {str(e)}"
+            status_code=500, detail=f"OpenAI Responses API 호출 실패: {str(e)}"
         )
+
 
 def process_with_onnx(image_data: bytes, ort_session) -> AdPrompt:
     """ONNX 모델을 사용하여 프롬프트 생성"""
     try:
         # 이미지 디코딩
-        img = cv2.imdecode(
-            np.frombuffer(image_data, np.uint8),
-            cv2.IMREAD_COLOR
-        )
+        img = cv2.imdecode(np.frombuffer(image_data, np.uint8), cv2.IMREAD_COLOR)
 
         if img is None:
             raise ValueError("이미지 디코딩 실패")
@@ -110,22 +115,19 @@ def process_with_onnx(image_data: bytes, ort_session) -> AdPrompt:
         negative_prompt = "low quality, blurry"
 
         return AdPrompt(
-            positive_prompt=positive_prompt,
-            negative_prompt=negative_prompt
+            positive_prompt=positive_prompt, negative_prompt=negative_prompt
         )
 
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"ONNX 모델 처리 실패: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"ONNX 모델 처리 실패: {str(e)}")
+
 
 async def process_with_aiserver(
     image_data: bytes,
     ad_prompt: AdPrompt,
     text_content: str,
     text_style: str,
-    text_position: str
+    text_position: str,
 ) -> str:
     """AI 서버에 이미지 생성 요청 및 결과 폴링"""
     try:
@@ -140,14 +142,16 @@ async def process_with_aiserver(
             "네온 글로우": "3D render of neon glowing text, bright luminous effect, cyberpunk style, electric glow, vibrant colors, dramatic lighting, isolated on black background",
             "우드 텍스처": "3D render of wooden carved text, natural wood grain texture, rustic style, carved depth, realistic wood material, warm lighting, isolated on black background",
             "크롬 메탈": "3D render of chrome metallic text, highly reflective surface, polished metal, mirror effect, studio lighting, sleek modern style, isolated on black background",
-            "페이퍼 컷": "3D render of paper cut text, layered paper style, subtle shadows, clean edges, minimalist design, soft lighting, isolated on white background"
+            "페이퍼 컷": "3D render of paper cut text, layered paper style, subtle shadows, clean edges, minimalist design, soft lighting, isolated on white background",
         }
 
-        text_prompt = text_style_prompts.get(text_style, text_style_prompts["골드 풍선"])
+        text_prompt = text_style_prompts.get(
+            text_style, text_style_prompts["골드 풍선"]
+        )
 
         # 한국어 텍스트 감지 및 폰트 선택
         font_name = None
-        if any('\uac00' <= char <= '\ud7a3' for char in text_content):
+        if any("\uac00" <= char <= "\ud7a3" for char in text_content):
             # 한국어가 포함된 경우
             font_name = "NanumGothic/NanumGothicBold.ttf"
 
@@ -160,7 +164,7 @@ async def process_with_aiserver(
             "bg_negative_prompt": ad_prompt.negative_prompt,
             "text_prompt": text_prompt,  # ✅ 텍스트 스타일 프롬프트
             "text_position": text_position,  # ✅ 텍스트 위치
-            "auto_unload": True
+            "auto_unload": True,
         }
 
         # 한국어 폰트 추가
@@ -170,9 +174,7 @@ async def process_with_aiserver(
         async with httpx.AsyncClient() as client:
             # 타임아웃 넉넉하게 설정
             resp = await client.post(
-                f"{ai_server_url}/generate",
-                json=payload,
-                timeout=300
+                f"{ai_server_url}/generate", json=payload, timeout=300
             )
 
             if resp.status_code != 200:
@@ -193,8 +195,7 @@ async def process_with_aiserver(
                 await asyncio.sleep(5)
 
                 status_resp = await client.get(
-                    f"{ai_server_url}/status/{job_id}",
-                    timeout=10.0
+                    f"{ai_server_url}/status/{job_id}", timeout=10.0
                 )
 
                 if status_resp.status_code != 200:
@@ -224,6 +225,7 @@ async def process_with_aiserver(
     except Exception as e:
         print(f"⚠️ AI 서버 통신 중 오류: {e}")
         return None
+
 
 # Lifespan 이벤트
 @asynccontextmanager
@@ -263,10 +265,7 @@ async def lifespan(app: FastAPI):
     print("🛑 앱 종료")
 
 
-app = FastAPI(
-    title="AI Image Prompt Generator",
-    lifespan=lifespan
-)
+app = FastAPI(title="AI Image Prompt Generator", lifespan=lifespan)
 
 # Static 파일 마운트
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -321,12 +320,11 @@ async def user_dashboard(request: Request):
         "monthly_generated": 12,
         "monthly_limit": 30,
         "total_views": 8400,
-        "ctr": 4.2
+        "ctr": 4.2,
     }
-    return templates.TemplateResponse("user.html", {
-        "request": request,
-        "manager": manager_data
-    })
+    return templates.TemplateResponse(
+        "user.html", {"request": request, "manager": manager_data}
+    )
 
 
 @app.get("/manager", response_class=HTMLResponse)
@@ -339,25 +337,24 @@ async def manager_dashboard(request: Request):
         "monthly_generated": 12,
         "monthly_limit": 30,
         "total_views": 8400,
-        "ctr": 4.2
+        "ctr": 4.2,
     }
-    return templates.TemplateResponse("manager.html", {
-        "request": request,
-        "manager": manager_data
-    })
+    return templates.TemplateResponse(
+        "manager.html", {"request": request, "manager": manager_data}
+    )
 
 
 @app.post("/generate-ad", response_class=HTMLResponse)  # ← JSONResponse가 아님!
 async def generate_ad(
-        request: Request,
-        file: UploadFile = File(...),
-        text_content: str = Form(...),
-        purpose: str = Form(...),
-        mood: str = Form(...),
-        text_style: str = Form(...),
-        text_position: str = Form("center"),
-        client=Depends(get_client),
-        use_openai=Depends(get_use_openai)
+    request: Request,
+    file: UploadFile = File(...),
+    text_content: str = Form(...),
+    purpose: str = Form(...),
+    mood: str = Form(...),
+    text_style: str = Form(...),
+    text_position: str = Form("center"),
+    client=Depends(get_client),
+    use_openai=Depends(get_use_openai),
 ):
     """광고 생성 (HTML 페이지로 결과 반환)"""
     try:
@@ -369,11 +366,7 @@ async def generate_ad(
 
             # 2. 이미지 생성 (AI Server)
             generated_image_b64 = await process_with_aiserver(
-                image_data,
-                result,
-                text_content,
-                text_style,
-                text_position
+                image_data, result, text_content, text_style, text_position
             )
 
             image_url = None
@@ -388,11 +381,14 @@ async def generate_ad(
             # ONNX 모드일 때는 이미지 생성 안함 (또는 추후 구현)
             image_url = None
 
-        return templates.TemplateResponse("user.html", {
-            "request": request,
-            "result": result,  # 프롬프트 결과
-            "image_url": image_url # 생성된 이미지
-        })
+        return templates.TemplateResponse(
+            "user.html",
+            {
+                "request": request,
+                "result": result,  # 프롬프트 결과
+                "image_url": image_url,  # 생성된 이미지
+            },
+        )
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -400,20 +396,20 @@ async def generate_ad(
 
 @app.post("/save-customer-data", response_class=HTMLResponse)
 async def save_customer_data(
-        request: Request,
-        store_name: str = Form(...),
-        store_type: str = Form(...),
-        budget: str = Form(...),
-        period: str = Form(...),
-        advertising_goal: str = Form(...),
-        target_customer: str = Form(...),
-        advertising_media: str = Form(...),
-        store_strength: str = Form(...),
-        contact_name: str = Form(...),
-        company_name: str = Form(None),  # 선택 사항이므로 기본값 None
-        email: str = Form(...),
-        phone: str = Form(...),
-        agree: str = Form(...)
+    request: Request,
+    store_name: str = Form(...),
+    store_type: str = Form(...),
+    budget: str = Form(...),
+    period: str = Form(...),
+    advertising_goal: str = Form(...),
+    target_customer: str = Form(...),
+    advertising_media: str = Form(...),
+    store_strength: str = Form(...),
+    contact_name: str = Form(...),
+    company_name: str = Form(None),  # 선택 사항이므로 기본값 None
+    email: str = Form(...),
+    phone: str = Form(...),
+    agree: str = Form(...),
 ):
     """홈페이지 생성 요청 처리 및 DB 저장"""
     try:
@@ -428,10 +424,12 @@ async def save_customer_data(
             "advertising_media": advertising_media,
             "store_strength": store_strength,
             "contact_name": contact_name,
-            "company_name": company_name if company_name else store_name,  # 비어있으면 매장명 사용
+            "company_name": (
+                company_name if company_name else store_name
+            ),  # 비어있으면 매장명 사용
             "email": email,
             "phone": phone,
-            "agree": agree
+            "agree": agree,
         }
 
         # 데이터베이스에 저장
@@ -439,20 +437,19 @@ async def save_customer_data(
 
         result = f"✅ 데이터를 안전하게 저장하였습니다. (고객 ID: {saved_customer.id})"
 
-        return templates.TemplateResponse("promote_store.html", {
-            "request": request,
-            "result": result,
-            "customer_id": saved_customer.id
-        })
+        return templates.TemplateResponse(
+            "promote_store.html",
+            {"request": request, "result": result, "customer_id": saved_customer.id},
+        )
 
     except Exception as e:
         print(f"❌ 에러 발생: {e}")
         result = "데이터 저장 중 오류가 발생했습니다. 다시 시도해주세요."
-        return templates.TemplateResponse("promote_store.html", {
-            "request": request,
-            "result": result,
-            "error": str(e)
-        })
+        return templates.TemplateResponse(
+            "promote_store.html",
+            {"request": request, "result": result, "error": str(e)},
+        )
+
 
 @app.post("/generate-homepage/{customer_id}", response_class=HTMLResponse)
 async def generate_homepage(request: Request, customer_id: int):
@@ -472,16 +469,17 @@ async def generate_homepage(request: Request, customer_id: int):
             "advertising_media": customer.advertising_media,
             "store_strength": customer.store_strength,
             "location": customer.company_name or customer.store_name,
-            "phone_number": customer.phone
+            "phone_number": customer.phone,
         }
 
         # homepage_generator 컨테이너에 데이터 전송
-        homepage_generator_url = os.getenv("HOMEPAGE_GENERATOR_URL", "http://homepage_generator:8081")
+        homepage_generator_url = os.getenv(
+            "HOMEPAGE_GENERATOR_URL", "http://homepage_generator:8081"
+        )
 
         async with httpx.AsyncClient(timeout=600.0) as client:
             response = await client.post(
-                f"{homepage_generator_url}/generate",
-                json=customer_data
+                f"{homepage_generator_url}/generate", json=customer_data
             )
 
             if response.status_code == 200:
@@ -493,44 +491,40 @@ async def generate_homepage(request: Request, customer_id: int):
 고객 ID: {customer_id}<br>
 매장명: {customer.store_name}<br>
 생성 경로: {output_path}<br>
-홈페이지 경로 : localhost:3000/sites/{output_path.split('/')[-1]}/index.html
+홈페이지 경로 : http://34.44.205.198:8893/sites/{output_path.split('/')[-1]}/index.html
 """
             else:
                 result = f"❌ 홈페이지 생성 중 오류가 발생했습니다. (상태 코드: {response.status_code})"
 
-        return templates.TemplateResponse("promote_store.html", {
-            "request": request,
-            "result": result
-        })
+        return templates.TemplateResponse(
+            "promote_store.html", {"request": request, "result": result}
+        )
 
     except ValueError as e:
         # 고객 데이터를 찾을 수 없는 경우
         result = f"❌ {str(e)}"
-        return templates.TemplateResponse("promote_store.html", {
-            "request": request,
-            "result": result
-        })
+        return templates.TemplateResponse(
+            "promote_store.html", {"request": request, "result": result}
+        )
     except httpx.ConnectError:
         result = f"❌ homepage_generator 서버에 연결할 수 없습니다."
-        return templates.TemplateResponse("promote_store.html", {
-            "request": request,
-            "result": result
-        })
+        return templates.TemplateResponse(
+            "promote_store.html", {"request": request, "result": result}
+        )
     except httpx.TimeoutException:
         result = f"⚠️ 홈페이지 생성 시간이 초과되었습니다. (5분 이상 소요)"
-        return templates.TemplateResponse("promote_store.html", {
-            "request": request,
-            "result": result
-        })
+        return templates.TemplateResponse(
+            "promote_store.html", {"request": request, "result": result}
+        )
     except Exception as e:
         print(f"❌ 홈페이지 생성 오류: {e}")
         result = f"❌ 홈페이지 생성 중 오류가 발생했습니다: {str(e)}"
-        return templates.TemplateResponse("promote_store.html", {
-            "request": request,
-            "result": result
-        })
+        return templates.TemplateResponse(
+            "promote_store.html", {"request": request, "result": result}
+        )
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    uvicorn.run(app, host="0.0.0.0", port=8893)

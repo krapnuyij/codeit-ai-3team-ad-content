@@ -5,3 +5,4 @@ openai>=1.10.0
 Pillow>=10.0.0
 httpx>=0.25.0
 helper-dev-utils
+helper-streamlit-utils

@@ -52,7 +52,7 @@ pip install -r requirements.txt
 ```env
 # OpenAI API
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5-mini
 
 # MCP 서버
 MCP_SERVER_URL=http://34.44.205.198:3000
@@ -141,7 +141,7 @@ streamlit run app.py
 - **Frontend**: Streamlit 1.30+
 - **Backend**: Python 3.9+
 - **Database**: MongoDB (PyMongo 4.6+)
-- **AI**: OpenAI API (GPT-4o-mini)
+- **AI**: OpenAI API (gpt-5-mini)
 - **MCP Client**: mcpadapter (프로젝트 공통 라이브러리)
 - **Worker**: MCP Server (REST API)
 

@@ -107,6 +107,37 @@ services:
       retries: 3
     restart: unless-stopped
 
+  ad_chat:
+    build:
+      context: ../
+      dockerfile: ./src/ad_chat/Dockerfile
+    container_name: ad_chat
+    env_file:
+      - .env
+    ports:
+      - "8501:8501"
+    volumes:
+      - nanococoa_results:/app/static/results
+      - nanococoa_uploads:/app/static/uploads
+      - ad_chat_data:/app/src/ad_chat/data
+    environment:
+      - RUNTIME_ENV=docker
+      - STATIC_BASE_PATH=/app/static
+      - MCP_SERVER_URL=http://nanococoa_mcpserver:3000
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-5-mini}
+    depends_on:
+      nanococoa_mcpserver:
+        condition: service_healthy
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    restart: on-failure
+
   nginx:
     image: nginx:alpine
     container_name: saas_nginx
@@ -121,3 +152,4 @@ volumes:
   huggingface_cache:
   nanococoa_results:
   nanococoa_uploads:
+  ad_chat_data:

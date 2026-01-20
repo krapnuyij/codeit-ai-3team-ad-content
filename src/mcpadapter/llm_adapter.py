@@ -170,7 +170,8 @@ class LLMAdapter:
                 "  composition_prompt='Text floating naturally with soft shadows, consistent lighting',\n"
                 "  composition_negative_prompt='artificial looking, halos, color mismatch'\n"
                 ")\n\n"
-                "**중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지. 단위, 문맥 등은 적당하게 수정 가능, 나머지 프롬프트(background_prompt, text_prompt, ...prompt 등)는 영문으로 작성하세요."
+                "**중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지. 단위, 문맥 등은 적당하게 수정 가능, 나머지 프롬프트(background_prompt, text_prompt, ...prompt 등)는 영문으로 작성하세요.\n"
+                "**중요:** background_prompt 생성시 2000자 이상으로 상세히 작성하세요.\n"
             )
             return base_prompt
 
