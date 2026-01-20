@@ -735,7 +735,8 @@ def display_completed_job_result(job: dict) -> None:
     if result_path:
         result_file = Path(result_path)
         if result_file.exists():
-            st.image(str(result_file), caption="생성된 광고 이미지", width="content")
+            with open(result_file, "rb") as f:
+                st.image(f.read(), caption="생성된 광고 이미지")
         else:
             st.warning(f"⚠️ 이미지 파일을 찾을 수 없습니다: {result_path}")
 

@@ -1,11 +1,11 @@
 {
-    "step1_background": 283.75,
+    "step1_background": 342.68,
     "step2_text": 270.54,
     "step3_composite": 273.1,
-    "step1_count": 29.8,
-    "step2_count": 36.94,
-    "step3_count": 39.88,
-    "total_count": 39.88,
-    "total_time": 431.54,
-    "step2_llm_text": 49.85
+    "step1_count": 33.04,
+    "step2_count": 38.75,
+    "step3_count": 41.1,
+    "total_count": 41.1,
+    "total_time": 533.71,
+    "step2_llm_text": 112.52
 }

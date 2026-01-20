@@ -168,7 +168,8 @@ def render_completed_status(job: dict) -> None:
     # 결과 이미지 표시
     result_image_path = job.get("result_image_path")
     if result_image_path and Path(result_image_path).exists():
-        st.image(result_image_path, caption="생성된 광고", width="content")
+        with open(result_image_path, "rb") as f:
+            st.image(f.read(), caption="생성된 광고")
 
         # 다운로드 버튼
         with open(result_image_path, "rb") as f:
