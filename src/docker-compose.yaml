@@ -14,6 +14,8 @@ services:
       - DATABASE_URL=postgresql://owner:owner1234@customer_db:5432/customer_db
       - HOMEPAGE_GENERATOR_URL=http://homepage_generator:8891
       - NANOCOCOA_URL=http://nanococoa_aiserver:8892
+    volumes:
+      - ./backend/generated_sites:/app/sites
     command: uvicorn app:app --host 0.0.0.0 --port 8890 --reload
     restart: on-failure
 
@@ -27,7 +29,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/customer_data
+      - ./backend/postgres_data:/var/lib/postgresql/data
 
   homepage_generator:
     build: ./homepage_generator
@@ -41,7 +43,7 @@ services:
       - "8891:8891"
     command: uvicorn api:app --host 0.0.0.0 --port 8891
     volumes:
-      - generated_sites:/app/generated_ad
+      - ./backend/generated_sites:/app/generated_ad
 
   nanococoa_aiserver:
     build: ./nanoCocoa_aiserver
@@ -142,13 +144,11 @@ services:
     image: nginx:alpine
     container_name: saas_nginx
     volumes:
-      - generated_sites:/usr/share/nginx/html/sites
+      - ./backend/generated_sites:/usr/share/nginx/html/sites
     ports:
       - "8893:80"
 
 volumes:
-  postgres_data:
-  generated_sites:
   huggingface_cache:
   nanococoa_results:
   nanococoa_uploads:

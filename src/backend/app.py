@@ -491,7 +491,7 @@ async def generate_homepage(request: Request, customer_id: int):
 고객 ID: {customer_id}<br>
 매장명: {customer.store_name}<br>
 생성 경로: {output_path}<br>
-홈페이지 경로 : http://34.44.205.198:8893/sites/{output_path.split('/')[-1]}/index.html
+홈페이지 경로 : <a href="http://34.44.205.198:8893/sites/{output_path.split('/')[-1]}/index.html" target="_blank">http://34.44.205.198:8893/sites/{output_path.split('/')[-1]}/index.html</a>
 """
             else:
                 result = f"❌ 홈페이지 생성 중 오류가 발생했습니다. (상태 코드: {response.status_code})"
