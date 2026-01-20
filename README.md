@@ -102,6 +102,66 @@ docker-compose up --build -d
 
 ---
 
+## 🧪 테스트 실행
+
+### 간편 스크립트 사용 (권장)
+
+```bash
+# 전체 테스트 (dummy 모드 - GPU 미사용)
+./tests/run_tests.sh
+
+# 빠른 테스트만
+./tests/run_tests.sh --fast
+
+# 실제 AI 엔진으로 테스트 (GPU 필요)
+./tests/run_tests.sh --real
+
+# 도움말
+./tests/run_tests.sh --help
+```
+
+### pytest 직접 실행
+
+**기본 테스트 (Dummy 모드)**
+
+```bash
+# 전체 테스트 실행 (GPU 미사용, 빠른 인터페이스 테스트)
+pytest tests -v
+
+# 빠른 테스트만 (slow, docker 제외)
+pytest tests -v -m "not slow and not docker"
+
+# 단위 테스트만
+pytest tests/units -v
+```
+
+**실제 AI 엔진 테스트 (GPU 필요)**
+
+```bash
+# 실제 AI 모델로 테스트 (GPU 필요)
+pytest tests -v --no-dummy
+
+# 특정 파일만 실제 엔진으로
+pytest tests/units/test_api_scenarios.py -v --no-dummy
+```
+
+**마커별 실행**
+
+```bash
+# 단위 테스트만
+pytest tests -v -m "unit"
+
+# 통합 테스트만 (AI 서버 실행 필요)
+pytest tests -v -m "integration"
+
+# slow 테스트 제외
+pytest tests -v -m "not slow"
+```
+
+자세한 테스트 가이드는 [TEST_GUIDE.md](docs/doc/TEST_GUIDE.md)를 참조하세요.
+
+---
+
 ## 📂 디렉토리 구조 상세
 
 ```

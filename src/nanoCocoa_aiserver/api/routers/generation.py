@@ -96,6 +96,19 @@ async def generate_ad(req: GenerateRequest, response: Response):
     - 이미 작업이 돌고 있을 경우 **503 Service Unavailable** 응답과 함께 `Retry-After` 헤더를 반환합니다.
     """
 
+    # stop_step validation
+    if req.stop_step is not None:
+        if req.stop_step < req.start_step:
+            raise HTTPException(
+                status_code=400,
+                detail=f"stop_step ({req.stop_step}) must be >= start_step ({req.start_step})",
+            )
+        if req.stop_step < 1 or req.stop_step > 3:
+            raise HTTPException(
+                status_code=400,
+                detail=f"stop_step must be between 1 and 3, got {req.stop_step}",
+            )
+
     # 동시성 제어
     active_jobs = [j for j, s in JOBS.items() if s["status"] in ("running", "pending")]
     if active_jobs:

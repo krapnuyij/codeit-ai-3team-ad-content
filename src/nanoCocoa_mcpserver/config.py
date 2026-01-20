@@ -182,6 +182,9 @@ class ValidationConstraints:
     MIN_START_STEP: int = 1
     MAX_START_STEP: int = 3
 
+    MIN_STOP_STEP: int = 1
+    MAX_STOP_STEP: int = 3
+
     MIN_STRENGTH: float = 0.0
     MAX_STRENGTH: float = 1.0
 

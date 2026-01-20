@@ -42,6 +42,22 @@ class GenerateRequest(BaseModel):
         json_schema_extra={"example": 1},
     )
 
+    stop_step: Optional[int] = Field(
+        None,
+        ge=1,
+        le=3,
+        title="종료 단계 (Stop Step)",
+        description=(
+            "파이프라인 실행을 종료할 단계 번호입니다.\n"
+            "- `1`: Step 1까지만 실행 (배경 생성)\n"
+            "- `2`: Step 2까지만 실행 (텍스트 생성)\n"
+            "- `3`: Step 3까지 실행 (전체, 기본값)\n"
+            "- `None`: start_step부터 끝까지 실행 (기본 동작)\n\n"
+            "**제약사항**: stop_step >= start_step 이어야 함"
+        ),
+        json_schema_extra={"example": 2},
+    )
+
     # 공통 입력 (텍스트 없이도 배경만 생성 가능)
     text_content: Optional[str] = Field(
         None,

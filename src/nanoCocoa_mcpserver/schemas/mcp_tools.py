@@ -71,12 +71,21 @@ MCP_TOOLS = [
                     "type": "string",
                     "description": "결과 이미지를 저장할 경로 (선택사항, 지정하지 않으면 Base64만 반환)",
                 },
+                "stop_step": {
+                    "type": "integer",
+                    "enum": [1, 2, 3],
+                    "description": (
+                        "파이프라인 중단 단계 (선택사항). "
+                        "생략하거나 None=전체 파이프라인 실행(배경→텍스트→합성). "
+                        "1=배경만 생성(텍스트 없이 제품+배경), "
+                        "2=배경+텍스트 생성(합성 전), "
+                        "3=전체 실행(None과 동일). "
+                        "활용: stop_step=1로 배경 A/B 테스트, stop_step=2로 텍스트 검토. "
+                        "업로드한 이미지에 텍스트만 추가하려면 product_image_path 대신 step1_image 제공."
+                    ),
+                },
             },
-            "required": [
-                "background_prompt",
-                "text_content",
-                "text_prompt",
-            ],
+            "required": [],
         },
     },
     {
@@ -117,138 +126,6 @@ MCP_TOOLS = [
         "name": "check_server_health",
         "description": "AI 서버의 상태와 사용 가능 여부를 확인합니다. CPU, GPU, 메모리 사용량 등의 시스템 메트릭도 포함됩니다.",
         "inputSchema": {"type": "object", "properties": {}, "required": []},
-    },
-    {
-        "name": "generate_background_only",
-        "description": (
-            "[고급] Step 1만 실행 - 제품 이미지와 배경을 합성합니다. "
-            "텍스트 없이 배경만 생성하고 싶을 때 사용합니다."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "product_image_path": {
-                    "type": "string",
-                    "description": "제품 이미지 파일 경로",
-                },
-                "background_prompt": {"type": "string", "description": "배경 설명"},
-                "background_negative_prompt": {
-                    "type": "string",
-                    "description": "배경에서 제외할 요소 (선택사항)",
-                },
-                "strength": {
-                    "type": "number",
-                    "minimum": 0.0,
-                    "maximum": 1.0,
-                    "default": 0.6,
-                    "description": "이미지 변환 강도",
-                },
-                "guidance_scale": {
-                    "type": "number",
-                    "minimum": 1.0,
-                    "maximum": 20.0,
-                    "default": 3.5,
-                    "description": "프롬프트 가이던스",
-                },
-                "seed": {"type": "integer", "description": "랜덤 시드"},
-                "wait_for_completion": {"type": "boolean", "default": False},
-                "save_output_path": {"type": "string", "description": "결과 저장 경로"},
-            },
-            "required": ["product_image_path", "background_prompt"],
-        },
-    },
-    {
-        "name": "generate_text_asset_only",
-        "description": (
-            "[고급] Step 2만 실행 - 3D 텍스트 에셋을 생성합니다. "
-            "배경 이미지(step1_image)를 Base64로 제공해야 합니다."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "step1_image_base64": {
-                    "type": "string",
-                    "description": "Step 1에서 생성된 배경 이미지 (Base64)",
-                },
-                "step1_image_path": {
-                    "type": "string",
-                    "description": "또는 Step 1 결과 이미지 파일 경로",
-                },
-                "text_content": {"type": "string", "description": "렌더링할 텍스트"},
-                "text_prompt": {
-                    "type": "string",
-                    "description": "3D 텍스트 스타일 설명",
-                },
-                "font_name": {"type": "string", "description": "폰트 파일 이름"},
-                "text_negative_prompt": {
-                    "type": "string",
-                    "description": "제외할 요소",
-                },
-                "seed": {"type": "integer"},
-                "wait_for_completion": {"type": "boolean", "default": False},
-                "save_output_path": {"type": "string"},
-            },
-            "required": ["text_content", "text_prompt"],
-        },
-    },
-    {
-        "name": "compose_final_image",
-        "description": (
-            "[고급] Step 3만 실행 - 배경과 3D 텍스트를 최종 합성합니다. "
-            "step1_image와 step2_image를 Base64로 제공해야 합니다."
-        ),
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "step1_image_base64": {
-                    "type": "string",
-                    "description": "배경 이미지 (Base64)",
-                },
-                "step1_image_path": {
-                    "type": "string",
-                    "description": "또는 배경 이미지 파일 경로",
-                },
-                "step2_image_base64": {
-                    "type": "string",
-                    "description": "3D 텍스트 이미지 (Base64)",
-                },
-                "step2_image_path": {
-                    "type": "string",
-                    "description": "또는 3D 텍스트 이미지 파일 경로",
-                },
-                "composition_mode": {
-                    "type": "string",
-                    "enum": ["overlay", "blend", "behind"],
-                    "default": "overlay",
-                },
-                "text_position": {
-                    "type": "string",
-                    "enum": ["top", "center", "bottom", "auto"],
-                    "default": "auto",
-                },
-                "composition_strength": {
-                    "type": "number",
-                    "minimum": 0.0,
-                    "maximum": 1.0,
-                    "default": 0.4,
-                },
-                "composition_steps": {
-                    "type": "integer",
-                    "minimum": 10,
-                    "maximum": 50,
-                    "default": 28,
-                },
-                "composition_guidance_scale": {
-                    "type": "number",
-                    "minimum": 1.0,
-                    "maximum": 7.0,
-                    "default": 3.5,
-                },
-                "wait_for_completion": {"type": "boolean", "default": False},
-                "save_output_path": {"type": "string"},
-            },
-            "required": [],
-        },
     },
 ]
 

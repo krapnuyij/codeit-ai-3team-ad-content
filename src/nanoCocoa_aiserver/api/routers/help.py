@@ -216,7 +216,21 @@ async def get_help():
                     "1": "전체 파이프라인 실행 (기본값)",
                     "2": "텍스트만 다시 생성 (step1_image 필요)",
                     "3": "합성만 다시 실행 (step1_image, step2_image 필요)",
-                }
+                },
+                "stop_step": {
+                    "description": "파이프라인을 중단할 단계 (선택사항)",
+                    "1": "Step 1까지만 실행 (배경 생성만)",
+                    "2": "Step 2까지만 실행 (배경 + 텍스트 생성)",
+                    "3": "Step 3까지 실행 (전체, 기본값)",
+                    "None": "start_step부터 끝까지 실행 (기본 동작)",
+                    "constraint": "stop_step >= start_step 이어야 함",
+                },
+                "usage_examples": {
+                    "background_only": "start_step=1, stop_step=1 → 배경만 생성",
+                    "text_generation": "start_step=1, stop_step=2 → 배경 + 텍스트 생성 (합성 없음)",
+                    "full_pipeline": "start_step=1, stop_step=3 (또는 None) → 전체 실행",
+                    "retry_text": "start_step=2, stop_step=2 → 텍스트만 재생성",
+                },
             },
         },
         "error_handling": {
@@ -283,7 +297,27 @@ async def get_parameters_help():
                         "3": "합성만 실행 (step1_image, step2_image 필요)",
                     },
                     "example": 1,
-                }
+                },
+                "stop_step": {
+                    "type": "integer | null",
+                    "required": False,
+                    "default": None,
+                    "allowed_values": [1, 2, 3, None],
+                    "description": "파이프라인을 중단할 단계 선택 (선택사항)",
+                    "usage": {
+                        "1": "Step 1까지만 실행 (배경 생성만, Step 2/3 건너뜀)",
+                        "2": "Step 2까지만 실행 (배경 + 텍스트, Step 3 건너뜀)",
+                        "3": "Step 3까지 실행 (전체 파이프라인)",
+                        "None": "start_step부터 끝까지 실행 (기본 동작)",
+                    },
+                    "constraint": "stop_step >= start_step 이어야 함",
+                    "use_cases": {
+                        "background_only": "배경만 생성하고 싶을 때: stop_step=1",
+                        "preview_steps": "중간 단계 결과만 확인하고 싶을 때",
+                        "partial_pipeline": "특정 단계까지만 실행 후 파라미터 조정",
+                    },
+                    "example": 2,
+                },
             },
             "common": {
                 "text_content": {
@@ -299,7 +333,7 @@ async def get_parameters_help():
                 "description": "Step 1 (배경 생성) 관련 파라미터",
                 "input_image": {
                     "type": "string (Base64)",
-                    "required": True,
+                    "required": False,
                     "description": "상품 이미지 (Base64 인코딩)",
                     "format": "data:image/png;base64,iVBORw0KGgo... 형식 또는 순수 Base64 문자열",
                     "recommended_size": "512x512 ~ 1024x1024",
@@ -307,7 +341,7 @@ async def get_parameters_help():
                 },
                 "bg_prompt": {
                     "type": "string",
-                    "required": True,
+                    "required": "input_image = None 일 때 필수",,
                     "default": "",
                     "description": "생성할 배경 이미지 설명 (영문 권장)",
                     "tips": [
@@ -564,12 +598,37 @@ async def get_parameters_help():
                     "start_step": 3,
                 },
             },
+            "background_only_with_stop_step": {
+                "description": "배경만 생성 (stop_step 사용)",
+                "request": {
+                    "input_image": "<base64_product_image>",
+                    "bg_prompt": "modern office workspace with natural light",
+                    "start_step": 1,
+                    "stop_step": 1,
+                    "text_content": None,
+                },
+                "note": "stop_step=1로 설정하여 Step 1 완료 후 자동 중단",
+            },
+            "background_and_text_only": {
+                "description": "배경 + 텍스트만 생성 (합성 제외)",
+                "request": {
+                    "input_image": "<base64_product_image>",
+                    "bg_prompt": "luxury marble background",
+                    "text_content": "Premium",
+                    "text_prompt": "gold metallic 3D text",
+                    "start_step": 1,
+                    "stop_step": 2,
+                },
+                "note": "stop_step=2로 설정하여 Step 2 완료 후 자동 중단, Step 3(합성) 건너뜀",
+            },
         },
         "tips_for_llms": {
             "understanding_base64": "이미지는 Base64 문자열로 인코딩되어야 합니다. 사용자가 이미지 파일을 제공하면 Base64로 변환 후 요청하세요.",
             "polling_strategy": "작업 시작 후 2-5초 간격으로 GET /status/{job_id}를 호출하여 status가 'completed' 또는 'failed'가 될 때까지 폴링하세요.",
             "error_handling": "503 응답 시 Retry-After 헤더를 확인하여 대기 시간을 사용자에게 안내하세요.",
             "step_reuse": "사용자가 특정 부분만 수정하고 싶어하면 이전 결과의 step1_result 또는 step2_result를 재사용하세요.",
+            "stop_step_usage": "사용자가 배경만 원하거나 중간 단계 결과만 필요하면 stop_step을 활용하세요. (예: stop_step=1로 배경만 생성)",
+            "step_combination": "start_step과 stop_step을 조합하여 원하는 단계만 실행할 수 있습니다. (예: start_step=2, stop_step=2로 텍스트만 재생성)",
             "prompt_engineering": "배경 및 텍스트 프롬프트는 영문이 더 정확합니다. 사용자가 한글로 입력하면 영문으로 번역하여 요청하세요.",
             "parameter_defaults": "대부분의 파라미터는 기본값이 잘 설정되어 있으므로, 사용자가 특별히 요청하지 않으면 기본값을 사용하세요.",
         },

@@ -21,21 +21,87 @@ pragma: no-cache
 
 ## 1. 기본 테스트 실행
 
-### 1.1. 전체 테스트 실행
+### 1.1. 간편 스크립트 사용 (권장)
+
+프로젝트 루트에서 `tests/run_tests.sh` 스크립트를 사용하면 편리합니다.
+
+```bash
+# 도움말
+./tests/run_tests.sh --help
+
+# 기본 실행 (전체 테스트, dummy 모드)
+./tests/run_tests.sh
+
+# 실제 AI 엔진으로 테스트 (GPU 필요)
+./tests/run_tests.sh --real
+
+# 빠른 테스트만 (slow, docker 제외)
+./tests/run_tests.sh --fast
+
+# 단위 테스트만
+./tests/run_tests.sh --unit
+
+# 통합 테스트만 (AI 서버 실행 필요)
+./tests/run_tests.sh --integration
+
+# 병렬 실행
+./tests/run_tests.sh --fast --parallel
+
+# 실제 엔진 + 빠른 테스트
+./tests/run_tests.sh --real --fast
+```
+
+### 1.2. pytest 직접 실행
 
 ```bash
 # 프로젝트 루트에서 실행
 pytest tests -v
 ```
 
-### 1.2. 빠른 테스트만 실행 (단위 테스트)
+### 1.2. pytest 직접 실행
+
+```bash
+# 프로젝트 루트에서 실행
+pytest tests -v
+```
+
+### 1.3. Dummy 모드 vs 실제 엔진 모드
+
+**Dummy 모드 (기본값)**
+- GPU 미사용, 빠른 인터페이스 테스트
+- 개발 및 CI/CD에 권장
+
+```bash
+# 기본 실행 (dummy 모드 - GPU 미사용)
+pytest tests -v
+
+# 명시적으로 dummy 모드 지정
+pytest tests -v --dummy
+```
+
+**실제 AI 엔진 모드**
+- GPU 필요, 실제 모델 로딩 및 추론
+- 통합 테스트 및 최종 검증에 사용
+
+```bash
+# 실제 AI 엔진 사용 (GPU 필요)
+pytest tests -v --no-dummy
+
+# 특정 테스트만 실제 엔진으로
+pytest tests/units/test_api_scenarios.py -v --no-dummy
+```
+
+### 1.4. 빠른 테스트만 실행 (단위 테스트)
 
 ```bash
 # slow, integration, docker 테스트 제외
-pytest tests -v -m "not slow and not integration and not docker"
+pytest tests -v -m "not slow and not docker"
+
+# 또는 스크립트 사용
+./tests/run_tests.sh --fast
 ```
 
-### 1.3. 특정 파일/디렉토리만 실행
+### 1.5. 특정 파일/디렉토리만 실행
 
 ```bash
 # 단위 테스트만
@@ -46,6 +112,9 @@ pytest tests/integration -v
 
 # 특정 파일
 pytest tests/units/test_api_scenarios.py -v
+
+# 특정 파일을 실제 엔진으로
+pytest tests/units/test_api_scenarios.py -v --no-dummy
 ```
 
 ---
@@ -60,6 +129,7 @@ pytest tests/units/test_api_scenarios.py -v
 | `integration` | 통합 테스트 | AI 서버 실행 필요 |
 | `slow` | 느린 테스트 (30초 이상) | 시간 여유 있을 때 |
 | `docker` | Docker 환경 테스트 | Docker 컨테이너 실행 필요 |
+| `dummy` | Dummy 모드 전용 테스트 | 기본값 |
 | `requires_aiserver` | AI 서버 필요 | 8000 포트에서 서버 실행 |
 | `requires_mcpserver` | MCP 서버 필요 | 3000 포트에서 서버 실행 |
 
@@ -80,6 +150,9 @@ pytest tests -v -m "not docker"
 
 # 빠른 테스트만 (slow, docker 제외)
 pytest tests -v -m "not slow and not docker"
+
+# dummy 마커 테스트만
+pytest tests -v -m "dummy"
 ```
 
 ### 2.3. 특정 디렉토리 제외
@@ -240,22 +313,31 @@ pytest tests -v -W ignore::DeprecationWarning
 ### 5.1. 개발 중 (로컬)
 
 ```bash
-# 빠른 테스트만 실행
+# 빠른 테스트만 실행 (dummy 모드)
 pytest tests/units -v --timeout=30
+
+# 실제 엔진으로 특정 테스트 검증
+pytest tests/units/test_api_scenarios.py -v --no-dummy
 ```
 
 ### 5.2. PR 전 (통합 테스트)
 
 ```bash
-# AI 서버 시작 후
+# AI 서버 시작 후 (dummy 모드로 빠르게 검증)
 pytest tests -v -m "not slow and not docker" --timeout=60
+
+# 실제 엔진으로 통합 테스트
+pytest tests -v -m "not slow and not docker" --no-dummy --timeout=120
 ```
 
 ### 5.3. CI/CD
 
 ```bash
-# 전체 테스트 (타임아웃 있음)
+# 전체 테스트 (dummy 모드, 타임아웃 있음)
 pytest tests -v --timeout=300 --maxfail=10
+
+# GPU 환경에서 실제 엔진 테스트 (선택사항)
+pytest tests -v --no-dummy --timeout=600 --maxfail=10
 ```
 
 ### 5.4. 디버깅
@@ -273,10 +355,13 @@ pytest tests -v --maxfail=1 -x
 ## 6. 예제 명령어
 
 ```bash
-# ✅ 일반적인 경우 (빠른 테스트만)
+# ✅ 일반적인 경우 (빠른 테스트만, dummy 모드)
 pytest tests -v -m "not slow and not docker"
 
-# ✅ CI/CD (타임아웃 포함)
+# ✅ 실제 엔진으로 검증 (GPU 필요)
+pytest tests -v -m "not slow and not docker" --no-dummy
+
+# ✅ CI/CD (dummy 모드, 타임아웃 포함)
 pytest tests -v --timeout=300 -m "not docker"
 
 # ✅ 단위 테스트만
@@ -285,7 +370,10 @@ pytest tests/units -v
 # ✅ 특정 파일
 pytest tests/units/test_api_scenarios.py -v
 
-# ✅ 병렬 실행 (빠른 테스트만)
+# ✅ 특정 파일을 실제 엔진으로
+pytest tests/units/test_api_scenarios.py -v --no-dummy
+
+# ✅ 병렬 실행 (빠른 테스트만, dummy 모드)
 pytest tests -v -n auto -m "not slow and not docker"
 
 # ❌ 피해야 할 실행 (느림, 멈출 수 있음)

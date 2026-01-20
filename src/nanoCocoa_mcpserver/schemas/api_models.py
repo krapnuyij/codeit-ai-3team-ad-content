@@ -73,6 +73,14 @@ class GenerateRequest(BaseModel):
         description="파이프라인 실행을 시작할 단계 번호 (1: 전체, 2: 텍스트부터, 3: 합성만)",
     )
 
+    stop_step: Optional[int] = Field(
+        None,
+        ge=1,
+        le=3,
+        title="종료 단계",
+        description="파이프라인 실행을 종료할 단계 번호 (1: 배경만, 2: 텍스트까지, 3: 전체, None: start_step부터 끝까지)",
+    )
+
     # 공통 입력
     text_content: Optional[str] = Field(
         None,

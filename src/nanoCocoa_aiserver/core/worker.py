@@ -173,22 +173,26 @@ def worker_process(
 
         # 파라미터 추출
         start_step = input_data.get("start_step", 1)
+        stop_step = input_data.get("stop_step")
 
         # [초기 ETA 계산]
         initial_eta = 0
         initial_step_eta = 0
+        effective_stop_step = stop_step if stop_step is not None else 3
 
-        if start_step <= 1:
+        if start_step <= 1 and effective_stop_step >= 1:
             initial_eta += step_stats_manager.get_stat("step1_background")
             initial_step_eta = step_stats_manager.get_stat("step1_background")
-            # Step 1 implies subsequent steps
-            initial_eta += step_stats_manager.get_stat("step2_text")
-            initial_eta += step_stats_manager.get_stat("step3_composite")
-        elif start_step == 2:
+            if effective_stop_step >= 2:
+                initial_eta += step_stats_manager.get_stat("step2_text")
+            if effective_stop_step >= 3:
+                initial_eta += step_stats_manager.get_stat("step3_composite")
+        elif start_step == 2 and effective_stop_step >= 2:
             initial_eta += step_stats_manager.get_stat("step2_text")
             initial_step_eta = step_stats_manager.get_stat("step2_text")
-            initial_eta += step_stats_manager.get_stat("step3_composite")
-        elif start_step == 3:
+            if effective_stop_step >= 3:
+                initial_eta += step_stats_manager.get_stat("step3_composite")
+        elif start_step == 3 and effective_stop_step >= 3:
             initial_eta += step_stats_manager.get_stat("step3_composite")
             initial_step_eta = step_stats_manager.get_stat("step3_composite")
 
@@ -233,6 +237,17 @@ def worker_process(
                 shared_state["status"] = "error"
                 shared_state["message"] = f"Step 1 오류 (배경 생성 실패): {str(e)}"
                 return
+
+            # stop_step=1 조기 종료
+            if stop_step == 1:
+                shared_state["images"]["final_result"] = shared_state["images"][
+                    "step1_result"
+                ]
+                shared_state["progress_percent"] = 100
+                shared_state["status"] = "completed"
+                shared_state["message"] = "Step 1 completed (stopped at stop_step=1)."
+                logger.info(f"[Worker] Job {job_id} stopped at step 1 (stop_step=1)")
+                return
         else:
             # Step 1을 건너뛸 경우, 입력받은 step1_image 사용
             img_s1_b64 = input_data.get("step1_image")
@@ -275,7 +290,9 @@ def worker_process(
 
         if use_llm_text:
             # LLM 기반 텍스트 합성 (Step 2+3 통합)
-            logger.info("[Worker] Using LLM-based text generation (Step 2+3 integrated)")
+            logger.info(
+                "[Worker] Using LLM-based text generation (Step 2+3 integrated)"
+            )
             try:
                 s2_start = time.time()
                 final_result = process_step2_llm_text(
@@ -302,6 +319,10 @@ def worker_process(
                     # LLM 결과를 최종 이미지로 직접 설정 (Step 3 생략)
                     shared_state["images"]["final_result"] = pil_to_base64(final_result)
                     shared_state["progress_percent"] = 100
+                    if stop_step == 2:
+                        logger.warning(
+                            "[Worker] LLM mode integrates Step 2+3, stop_step=2 ignored"
+                        )
                     logger.info(
                         "[Worker] LLM text generation completed, Step 3 skipped (integrated)"
                     )
@@ -350,6 +371,21 @@ def worker_process(
                 else:
                     raise ValueError("Step 2 returned None - 텍스트 생성 실패")
 
+                # stop_step=2 조기 종료
+                if stop_step == 2:
+                    shared_state["images"]["final_result"] = shared_state["images"][
+                        "step2_result"
+                    ]
+                    shared_state["progress_percent"] = 100
+                    shared_state["status"] = "completed"
+                    shared_state["message"] = (
+                        "Step 2 completed (stopped at stop_step=2)."
+                    )
+                    logger.info(
+                        f"[Worker] Job {job_id} stopped at step 2 (stop_step=2)"
+                    )
+                    return
+
             except Exception as e:
                 logger.error(
                     f"[Worker] Step 2 failed for job {job_id}: {e}", exc_info=True
@@ -380,7 +416,7 @@ def worker_process(
         # ==========================================
         # Step 3: 최종 합성 (Final Composite)
         # ==========================================
-        if start_step <= 3:
+        if start_step <= 3 and (stop_step is None or stop_step >= 3):
             try:
                 # Step 1, Step 2 결과물 확보 확인
                 if not step1_result and shared_state["images"].get("step1_result"):
