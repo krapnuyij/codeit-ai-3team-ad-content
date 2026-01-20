@@ -1,0 +1,80 @@
+root_marker: ".env"
+
+openai_config:
+  chat_model: "gpt-5-mini"
+  api_key: ""
+
+paths:
+  generated_path: "./generated_ad"
+
+store_config:
+  store_name: "아늑한 다락"
+  store_type: "카페"
+  budget: 50
+  period: 30
+  advertising_goal: "새로운 고객을 유치"
+  target_customer: "20대 후반부터 30대 초반의 젊은 층"
+  store_strength: "아늑한 분위기와 독특한 인테리어, 그리고 직접 만든 디저트를 제공하는 것이 강점입니다. 조용한 공간에서 대화를 나누기 좋은 장소"
+  advertising_media: "홈페이지"
+  location : "서울특별시 중구 세종대로 110"
+  phone_number: "02-123-4567"
+#
+#store_config:
+#  store_name: "그린 모먼트"
+#  store_type: "식물 및 가드닝 용품점"
+#  budget: 120
+#  period: 45
+#  advertising_goal: "온라인 쇼핑몰 방문자 증대"
+#  target_customer: "1인 가구 및 홈가드닝에 관심 있는 직장인"
+#  store_strength: "희귀 식물 큐레이션과 초보자도 키우기 쉬운 '가이드 키트' 제공. 감각적인 화분 디자인이 특징"
+#  advertising_media: "홈페이지 및 인스타그램 광고"
+#  location : "서울특별시 마포구 연남로 15"
+#  phone_number: "02-987-6543"
+#
+#store_config:
+#  store_name: "멍뭉스파 하우스"
+#  store_type: "애견 미용"
+#  budget: 80
+#  period: 30
+#  advertising_goal: "정기 구독 멤버십 가입자 확보"
+#  target_customer: "반려견을 가족처럼 아끼는 인근 아파트 거주민"
+#  store_strength: "저자극 유기농 샴푸 사용 및 통창 유리로 미용 과정을 실시간 공개하여 신뢰도 확보"
+#  advertising_media: "홈페이지 및 인스타그램 광고"
+#  location : "경기도 성남시 분당구 정자일로 210"
+#  phone_number: "031-456-7890"
+#
+#store_config:
+#  store_name: "버닝 그릴"
+#  store_type: "수제 버거 전문점"
+#  budget: 200
+#  period: 60
+#  advertising_goal: "점심 시간대 직장인 단체 주문 확보"
+#  target_customer: "힙한 분위기를 즐기는 2030 대학생 및 직장인"
+#  store_strength: "매일 아침 굽는 브리오슈 번과 냉장 숙성 소고기 패티의 깊은 풍미. 오픈 주방의 역동적인 분위기"
+#  advertising_media: "홈페이지 및 인스타그램 광고"
+#  location : "서울특별시 강남구 테헤란로 427"
+#  phone_number: "02-555-1212"
+#
+#store_config:
+#  store_name: "센트 메모리"
+#  store_type: "향수 공방"
+#  budget: 70
+#  period: 30
+#  advertising_goal: "주말 원데이 클래스 예약률 향상"
+#  target_customer: "특별한 기념일을 맞이한 커플 및 취미 활동가"
+#  store_strength: "100여 가지의 고급 향료 보유. 전문 조향사가 1:1로 퍼스널 향수 컨설팅 진행"
+#  advertising_media: "홈페이지 및 인스타그램 광고"
+#  location : "서울특별시 종로구 북촌로5길 22"
+#  phone_number: "02-333-7777"
+
+#store_config:
+#  store_name: "올나잇 서재"
+#  store_type: "스터디카페"
+#  budget: 40
+#  period: 30
+#  advertising_goal: "시험 기간 고등학생 및 취준생 유입"
+#  target_customer: "집중할 수 있는 환경이 필요한 수험생"
+#  store_strength: "백색 소음기 설치와 완벽한 방음 시설. 최고급 안마 의자가 구비된 휴게 공간 무료 제공"
+#  advertising_media: "홈페이지 및 인스타그램 광고"
+#  location : "부산광역시 해운대구 센텀남대로 35"
+#  phone_number: "051-123-8888"

@@ -1,3 +1,21 @@
 .env
-__pycache__
-tests/reports
+
+
+.ipynb_checkpoints/
+*.ipynb
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual env
+.venv/
+venv/
+env/
+
+# Editor
+.vscode/
+.idea/
+
+

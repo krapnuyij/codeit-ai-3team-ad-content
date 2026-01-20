@@ -1,0 +1,80 @@
+<footer class="bg-gray-900 text-gray-300">
+  <div class="container mx-auto px-4 md:px-6 lg:px-8 py-12 md:py-16">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+      <!-- Brand Section -->
+      <div class="space-y-4">
+        <div class="flex items-center space-x-2">
+          <img src="{{ logo_url }}" alt="{{ store_name }} 로고" class="h-8 w-auto">
+          <span class="text-xl font-bold text-white">{{ store_name }}</span>
+        </div>
+        <p class="text-sm leading-relaxed">
+          {{ tagline }}
+        </p>
+      </div>
+
+      <!-- Quick Links -->
+      <div>
+        <h3 class="text-white font-semibold mb-4">빠른 링크</h3>
+        <ul class="space-y-2">
+          {% for page in pages %}
+          <li>
+            <a href="{{ page.url }}" class="text-sm hover:text-white transition-colors">{{ page.name }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Contact Info -->
+      <div>
+        <h3 class="text-white font-semibold mb-4">연락처</h3>
+        <ul class="space-y-2 text-sm">
+          {% if phone %}
+          <li class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+            </svg>
+            {{ phone }}
+          </li>
+          {% endif %}
+          {% if location %}
+          <li class="flex items-start">
+            <svg class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+            {{ location }}
+          </li>
+          {% endif %}
+        </ul>
+      </div>
+
+      <!-- Social Links (Optional) -->
+      {% if social_links %}
+      <div>
+        <h3 class="text-white font-semibold mb-4">소셜 미디어</h3>
+        <div class="flex space-x-4">
+          {% for social in social_links %}
+          <a href="{{ social.url }}" class="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center hover:bg-gray-700 transition-colors" aria-label="{{ social.name }}">
+            <span class="text-xl">{{ social.icon }}</span>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+      <p class="text-sm">
+        &copy; {{ current_year }} {{ store_name }}. All rights reserved.
+      </p>
+      {% if policy_links %}
+      <div class="flex space-x-6 text-sm">
+        {% for policy in policy_links %}
+        <a href="{{ policy.url }}" class="hover:text-white transition-colors">{{ policy.name }}</a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</footer>

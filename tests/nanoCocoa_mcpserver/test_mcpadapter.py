@@ -83,7 +83,7 @@ async def test_llm_adapter_basic(mcp_server_url, openai_api_key):
     async with LLMAdapter(
         openai_api_key=openai_api_key,
         mcp_server_url=mcp_server_url,
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
     ) as adapter:
         response = await adapter.chat("서버 상태를 확인해줘")
 
@@ -97,7 +97,7 @@ async def test_llm_adapter_font_query(mcp_server_url, openai_api_key):
     async with LLMAdapter(
         openai_api_key=openai_api_key,
         mcp_server_url=mcp_server_url,
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
     ) as adapter:
         response = await adapter.chat("사용 가능한 폰트 목록을 알려줘")
 
@@ -111,7 +111,7 @@ async def test_llm_adapter_multi_turn(mcp_server_url, openai_api_key):
     async with LLMAdapter(
         openai_api_key=openai_api_key,
         mcp_server_url=mcp_server_url,
-        model="gpt-4o-mini",
+        model="gpt-5-mini",
     ) as adapter:
         # 첫 번째 질문
         response1 = await adapter.chat("서버가 정상인지 확인해줘")
@@ -153,7 +153,7 @@ async def test_llm_adapter_invalid_api_key(mcp_server_url):
         async with LLMAdapter(
             openai_api_key="invalid-key",
             mcp_server_url=mcp_server_url,
-            model="gpt-4o-mini",
+            model="gpt-5-mini",
         ) as adapter:
             await adapter.chat("테스트")
 

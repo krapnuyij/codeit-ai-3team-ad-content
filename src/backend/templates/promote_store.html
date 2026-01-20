@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block title %}CODEIT 4기 3팀 | Promote Store{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="gradient-bg" style="width: 800px; height: 400px;"></div>
+    <div class="hero-content">
+        <h2>Promote Your Store</h2>
+        <p style="margin-top: 20px; font-size: 1rem; color: #999;">광고, 가장 편하게 만들어 드립니다.</p>
+    </div>
+</section>
+
+<section class="launch-content">
+    <div class="project-form-container">
+        <form class="project-form" method="POST" action="/save-customer-data">
+            <h3>매장 정보</h3>
+            
+            <div class="form-section">
+                <label for="store_name">매장 이름</label>
+                <input type="text" id="store_name" name="store_name" placeholder="매장의 이름을 입력해주세요." required>
+            </div>
+
+            <div class="form-section">
+                <label for="store_type">매장 유형</label>
+                <input type="text" id="store_type" name="store_type" placeholder="ex) 카페, 음식점, 소매업" required>
+            </div>
+
+            <div class="form-row">
+                <div class="form-section">
+                    <label for="budget">예산 범위  (단위: 만원 [생략])</label>
+                    <input type="text" id="budget" name="budget" placeholder="ex) 10" required>
+
+                </div>
+                <div class="form-section">
+                    <label class="period">예상 기간  (단위: 일 [생략])</label>
+                    <input type="text" id="period" name="period" placeholder="ex) 30" required>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <label class="advertising_goal">광고 목표</label>
+                <input type="text" id="advertising_goal" name="advertising_goal" placeholder="기대하는 홍보 효과나 홍보시 힘든 점을 자세히 알려주세요.&#10;예: 인스타그램 홍보를 집중하고 싶어요. / 신메뉴 출시 이벤트 강조를 희망합니다." required></inputtext>
+            </div>
+
+            <div class="form-section">
+                <label class="target_customer">광고 타겟</label>
+                <input type="text" id="target_customer" name="target_customer" placeholder="광고의 주 시청자를 선택해주세요.&#10;예:20~30대 여성, 고등학생 및 취준생 등." required></inputtext>
+            </div>
+            <div class="form-section">
+                <label class="advertising_media">광고 매체</label>
+                <input type="text" id="advertising_media" name="advertising_media" placeholder="광고할 매체를 선택하세요. ex)홈페이지, 인스타그램, 블로그" required></inputtext>
+            </div>
+            <div class="form-section">
+                <label class="store_strength">매장의 차별점</label>
+                <textarea id="store_strength" name="store_strength" rows="6" placeholder="다른 매장과 차별화된 인테리어나 장점을 자세히 알려주세요." required></textarea>
+            </div>
+
+
+
+            <h3 style="margin-top: 50px;">대표자 정보</h3>
+
+            <div class="form-row">
+                <div class="form-section">
+                    <label>이름</label>
+                    <input type="text" name="contact_name" placeholder="이름" required>
+                </div>
+                <div class="form-section">
+                    <label>매장명</label>
+                    <input type="text" name="company_name" placeholder="매장명">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-section">
+                    <label>이메일</label>
+                    <input type="email" name="email" placeholder="email@example.com" required>
+                </div>
+                <div class="form-section">
+                    <label>연락처</label>
+                    <input type="tel" name="phone" placeholder="010-0000-0000" required>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <label>
+                    <input type="checkbox" name="agree" required style="width: auto; margin-right: 10px;">
+                    개인정보 수집 및 이용에 동의합니다
+                </label>
+            </div>
+
+            <button type="submit" class="submit-btn">프로젝트 제출하기</button>
+        </form>
+
+        {% if result %}
+        <div style="margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+            <p style="margin: 0 0 15px 0; color: #333; font-size: 1.1rem;">{{ result }}</p>
+
+            {% if customer_id %}
+            <form method="POST" action="/generate-homepage/{{ customer_id }}" style="margin-top: 15px;">
+                <button type="submit" class="submit-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    🎨 홈페이지 생성하기
+                </button>
+            </form>
+            <p style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                ⏱️ 홈페이지 생성에는 약 3~5분이 소요됩니다.
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="process-info">
+        <h3>프로젝트 진행 프로세스</h3>
+        
+        <div class="process-step">
+            <div class="step-number">01</div>
+            <div class="step-content">
+                <h4>상담 및 분석</h4>
+                <p>매장의 유형과 요구사항을 분석하고 AI 분석을 통해 최적의 솔루션을 제안합니다.</p>
+            </div>
+        </div>
+
+        <div class="process-step">
+            <div class="step-number">02</div>
+            <div class="step-content">
+                <h4>기획 및 설계</h4>
+                <p>광고 분야 및 타겟을 확정합니다.</p>
+            </div>
+        </div>
+
+        <div class="process-step">
+            <div class="step-number">03</div>
+            <div class="step-content">
+                <h4>개발 및 구현</h4>
+                <p>전문 개발팀이 광고 프로젝트를 구현합니다.</p>
+            </div>
+        </div>
+
+        <div class="process-step">
+            <div class="step-number">04</div>
+            <div class="step-content">
+                <h4>테스트 및 배포</h4>
+                <p>철저한 테스트 후 안정적으로 배포합니다.</p>
+            </div>
+        </div>
+
+        <div class="process-step">
+            <div class="step-number">05</div>
+            <div class="step-content">
+                <h4>유지보수 및 지원</h4>
+                <p>지속적인 모니터링과 기술 지원을 제공합니다.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

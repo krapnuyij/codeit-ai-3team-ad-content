@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block title %}CODEIT 4기 3팀 | Login{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="gradient-bg"></div>
+    <div class="hero-content">
+        <h2>빠르고 쉬운 광고 솔루션</h2>
+        <button class="cta-btn" onclick="location.href='/promote-store'">PROMOTE STORE</button>
+    </div>
+</section>
+
+<section class="content-grid">
+    <div class="project-card">
+        <a href="/user" class="card-link">
+            <div class="card-box clickable"></div>
+        </a>
+        <h4>광고 생성하기</h4>
+    </div>
+    <div class="project-card">
+        <a href="/manager" class="card-link">
+            <div class="card-box clickable"></div>
+        </a>
+        <h4>생성된 광고 리스트</h4>
+    </div>
+    <div class="login-card">
+        <div class="card-box login-form-container">
+            <form>
+                <h3>MEMBER LOGIN</h3>
+                <div class="input-group">
+                    <input type="text" placeholder="USERNAME" required>
+                </div>
+                <div class="input-group">
+                    <input type="password" placeholder="PASSWORD" required>
+                </div>
+                <button type="submit" class="login-btn">SIGN IN</button>
+                <div class="login-footer">
+                    <a href="#">Forgot Password?</a>
+                </div>
+            </form>
+        </div>
+        <h4>ACCESS PANEL</h4>
+    </div>
+</section>
+{% endblock %}

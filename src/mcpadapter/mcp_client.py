@@ -153,3 +153,30 @@ class MCPClient:
             raise MCPClientError(f"HTTP {e.response.status_code}: {e.response.text}")
         except httpx.RequestError as e:
             raise MCPClientError(f"연결 에러: {e}")
+
+    async def server_reset(self) -> Dict[str, Any]:
+        """
+        서버 상태 초기화 (개발 전용)
+
+        모든 실행 중인 작업 강제 중단, 작업 기록 삭제, GPU 메모리 정리
+
+        Returns:
+            초기화 결과 통계 (stopped_jobs, deleted_jobs, terminated_processes 등)
+
+        Raises:
+            MCPClientError: 서버 초기화 실패
+        """
+        await self._ensure_client()
+
+        # MCP 서버가 포트 3000, REST API는 8000 사용
+        rest_base_url = self.base_url.replace(":3000", ":8000")
+
+        try:
+            response = await self._client.post(f"{rest_base_url}/server-reset")
+            response.raise_for_status()
+            return response.json()
+
+        except httpx.HTTPStatusError as e:
+            raise MCPClientError(f"HTTP {e.response.status_code}: {e.response.text}")
+        except httpx.RequestError as e:
+            raise MCPClientError(f"연결 에러: {e}")

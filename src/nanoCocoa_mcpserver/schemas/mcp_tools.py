@@ -28,11 +28,11 @@ MCP_TOOLS = [
             "properties": {
                 "product_image_path": {
                     "type": "string",
-                    "description": "제품 이미지 파일 경로 (로컬 파일 시스템)",
+                    "description": "제품 이미지 파일 경로 (선택사항). 제공하지 않으면 background_prompt에 제품 설명을 포함하여 배경과 함께 생성됩니다.",
                 },
                 "background_prompt": {
                     "type": "string",
-                    "description": "생성할 배경에 대한 영문 설명 (예: 'Wooden table in a cozy cafe, sunlight')",
+                    "description": "생성할 배경에 대한 영문 설명. 제품 이미지가 없는 경우 제품 설명도 포함해야 함 (예: 'Red apples on golden silk cloth, wooden table in a cozy cafe, sunlight')",
                 },
                 "text_content": {
                     "type": "string",
@@ -73,7 +73,6 @@ MCP_TOOLS = [
                 },
             },
             "required": [
-                "product_image_path",
                 "background_prompt",
                 "text_content",
                 "text_prompt",
