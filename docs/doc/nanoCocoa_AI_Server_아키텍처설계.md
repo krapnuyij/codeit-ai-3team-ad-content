@@ -178,7 +178,7 @@ MCP(Model Context Protocol)를 지원하기 위해 JSON 기반의 명시적인 �
 ```json
 {
   "start_step": 1,
-  "input_image": "base64_string...",
+  "product_image": "base64_string...",
   "text_content": "Super Sale",
   "bg_prompt": "Wooden table in a cozy cafe, sunlight, realistic",
   "bg_negative_prompt": "blurry, low quality, distorted",

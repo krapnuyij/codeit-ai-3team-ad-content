@@ -34,6 +34,28 @@ MCP_TOOLS = [
                     "type": "string",
                     "description": "생성할 배경에 대한 영문 설명. 제품 이미지가 없는 경우 제품 설명도 포함해야 함 (예: 'Red apples on golden silk cloth, wooden table in a cozy cafe, sunlight')",
                 },
+                "bg_model": {
+                    "type": "string",
+                    "enum": ["flux", "sdxl"],
+                    "default": "flux",
+                    "description": (
+                        "**[필수]** 배경 생성 AI 모델 선택. 사용자 요청에 따라 반드시 명시적으로 설정하세요.\n"
+                        "\n"
+                        "**'sdxl' 선택 기준** (다음 키워드 감지 시):\n"
+                        "  - 속도 관련: '빠르게', '빨리', '신속', '급하게', '테스트', 'quick', 'fast', 'rapid'\n"
+                        "  - 품질 관련: '심플', '간단', '기본', '프리뷰', 'simple', 'basic', 'preview'\n"
+                        "\n"
+                        "**'flux' 선택 기준** (기본값, 다음 경우):\n"
+                        "  - 품질 관련: '고품질', '포토리얼', '디테일', 'high-quality', 'photorealistic'\n"
+                        "  - 속도 키워드 없을 때\n"
+                        "  - 명시적 요청 없을 때\n"
+                        "\n"
+                        "**예시**:\n"
+                        "  - '빠른 배경 이미지' → bg_model='sdxl'\n"
+                        "  - '바나나 광고 만들어줘' → bg_model='flux'\n"
+                        "  - '고품질 배경' → bg_model='flux'"
+                    ),
+                },
                 "text_content": {
                     "type": "string",
                     "description": "광고에 표시할 텍스트 (예: 'SALE', 'New Arrival', 'Open')",

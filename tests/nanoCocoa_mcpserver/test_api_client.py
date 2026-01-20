@@ -89,7 +89,7 @@ async def test_start_generation(api_client):
     """생성 시작 API 테스트"""
     params = GenerateRequest(
         start_step=1,
-        input_image="fake_base64_image",
+        product_image="fake_base64_image",
         bg_prompt="Test background",
         text_content="TEST",
         text_model_prompt="Test style",
@@ -264,7 +264,7 @@ async def test_generate_and_wait(api_client):
     """원스톱 생성 및 대기 테스트"""
     params = GenerateRequest(
         start_step=1,
-        input_image="test_image",
+        product_image="test_image",
         bg_prompt="Test",
         text_content="TEST",
         text_model_prompt="Style",

@@ -235,11 +235,6 @@ async def generate_ai_response_async(user_message: str):
     """
     api_key = get_session_value("openai_key")
 
-    # 제품 이미지 자동 생성 (없을 경우)
-    product_image = UPLOADS_DIR / "test_product.png"
-    if not product_image.exists():
-        create_test_product_image(product_image)
-
     # 폰트 메타데이터 가져오기
     font_metadata = st.session_state.get("font_metadata", [])
     font_info_section = ""
@@ -301,6 +296,7 @@ async def generate_ai_response_async(user_message: str):
 - 핵심 메시지 및 카피 제안
 - 비주얼 컨셉 제안
 - 폰트 추천 (필요 시 `recommend_font` 도구 사용)
+- bg_model 선택 가이드 제공 (sdxl vs flux)
 
 ### 2단계: 최종 확인 및 생성 실행
 - **중요:** 사용자가 다음 표현을 **명확히** 사용할 때만 `generate_ad_image` 도구 호출:
@@ -326,6 +322,13 @@ async def generate_ai_response_async(user_message: str):
 
 **MCP 도구 호출 규칙:**
 - `generate_ad_image` 필수 파라미터:
+  - **bg_model**: 배경 생성 모델 선택 (중요!)
+    * **"sdxl"**: 빠른 생성 (~30초-1분), 심플한 품질
+      - 사용 시기: "빠르게", "신속하게", "급하게", "빨리", "테스트", "미리보기"
+      - guidance_scale은 자동으로 7.5 조정됨
+    * **"flux"** (기본값): 고품질 생성 (~2-3분), 포토리얼리스틱
+      - 사용 시기: 품질 중요, 최종 결과물, 명시적 요청 없으면 기본값
+      - guidance_scale 기본 3.5 권장
   - background_prompt: 영문 배경 설명 (15-30단어)
     * **중요**: 제품 이미지(product_image_path)를 제공하지 않는 경우, 
       background_prompt에 제품 상세 설명을 반드시 포함해야 함
@@ -384,7 +387,7 @@ async def generate_ai_response_async(user_message: str):
 - **중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지
 - background_prompt, text_prompt 등 이미지 생성 prompt만 영문으로 작성
 **중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지. 단위, 문맥 등은 적당하게 수정 가능, 나머지 프롬프트(background_prompt, text_prompt, ...prompt 등)는 영문으로 작성하세요.
-**중요:** background_prompt 생성시 2000자 이상으로 상세히 작성하세요.
+**중요:** background_prompt 생성시 1000자 이상으로 상세히 작성하세요.
 """
 
     try:
@@ -411,6 +414,26 @@ async def generate_ai_response_async(user_message: str):
             adapter.conversation_history.insert(
                 0, {"role": "system", "content": system_prompt}
             )
+
+            # [디버그] 시스템 프롬프트 확인
+            # logger.info("=" * 60)
+            # logger.info("[디버그] 시스템 프롬프트 체크")
+            # if "bg_model" in system_prompt:
+            #     logger.info("  ✓ bg_model 가이드 포함됨")
+            #     # bg_model 관련 부분만 추출하여 로깅
+            #     lines = system_prompt.split("\n")
+            #     in_bg_model_section = False
+            #     for line in lines:
+            #         if "bg_model" in line.lower():
+            #             in_bg_model_section = True
+            #         if in_bg_model_section:
+            #             logger.info(f"    {line}")
+            #             if line.strip().startswith("-") and "composition_mode" in line:
+            #                 break
+            # else:
+            #     logger.warning("  ✗ bg_model 가이드 누락!")
+            logger.info(f"[디버그] 사용자 메시지: {user_message}")
+            logger.info("=" * 60)
 
             # LLM 응답 생성 (필요 시 자동으로 MCP 도구 호출)
             response, tool_params = await adapter.chat(user_message, max_tool_calls=3)
@@ -491,17 +514,16 @@ def handle_job_creation(
         generation_params["mcp_server_url"] = MCP_SERVER_URL
         logger.info(f"실제 도구 파라미터 저장: {list(generation_params.keys())}")
     else:
-        # fallback: 기본 파라미터
-        product_image = UPLOADS_DIR / "test_product.png"
+        # fallback: 기본 파라미터 (제품 이미지 없이)
         generation_params = {
             "user_message": user_message,
             "text_content": user_message,
-            "product_image_path": str(product_image),
+            # product_image_path는 명시적으로 제공되지 않으면 None (생략)
             "composition_mode": "overlay",
             "model": OPENAI_MODEL,
             "mcp_server_url": MCP_SERVER_URL,
         }
-        logger.warning("도구 파라미터 없음, 기본값 사용")
+        logger.warning("도구 파라미터 없음, 기본값 사용 (제품 이미지 없음)")
 
     try:
         # 작업 저장 (파일 기반)

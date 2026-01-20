@@ -152,7 +152,7 @@ async def main():
         # 생성 요청
         params = GenerateRequest(
             start_step=1,
-            input_image=product_image,
+            product_image=product_image,
             bg_prompt="Wooden table, cozy cafe, sunlight",
             text_content="SALE",
             text_model_prompt="Gold balloon text, 3d render",
@@ -182,7 +182,7 @@ async def step_workflow():
         # Step 1: 배경 생성
         step1_params = GenerateRequest(
             start_step=1,
-            input_image=product_image_b64,
+            product_image=product_image_b64,
             bg_prompt="Marble podium, sunset beach",
             text_content=None,  # 배경만
         )
@@ -294,7 +294,7 @@ pytest tests/nanoCocoa_mcpserver/test_api_client.py
 ```python
 GenerateRequest(
     start_step=1,              # 1, 2, 3
-    input_image="base64...",   # 제품 이미지
+    product_image="base64...",   # 제품 이미지
     bg_prompt="...",           # 배경 설명
     text_content="SALE",       # 텍스트
     text_model_prompt="...",   # 텍스트 스타일

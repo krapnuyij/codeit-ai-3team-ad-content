@@ -9,6 +9,7 @@ from PIL import Image
 from models.segmentation import SegmentationModel
 from models.flux_generator import FluxGenerator
 from models.sdxl_text import SDXLTextGenerator
+from models.sdxl_generator import SDXLGenerator
 from models.CompositionEngine import CompositionEngine
 from utils.MaskGenerator import MaskGenerator
 from helper_dev_utils import get_auto_logger
@@ -41,6 +42,7 @@ class AIModelEngine:
             self.segmenter = SegmentationModel()
             self.flux_gen = FluxGenerator()
             self.sdxl_gen = SDXLTextGenerator()
+            self.sdxl_base_gen = SDXLGenerator()
             self.compositor = CompositionEngine()
             logger.debug("AIModelEngine: Initializing sub-models completed")
         else:
@@ -105,6 +107,49 @@ class AIModelEngine:
             return self._create_dummy_image(1024, 1024, "lightblue")
 
         return self.flux_gen.generate_background(
+            prompt,
+            negative_prompt,
+            guidance_scale,
+            seed,
+            self.progress_callback,
+            auto_unload=auto_unload,
+        )
+
+    def run_sdxl_bg_gen(
+        self,
+        prompt: str,
+        negative_prompt: str = None,
+        guidance_scale: float = 7.5,
+        seed: int = None,
+        auto_unload: bool = True,
+    ) -> Image.Image:
+        """
+        SDXL 모델을 로드하여 배경 이미지를 생성하고 즉시 언로드합니다.
+
+        Args:
+            prompt (str): 배경 생성을 위한 텍스트 프롬프트
+            negative_prompt (str, optional): 배제할 요소들에 대한 부정 프롬프트
+            guidance_scale (float): 프롬프트 준수 강도 (기본 7.5, SDXL 권장값)
+            seed (int, optional): 난수 시드
+
+        Returns:
+            Image.Image: 생성된 배경 이미지
+        """
+        if self.dummy_mode:
+            logger.info(f"[DUMMY] Generating BG with SDXL: {prompt}")
+
+            total_steps = 10
+            for i in range(total_steps):
+                time.sleep(0.5)  # Simulate delay
+                if self.progress_callback:
+                    self.progress_callback(
+                        step_num=i + 1,
+                        total_steps=total_steps,
+                        sub_step_name="sdxl_bg_generation",
+                    )
+            return self._create_dummy_image(1024, 1024, "lightgreen")
+
+        return self.sdxl_base_gen.generate_background(
             prompt,
             negative_prompt,
             guidance_scale,

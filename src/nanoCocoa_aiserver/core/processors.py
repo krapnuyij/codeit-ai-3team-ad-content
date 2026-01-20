@@ -15,6 +15,7 @@ import asyncio
 import torch
 
 from PIL import Image, ImageDraw, ImageFont
+from utils import get_system_metrics
 from helper_dev_utils import get_auto_logger
 
 logger = get_auto_logger()
@@ -61,15 +62,15 @@ def process_step1_background(
     shared_state["message"] = "Step 1: Generating Background... (배경 이미지 생성 중)"
 
     # 입력 이미지 확인 및 전처리
-    input_img_b64 = input_data.get("input_image")
+    product_img_b64 = input_data.get("product_image")
 
-    if input_img_b64 == "DUMMY_IMAGE_DATA":
+    if product_img_b64 == "DUMMY_IMAGE_DATA":
         # 더미 모드: 테스트용 흰색 이미지 생성
         raw_img = Image.new("RGB", (512, 512), "white")
         logger.info("[Step 1] Using dummy white image for testing")
-    elif input_img_b64 and len(input_img_b64) > 100:
+    elif product_img_b64 and len(product_img_b64) > 100:
         # Base64 디코딩하여 PIL 이미지로 변환 (최소 길이 검증)
-        raw_img = base64_to_pil(input_img_b64)
+        raw_img = base64_to_pil(product_img_b64)
         logger.info(f"[Step 1] Input image loaded: {raw_img.size}")
     else:
         # 입력 이미지 없음: 배경 생성 전용 모드 (상품 없이 배경만 생성)
@@ -78,28 +79,43 @@ def process_step1_background(
 
     # 1. 누끼 (Segmentation)
     shared_state["sub_step"] = "segmentation"
-    from utils import get_system_metrics
-
     shared_state["system_metrics"] = get_system_metrics()
 
-    # 2. 배경 생성 (Flux Text-to-Image)
-    shared_state["sub_step"] = "flux_background_generation"
+    # 2. 배경 생성 (Flux 또는 SDXL Text-to-Image)
+    shared_state["sub_step"] = "background_generation"
     shared_state["system_metrics"] = get_system_metrics()
     bg_prompt = input_data.get("bg_prompt")
     bg_negative_prompt = input_data.get("bg_negative_prompt")
     guidance_scale = input_data.get("guidance_scale", 3.5)
     seed = input_data.get("seed")
-    bg_img = engine.run_flux_bg_gen(
-        prompt=bg_prompt,
-        negative_prompt=bg_negative_prompt,
-        guidance_scale=guidance_scale,
-        seed=seed,
-        auto_unload=True,
-    )
+    bg_model = input_data.get("bg_model", "flux")
 
-    # 입력 이미지가 없는 경우, 배경 이미지만 반환
-    if not input_img_b64:
-        return bg_img  # 입력 이미지가 없는 경우, 배경 이미지만 반환
+    # 모델별 guidance_scale 조정
+    if bg_model == "sdxl":
+        # SDXL 사용
+        bg_img = engine.run_sdxl_bg_gen(
+            prompt=bg_prompt,
+            negative_prompt=bg_negative_prompt,
+            guidance_scale=guidance_scale,
+            seed=seed,
+            auto_unload=True,
+        )
+    else:
+        # Flux 사용 (기본값)
+        bg_img = engine.run_flux_bg_gen(
+            prompt=bg_prompt,
+            negative_prompt=bg_negative_prompt,
+            guidance_scale=guidance_scale,
+            seed=seed,
+            auto_unload=True,
+        )
+
+    # 입력 이미지가 없거나 stop_step=1인 경우, 배경 이미지만 반환
+    if not product_img_b64 or input_data.get("stop_step") == 1:
+        logger.info(
+            f"[Step 1] Skipping Inpainting - product_image: {bool(product_img_b64)}, stop_step: {input_data.get('stop_step')}"
+        )
+        return bg_img
 
     # 3. 이미지 특성 주입 (Feature Injection via Inpainting)
     shared_state["sub_step"] = "flux_feature_injection"

@@ -53,7 +53,7 @@ async def direct_generate_ad(request: DirectGenerateRequest):
                 f"{AISERVER_URL}/generate",
                 json={
                     "start_step": 1,
-                    "input_image": request.input_image_base64,
+                    "product_image": request.input_image_base64,
                     "bg_prompt": request.bg_prompt,
                     "text_content": request.text_content,
                     "text_model_prompt": request.text_model_prompt,

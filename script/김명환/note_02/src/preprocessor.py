@@ -14,6 +14,7 @@ import logging
 # Try to import helper_dev_utils, fallback to standard logging if not available
 try:
     from helper_dev_utils import get_auto_logger
+
     logger = get_auto_logger()
 except ImportError:
     logging.basicConfig(level=logging.INFO)
@@ -115,12 +116,12 @@ class ObjectMatting:
 
             # 처리를 위해 RGB로 변환
             if original_image.mode != "RGB":
-                input_image = original_image.convert("RGB")
+                product_image = original_image.convert("RGB")
             else:
-                input_image = original_image
+                product_image = original_image
 
             # 이미지 전처리 (1024x1024로 리사이즈 및 정규화)
-            input_tensor = self.transform(input_image).unsqueeze(0).to(self.device)
+            input_tensor = self.transform(product_image).unsqueeze(0).to(self.device)
 
             # 추론 실행 (배경 마스크 생성)
             print("  배경 제거 실행 중...")
@@ -142,13 +143,13 @@ class ObjectMatting:
             # 결과 이미지 생성
             if return_rgba:
                 # RGBA 이미지 생성 (투명 배경)
-                result = input_image.convert("RGBA")
+                result = product_image.convert("RGBA")
                 result.putalpha(mask_image)  # 알파 채널로 마스크 적용
                 print("  ✓ 배경 제거 완료 (RGBA)")
             else:
                 # 검은 배경의 RGB 이미지 생성
                 result = Image.new("RGB", original_size, (0, 0, 0))
-                result.paste(input_image, mask=mask_image)
+                result.paste(product_image, mask=mask_image)
                 print("  ✓ 배경 제거 완료 (RGB)")
 
             return result

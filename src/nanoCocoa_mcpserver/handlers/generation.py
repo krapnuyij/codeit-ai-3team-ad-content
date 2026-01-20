@@ -36,6 +36,7 @@ async def generate_ad_image(
     text_content: str = "",
     font_name: Optional[str] = None,
     background_prompt: Optional[str] = None,
+    bg_model: str = "flux",
     background_negative_prompt: Optional[str] = None,
     bg_composition_prompt: Optional[str] = None,
     bg_composition_negative_prompt: Optional[str] = None,
@@ -67,6 +68,9 @@ async def generate_ad_image(
     - 3: 전체 실행
     """
     try:
+        # [디버그] MCP 핸들러가 받은 bg_model 로깅
+        logger.info(f"[MCP Handler] bg_model 수신: {bg_model}")
+
         client = await get_api_client()
 
         # 제품 이미지 처리
@@ -74,12 +78,8 @@ async def generate_ad_image(
             logger.info(f"제품 이미지 로드: {product_image_path}")
             product_image_b64 = image_file_to_base64(product_image_path)
         else:
-            logger.info("제품 이미지 없음 - 배경 프롬프트에 제품이 포함되어야 함")
-            transparent_img = Image.new("RGBA", (512, 512), (255, 255, 255, 0))
-            buffer = io.BytesIO()
-            transparent_img.save(buffer, format="PNG")
-            buffer.seek(0)
-            product_image_b64 = base64.b64encode(buffer.read()).decode("utf-8")
+            logger.info("제품 이미지 없음 - 배경만 생성")
+            product_image_b64 = None
 
         # 프롬프트 기본값 처리
         if not background_prompt:
@@ -92,15 +92,16 @@ async def generate_ad_image(
             start_step=1,
             stop_step=stop_step,
             text_content=text_content,
-            input_image=product_image_b64,
+            product_image=product_image_b64,
             step1_image=None,
             step2_image=None,
+            bg_model=bg_model,
             bg_prompt=background_prompt,
             bg_negative_prompt=background_negative_prompt or "",
             bg_composition_prompt=bg_composition_prompt,
             bg_composition_negative_prompt=bg_composition_negative_prompt,
             text_prompt=text_prompt,
-            negative_prompt=text_negative_prompt or "",
+            text_negative_prompt=text_negative_prompt or "",
             font_name=font_name,
             composition_mode=composition_mode,
             text_position=text_position,

@@ -149,7 +149,7 @@ sequenceDiagram
     BE->>LLM: 5. 프롬프트 생성 요청 "건어물 대박 세일"
     LLM-->>BE: 6. 영문 프롬프트 반환 "Dried seafood..."
 
-    BE->>MS: 7. POST /generate {input_image, bg_prompt, text_content}
+    BE->>MS: 7. POST /generate {product_image, bg_prompt, text_content}
     MS->>MS: 8. Job ID 생성 Worker Process 생성
     MS-->>BE: 9. {job_id, status: "started"}
     BE-->>FE: 10. {job_id}

@@ -62,7 +62,7 @@ def run_api_tests(test_image_path, log_func):
             b64_img = base64.b64encode(img_bytes).decode("utf-8")
 
         payload = {
-            "input_image": b64_img,
+            "product_image": b64_img,
             "bg_prompt": "A delicious yellow banana lying on aa wooden table",
             "text_model_prompt": "Gold texture",
             "text_content": "BANANA",

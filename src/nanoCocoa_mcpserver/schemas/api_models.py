@@ -89,7 +89,16 @@ class GenerateRequest(BaseModel):
     )
 
     # Step 1 (배경 생성) 입력
-    input_image: Optional[str] = Field(
+    bg_model: str = Field(
+        "flux",
+        title="배경 생성 모델 (Background Model)",
+        description=(
+            "배경 이미지 생성에 사용할 AI 모델을 선택합니다.\n"
+            "- `flux`: Flux 모델 사용 (기본값 고품질, 빠른 생성, guidance_scale 3.5 권장)\n"
+            "- `sdxl`: SDXL 모델 사용 (심플, guidance_scale 7.5 권장)"
+        ),
+    )
+    product_image: Optional[str] = Field(
         None,
         title="입력 이미지 (Base64)",
         description="제품 이미지 (Base64 인코딩 문자열)",
@@ -126,10 +135,10 @@ class GenerateRequest(BaseModel):
         title="텍스트 모델 프롬프트",
         description="3D 텍스트의 재질, 조명, 스타일 정의",
     )
-    negative_prompt: str = Field(
+    text_negative_prompt: str = Field(
         "floor, ground, dirt, debris, random shapes, multiple objects, clutter, ugly, low quality",
-        title="부정 프롬프트",
-        description="생성 결과에서 배제할 요소",
+        title="텍스트 모델 부정 프롬프트",
+        description="텍스트 생성 시 배제할 요소",
     )
     font_name: Optional[str] = Field(
         None,

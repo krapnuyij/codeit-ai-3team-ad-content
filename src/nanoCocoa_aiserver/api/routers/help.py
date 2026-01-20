@@ -44,7 +44,7 @@ async def get_help():
                 "POST /generate": {
                     "description": "새로운 광고 생성 작업 시작 (비동기)",
                     "required_fields": {
-                        "input_image": "상품 이미지 (Base64 인코딩)",
+                        "product_image": "상품 이미지 (Base64 인코딩)",
                         "bg_prompt": "배경 설명 (예: 'luxury hotel lobby with warm lighting')",
                         "text_content": "광고 텍스트 (예: 'Summer Sale')",
                     },
@@ -113,7 +113,7 @@ async def get_help():
                         "step": 3,
                         "action": "POST /generate",
                         "body": {
-                            "input_image": "<base64_image>",
+                            "product_image": "<base64_image>",
                             "bg_prompt": "modern office with natural lighting",
                             "text_content": "New Product",
                             "font_name": "NanumSquare/NanumSquareB.ttf",
@@ -331,7 +331,7 @@ async def get_parameters_help():
             },
             "step1_background": {
                 "description": "Step 1 (배경 생성) 관련 파라미터",
-                "input_image": {
+                "product_image": {
                     "type": "string (Base64)",
                     "required": False,
                     "description": "상품 이미지 (Base64 인코딩)",
@@ -341,7 +341,7 @@ async def get_parameters_help():
                 },
                 "bg_prompt": {
                     "type": "string",
-                    "required": "input_image = None 일 때 필수",,
+                    "required": "product_image = None 일 때 필수",,
                     "default": "",
                     "description": "생성할 배경 이미지 설명 (영문 권장)",
                     "tips": [
@@ -549,7 +549,7 @@ async def get_parameters_help():
             "basic_full_pipeline": {
                 "description": "기본 전체 파이프라인 실행",
                 "request": {
-                    "input_image": "<base64_product_image>",
+                    "product_image": "<base64_product_image>",
                     "bg_prompt": "luxury hotel lobby with warm lighting",
                     "text_content": "Grand Opening",
                     "text_prompt": "gold metallic 3D text",
@@ -560,7 +560,7 @@ async def get_parameters_help():
             "advanced_customization": {
                 "description": "고급 커스터마이징 예시",
                 "request": {
-                    "input_image": "<base64_product_image>",
+                    "product_image": "<base64_product_image>",
                     "bg_prompt": "modern minimalist studio with soft shadows",
                     "bg_negative_prompt": "cluttered, dark, people, text",
                     "text_content": "NEW COLLECTION",
@@ -601,7 +601,7 @@ async def get_parameters_help():
             "background_only_with_stop_step": {
                 "description": "배경만 생성 (stop_step 사용)",
                 "request": {
-                    "input_image": "<base64_product_image>",
+                    "product_image": "<base64_product_image>",
                     "bg_prompt": "modern office workspace with natural light",
                     "start_step": 1,
                     "stop_step": 1,
@@ -612,7 +612,7 @@ async def get_parameters_help():
             "background_and_text_only": {
                 "description": "배경 + 텍스트만 생성 (합성 제외)",
                 "request": {
-                    "input_image": "<base64_product_image>",
+                    "product_image": "<base64_product_image>",
                     "bg_prompt": "luxury marble background",
                     "text_content": "Premium",
                     "text_prompt": "gold metallic 3D text",
@@ -674,7 +674,7 @@ async def get_examples():
                         "curl": """curl -X POST "http://localhost:8000/generate" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "input_image": "<base64_cosmetic_product>",
+    "product_image": "<base64_cosmetic_product>",
     "bg_prompt": "luxury marble bathroom with gold accents and soft lighting",
     "text_content": "Premium Beauty",
     "text_prompt": "elegant gold metallic text with subtle glow",
@@ -687,7 +687,7 @@ with open("cosmetic_product.png", "rb") as f:
     image_b64 = base64.b64encode(f.read()).decode()
 
 response = requests.post("http://localhost:8000/generate", json={
-    "input_image": image_b64,
+    "product_image": image_b64,
     "bg_prompt": "luxury marble bathroom with gold accents and soft lighting",
     "text_content": "Premium Beauty",
     "text_prompt": "elegant gold metallic text with subtle glow",
@@ -742,7 +742,7 @@ new_job_id = new_response.json()["job_id"]""",
                 "python": """import time
 
 base_job = requests.post("http://localhost:8000/generate", json={
-    "input_image": product_image_b64,
+    "product_image": product_image_b64,
     "bg_prompt": "modern office workspace",
     "text_content": ""  # 배경만 생성
 }).json()
@@ -846,7 +846,7 @@ def generate_with_retry(request_data, max_retries=3):
 # 사용 예시
 try:
     final_image = generate_with_retry({
-        "input_image": product_b64,
+        "product_image": product_b64,
         "bg_prompt": "luxury background",
         "text_content": "Special Offer"
     })

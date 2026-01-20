@@ -25,7 +25,7 @@ def test_aiserver_generate_dummy():
 
         payload = {
             "start_step": 1,
-            "input_image": dummy_image,
+            "product_image": dummy_image,
             "bg_prompt": "Test background",
             "text_content": "TEST",
             "text_model_prompt": "Test text",
@@ -94,7 +94,7 @@ def test_aiserver_step_by_step_dummy():
         print("  - Step 1: 배경 생성...")
         step1_payload = {
             "start_step": 1,
-            "input_image": dummy_image,
+            "product_image": dummy_image,
             "bg_prompt": "Test background",
             "test_mode": True,
         }

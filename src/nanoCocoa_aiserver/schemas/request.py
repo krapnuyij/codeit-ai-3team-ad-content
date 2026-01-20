@@ -19,6 +19,7 @@ class GenerateRequest(BaseModel):
             "example": {
                 "start_step": 1,
                 "text_content": "New Arrival",
+                "bg_model": "flux",
                 "bg_prompt": "Wooden table in a cozy cafe, sunlight, realistic",
                 "text_prompt": "Gold balloon text, 3d render",
                 "strength": 0.6,
@@ -70,7 +71,17 @@ class GenerateRequest(BaseModel):
     )
 
     # Step 1 (배경 생성) 입력
-    input_image: Optional[str] = Field(
+    bg_model: str = Field(
+        "flux",
+        title="배경 생성 모델 (Background Model)",
+        description=(
+            "배경 이미지 생성에 사용할 AI 모델을 선택합니다.\n"
+            "- `flux`: Flux 모델 사용 (기본값 고품질, 빠른 생성, guidance_scale 3.5 권장)\n"
+            "- `sdxl`: SDXL 모델 사용 (심플, guidance_scale 7.5 권장)"
+        ),
+        json_schema_extra={"example": "flux"},
+    )
+    product_image: Optional[str] = Field(
         None,
         title="입력 이미지 (Input Image)",
         description=(
