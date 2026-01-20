@@ -121,7 +121,7 @@ class AIModelEngine:
         strength: float = 0.6,
         guidance_scale: float = 3.5,
         seed: int = None,
-        autounload: bool = True,
+        auto_unload: bool = True,
     ) -> Image.Image:
         """
         Flux Img2Img 모델을 로드하여 초안 이미지를 리터칭(배경 합성)하고 언로드합니다.
@@ -163,7 +163,7 @@ class AIModelEngine:
             guidance_scale=guidance_scale,
             seed=seed,
             progress_callback=self.progress_callback,
-            autounload=autounload,
+            auto_unload=auto_unload,
         )
 
     def run_flux_inpaint_injection(
@@ -177,7 +177,7 @@ class AIModelEngine:
         strength: float = 0.5,
         guidance_scale: float = 3.5,
         seed: int = None,
-        autounload: bool = True,
+        auto_unload: bool = True,
     ) -> Image.Image:
         """
         Flux Inpainting을 사용하여 상품 특성을 배경에 주입합니다.
@@ -222,7 +222,7 @@ class AIModelEngine:
             strength=strength,
             guidance_scale=guidance_scale,
             seed=seed,
-            autounload=autounload,
+            auto_unload=auto_unload,
             progress_callback=self.progress_callback,
         )
 
