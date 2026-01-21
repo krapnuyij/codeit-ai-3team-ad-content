@@ -13,18 +13,12 @@ sys.path.insert(0, str(project_root))
 
 from typing import Optional, Callable, Any
 from contextlib import asynccontextmanager
-
-try:
-    from helper_dev_utils import print_json_tree
-except ImportError:
-    # helper_dev_utils가 없으면 기본 print 사용
-    def print_json_tree(data: Any, **kwargs) -> None:
-        import json
-
-        print(json.dumps(data, indent=2, ensure_ascii=False))
-
-
+from helper_dev_utils import print_json_tree
 import httpx
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
+
 
 try:
     from ..config import (

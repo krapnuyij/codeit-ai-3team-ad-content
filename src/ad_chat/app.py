@@ -12,7 +12,7 @@ Architecture:
     ├── config.py (설정)
     ├── services/
     │   ├── mcp_client.py (MCP 서버 통신)
-    │   └── mongo_service.py (MongoDB CRUD)
+    │   └── simple_job_store.py  # SimpleJobStore
     ├── ui/
     │   ├── auth_ui.py (인증 화면)
     │   ├── chat_ui.py (채팅 인터페이스)

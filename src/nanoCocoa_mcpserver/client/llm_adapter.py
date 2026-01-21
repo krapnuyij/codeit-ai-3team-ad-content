@@ -7,6 +7,7 @@ import asyncio
 import json
 import logging
 import sys
+import os
 from pathlib import Path
 
 project_root = Path(__file__).resolve().parent
@@ -19,7 +20,9 @@ from openai import AsyncOpenAI
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-logger = logging.getLogger(__name__)
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 
 class LLMMCPAdapter:
@@ -111,9 +114,6 @@ class LLMMCPAdapter:
         logger.info(
             f"MCP 서버 연결 중: {self.mcp_server_command} {' '.join(self.mcp_server_args)}"
         )
-
-        # 프로젝트 루트로 작업 디렉토리 설정
-        import os
 
         project_root = Path(__file__).parent.parent.parent.parent
 

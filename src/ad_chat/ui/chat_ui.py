@@ -27,7 +27,7 @@ from config import (
     STATUS_FAILED,
     POLLING_INTERVAL,
 )
-from services import LLMAdapter, MongoManager, MCPClient, get_job_store
+from services import LLMAdapter, MCPClient, get_job_store
 from utils.state_manager import (
     add_chat_message,
     get_session_value,

@@ -4,6 +4,8 @@ REST API를 통해 nanoCocoa_aiserver를 제어하는 서버
 LLM Adapter와 HTTP 통신
 """
 
+import os
+import uvicorn
 import asyncio
 import logging
 import sys
@@ -38,11 +40,9 @@ from handlers import (
 )
 
 # 로깅 설정
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-)
-logger = logging.getLogger(__name__)
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 # FastAPI 서버 초기화
 app = FastAPI(
@@ -350,8 +350,6 @@ async def call_tool(tool_name: str, request: Dict[str, Any]):
 
 def main():
     """메인 진입점"""
-    import os
-    import uvicorn
 
     logger.info(f"{MCP_SERVER_NAME} v{MCP_SERVER_VERSION} 시작")
     logger.info(f"설명: {MCP_SERVER_DESCRIPTION}")

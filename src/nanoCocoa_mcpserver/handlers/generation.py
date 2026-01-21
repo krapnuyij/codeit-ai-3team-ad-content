@@ -16,7 +16,9 @@ from utils.image_utils import (
     ImageProcessingError,
 )
 
-logger = logging.getLogger(__name__)
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 # API 클라이언트 전역 인스턴스
 _api_client: Optional[AIServerClient] = None

@@ -6,8 +6,9 @@ import logging
 
 from handlers.generation import get_api_client
 from client.api_client import AIServerError
+from helper_dev_utils import get_auto_logger
 
-logger = logging.getLogger(__name__)
+logger = get_auto_logger()
 
 
 async def get_all_jobs() -> str:

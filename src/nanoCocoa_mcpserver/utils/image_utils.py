@@ -26,14 +26,9 @@ from config import (
     STATIC_BASE_PATH,
 )
 
-# MCP stdio 프로토콜은 stdout을 사용하므로 stderr로만 로깅
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stderr)],
-    force=True,
-)
-logger = logging.getLogger(__name__)
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 
 class ImageProcessingError(Exception):

@@ -18,7 +18,7 @@ src/ad_chat/
 ├── requirements.txt         # 의존성 목록
 ├── services/                # 비즈니스 로직 계층
 │   ├── __init__.py          # mcpadapter.MCPClient, LLMAdapter import
-│   └── mongo_service.py     # MongoDB CRUD
+│   └── simple_job_store.py  # SimpleJobStore
 ├── ui/                      # UI 컴포넌트 계층
 │   ├── __init__.py
 │   ├── auth_ui.py           # API Key 입력 화면
@@ -126,9 +126,6 @@ streamlit run app.py
 - 비동기 기반 (asyncio.run 래핑)
 
 ### 클래스 기반 설계
-
-- **MongoManager**: MongoDB CRUD 작업
-- 각 UI 컴포넌트는 독립적인 모듈
 
 ### 에러 핸들링
 

@@ -9,8 +9,9 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, List, Optional
 import logging
+from helper_dev_utils import get_auto_logger
 
-logger = logging.getLogger(__name__)
+logger = get_auto_logger()
 
 # 작업 저장 파일
 JOBS_FILE = Path(__file__).parent.parent / "data" / "jobs.json"

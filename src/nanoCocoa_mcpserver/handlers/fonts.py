@@ -8,7 +8,9 @@ from typing import Optional
 from handlers.generation import get_api_client
 from client.api_client import AIServerError
 
-logger = logging.getLogger(__name__)
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 
 async def list_available_fonts() -> str:
