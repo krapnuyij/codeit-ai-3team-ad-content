@@ -134,7 +134,7 @@ async def process_with_aiserver(
         encoded_image = to_base64(image_data)
 
         # AI 서버 URL (환경변수 또는 기본값)
-        ai_server_url = os.getenv("NANOCOCOA_URL", "http://nanocacao_aiserver:8892")
+        ai_server_url = os.getenv("NANOCOCOA_URL", "http://nanocacao_aiserver:8000")
 
         # 텍스트 스타일을 영문 프롬프트로 변환
         text_style_prompts = {
@@ -474,7 +474,7 @@ async def generate_homepage(request: Request, customer_id: int):
 
         # homepage_generator 컨테이너에 데이터 전송
         homepage_generator_url = os.getenv(
-            "HOMEPAGE_GENERATOR_URL", "http://homepage_generator:8081"
+            "HOMEPAGE_GENERATOR_URL", "http://homepage_generator:8891"
         )
 
         async with httpx.AsyncClient(timeout=600.0) as client:
@@ -527,4 +527,4 @@ async def generate_homepage(request: Request, customer_id: int):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8893)
+    uvicorn.run(app, host="0.0.0.0", port=8890)

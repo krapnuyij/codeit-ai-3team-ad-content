@@ -13,7 +13,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://owner:owner1234@customer_db:5432/customer_db
       - HOMEPAGE_GENERATOR_URL=http://homepage_generator:8891
-      - NANOCOCOA_URL=http://nanococoa_aiserver:8892
+      - NANOCOCOA_URL=http://nanococoa_aiserver:8000
     volumes:
       - ./backend/generated_sites:/app/sites
     command: uvicorn app:app --host 0.0.0.0 --port 8890 --reload
@@ -58,7 +58,7 @@ services:
       - HF_HUB_CACHE=/root/.cache/huggingface/hub
       - HF_TOKEN=${HF_TOKEN}
     ports:
-      - "8892:8892"
+      - "8000:8000"
     volumes:
       - /opt/huggingface:/root/.cache/huggingface
       - nanococoa_results:/app/static/results
@@ -70,9 +70,9 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [gpu]
-    command: uvicorn main:app --host 0.0.0.0 --port 8892 --workers 1
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 1
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://34.44.205.198:8892/health"]
+      test: ["CMD", "curl", "-f", "http://34.44.205.198:8000/health"]
       interval: 30s
       timeout: 10s
       start_period: 60s
@@ -95,7 +95,7 @@ services:
       - MCP_TRANSPORT=sse
       - MCP_PORT=3000
       - MCP_HOST=0.0.0.0
-      - AISERVER_BASE_URL=http://nanococoa_aiserver:8892
+      - AISERVER_BASE_URL=http://nanococoa_aiserver:8000
       - LOG_LEVEL=INFO
     depends_on:
       nanococoa_aiserver:
