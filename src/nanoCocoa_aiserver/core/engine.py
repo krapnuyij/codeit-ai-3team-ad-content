@@ -450,6 +450,7 @@ class AIModelEngine:
 
         self.flux_gen.unload()
         self.sdxl_gen.unload()
+        self.sdxl_base_gen.unload()
 
         log_gpu_memory("After Step1 models unload")
         logger.info("Step 1 models unloaded")
@@ -470,3 +471,23 @@ class AIModelEngine:
 
         log_gpu_memory("After Step2 models unload")
         logger.info("Step 2 models unloaded")
+
+    def unload_all_models(self) -> None:
+        """
+        모든 모델을 명시적으로 언로드합니다.
+        워커 프로세스 종료 전 GPU 메모리 정리용입니다.
+        """
+        if self.dummy_mode:
+            return
+
+        logger.info("[Engine] Starting full model unload")
+        log_gpu_memory("Before all models unload")
+
+        self.flux_gen.unload()
+        self.sdxl_gen.unload()
+        self.sdxl_base_gen.unload()
+        self.sdxl_text_gen.unload()
+        self.compositor.unload()
+
+        log_gpu_memory("After all models unload")
+        logger.info("[Engine] All models unloaded")

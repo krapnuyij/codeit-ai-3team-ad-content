@@ -26,27 +26,28 @@ class SDXLBaseGenerator:
     def __init__(self):
         """파이프라인 인스턴스 초기화 (실제 로딩은 각 메서드 호출 시 수행)"""
         self.pipeline = None
-        logger.info("SDXLGenerator initialized (pipeline will load on demand)")
+        logger.info("SDXLBaseGenerator initialized (pipeline will load on demand)")
 
     def _load_pipeline(self):
-        """SDXL Text-to-Image 파이프라인 로딩 (캐싱)"""
+        """SDXL Text-to-Image 파이프라인 로딩 (Playground v2.5)"""
         if self.pipeline is not None:
             return self.pipeline
 
-        logger.info("[SDXLGenerator] Loading SDXL Text-to-Image pipeline...")
+        logger.info("[SDXLBaseGenerator] Loading Playground v2.5 pipeline...")
+
         self.pipeline = StableDiffusionXLPipeline.from_pretrained(
             MODEL_IDS["SDXL_BASE"],
             torch_dtype=TORCH_DTYPE,
         ).to(DEVICE)
 
-        self.pipeline.enable_model_cpu_offload()
-        self.pipeline.enable_attention_slicing()
-        if hasattr(self.pipeline, "vae") and hasattr(
-            self.pipeline.vae, "enable_slicing"
-        ):
-            self.pipeline.vae.enable_slicing()
+        # self.pipeline.enable_model_cpu_offload()
+        # self.pipeline.enable_attention_slicing()
+        # if hasattr(self.pipeline, "vae") and hasattr(
+        #     self.pipeline.vae, "enable_slicing"
+        # ):
+        #     self.pipeline.vae.enable_slicing()
 
-        logger.info("[SDXLGenerator] Text-to-Image pipeline ready")
+        logger.info("[SDXLBaseGenerator] Playground v2.5 pipeline ready")
         return self.pipeline
 
     def generate_background(
@@ -72,7 +73,7 @@ class SDXLBaseGenerator:
         Returns:
             Image.Image: 생성된 이미지
         """
-        logger.info("[SDXLGenerator] Generating background with Text-to-Image...")
+        logger.info("[SDXLBaseGenerator] Generating background with Text-to-Image...")
 
         num_steps = 15
 
@@ -91,8 +92,8 @@ class SDXLBaseGenerator:
         if seed is not None:
             generator = torch.Generator(DEVICE).manual_seed(seed)
 
-        logger.info(f" [SDXLGenerator] prompt='{prompt}' ")
-        logger.info(f" [SDXLGenerator] negative_prompt='{negative_prompt}' ")
+        logger.info(f" [SDXLBaseGenerator] prompt='{prompt}' ")
+        logger.info(f" [SDXLBaseGenerator] negative_prompt='{negative_prompt}' ")
 
         image = pipe(
             prompt,
@@ -105,10 +106,12 @@ class SDXLBaseGenerator:
             callback_on_step_end=callback_fn if progress_callback else None,
         ).images[0]
 
-        logger.info("[SDXLGenerator] Background generation completed")
+        logger.info("[SDXLBaseGenerator] Background generation completed")
 
         if auto_unload:
-            logger.info("[SDXLGenerator] Auto-unloading after background generation")
+            logger.info(
+                "[SDXLBaseGenerator] Auto-unloading after background generation"
+            )
             self.unload()
 
         return image
@@ -120,12 +123,12 @@ class SDXLBaseGenerator:
         캐싱된 파이프라인을 삭제하여 GPU 메모리를 해제합니다.
         """
 
-        log_gpu_memory("SDXLGenerator unload (before)")
+        log_gpu_memory("SDXLBaseGenerator unload (before)")
 
         if self.pipeline is not None:
             del self.pipeline
             self.pipeline = None
 
         flush_gpu()
-        log_gpu_memory("SDXLGenerator unload (after)")
-        logger.info("SDXLGenerator unloaded (pipeline cleared)")
+        log_gpu_memory("SDXLBaseGenerator unload (after)")
+        logger.info("SDXLBaseGenerator unloaded (pipeline cleared)")

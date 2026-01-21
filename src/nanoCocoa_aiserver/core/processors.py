@@ -374,7 +374,7 @@ def process_step2_llm_text(
             api_key=api_key,
             model="gpt-5-mini",
             temperature=1.0,
-            max_completion_tokens=16000,
+            max_completion_tokens=128000,
         )
         logger.info("[Step2 LLM] LLMTexttoHTML initialized successfully")
     except Exception as e:

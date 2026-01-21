@@ -189,6 +189,9 @@ async def check_generation_status(
         status = await client.get_status(job_id)
 
         import json
+        import base64
+        from pathlib import Path
+        from config import AISERVER_BASE_URL
 
         response_data = {
             "job_id": status.job_id,
@@ -199,11 +202,35 @@ async def check_generation_status(
             "elapsed_sec": round(status.elapsed_sec, 1),
         }
 
-        if status.status == "completed" and save_result_path and status.final_result:
-            output_path = base64_to_image_file(
-                status.final_result, save_result_path, overwrite=True
-            )
-            response_data["saved_path"] = str(output_path)
+        # 완료된 경우 이미지 처리
+        if status.status == "completed":
+            # step1, step2, final 중 가장 최신 결과 선택
+            result_image = None
+            result_name = None
+
+            if status.final_result:
+                result_image = status.final_result
+                result_name = "final"
+            elif status.step2_result:
+                result_image = status.step2_result
+                result_name = "step2"
+            elif status.step1_result:
+                result_image = status.step1_result
+                result_name = "step1"
+
+            # Base64 이미지 직접 반환 (임시 파일 저장 제거)
+            if result_image:
+                response_data["image_base64"] = result_image
+                response_data["result_type"] = result_name
+                logger.info(f"이미지 Base64 반환: result_type={result_name}")
+
+                # save_result_path가 지정된 경우에만 파일 저장
+                if save_result_path:
+                    output_path = base64_to_image_file(
+                        result_image, save_result_path, overwrite=True
+                    )
+                    response_data["saved_path"] = str(output_path)
+                    logger.info(f"이미지 저장: {output_path}")
 
         return json.dumps(response_data, ensure_ascii=False)
 

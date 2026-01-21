@@ -41,7 +41,7 @@ class LLMTexttoHTML:
         api_key: str,
         model: str = "gpt-5-mini",
         temperature: float = 1.0,
-        max_completion_tokens: int = 16000,
+        max_completion_tokens: int = 128000,
     ):
         """
         LLMTexttoHTML 초기화
@@ -50,7 +50,7 @@ class LLMTexttoHTML:
             api_key: OpenAI API 키
             model: 사용할 모델 (기본값: gpt-5-mini, 128K 출력 지원)
             temperature: 생성 다양성 (0.0-2.0, 기본값: 0.7)
-            max_completion_tokens: 최대 출력 토큰 (기본값: 16000)
+            max_completion_tokens: 최대 출력 토큰 (기본값: 128000)
         """
         self.openai_client = OpenAI(api_key=api_key)
         self.model = model

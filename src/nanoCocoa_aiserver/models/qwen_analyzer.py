@@ -23,6 +23,7 @@ logger = get_auto_logger()
 
 from utils import flush_gpu
 from services.monitor import log_gpu_memory
+from config import DEVICE, MODEL_IDS, TORCH_DTYPE
 
 
 class QwenAnalyzer:
@@ -39,9 +40,7 @@ class QwenAnalyzer:
         processor: 이미지/텍스트 전처리 프로세서
     """
 
-    def __init__(
-        self, model_name: str = "Qwen/Qwen2-VL-7B-Instruct", device: str = None
-    ):
+    def __init__(self, model_name: str = MODEL_IDS["QWEN"], device: str = None):
         """
         QwenAnalyzer 초기화
 
@@ -85,7 +84,8 @@ class QwenAnalyzer:
         """VRAM 확보를 위해 모델을 언로드합니다."""
         if self.model is not None:
             logger.debug("  Qwen2-VL 모델 언로드 중...")
-            self.model.to("cpu")  # GPU에서 CPU로 이동
+            # device_map="auto"로 로드된 모델은 .to() 사용 불가
+            # 직접 삭제 후 GPU 캐시 정리
             del self.model
             del self.processor
             self.model = None

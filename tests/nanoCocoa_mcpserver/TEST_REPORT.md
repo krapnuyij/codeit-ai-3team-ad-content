@@ -71,6 +71,10 @@ tests/nanoCocoa_mcpserver/
 
 ### 1. nanoCocoa_mcpserver 수정
 - `client/__init__.py`: LLMMCPAdapter import 제거 (openai 의존성 제거)
+- `client/llm_adapter.py`: stdio 기반 LLMMCPAdapter 제거 (2026-01-21)
+  - HTTP 기반 mcpadapter.LLMAdapter로 대체
+  - stdio/conda 의존성 제거
+  - 실사용처 없음 확인 완료
 - `utils/image_utils.py`: 절대 경로를 상대 경로로 수정
 - `server.py`: FastMCP SSE 모드 지원 추가
   ```python

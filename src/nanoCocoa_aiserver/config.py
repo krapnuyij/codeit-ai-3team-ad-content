@@ -23,9 +23,11 @@ TORCH_DTYPE = torch.bfloat16
 MODEL_IDS = {
     "SEG": "ZhengPeng7/BiRefNet",
     "FLUX": "black-forest-labs/FLUX.1-dev",
-    "SDXL_BASE": "stabilityai/stable-diffusion-xl-base-1.0",
+    # "SDXL_BASE": "stabilityai/stable-diffusion-xl-base-1.0",
+    "SDXL_BASE": "playgroundai/playground-v2.5-1024px-aesthetic",
     "SDXL_CNET": "diffusers/controlnet-canny-sdxl-1.0",
     "SDXL_VAE": "madebyollin/sdxl-vae-fp16-fix",
+    "QWEN": "Qwen/Qwen2-VL-7B-Instruct",
 }
 
 # 예상 소요 시간 (초 단위, 초기값)
