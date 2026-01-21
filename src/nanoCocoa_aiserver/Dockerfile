@@ -84,6 +84,9 @@ RUN pip install --no-cache-dir \
 RUN grep -v "^torch" requirements-docker.txt | grep -v "^--index-url" > /tmp/requirements-no-torch.txt && \
     pip install --no-cache-dir -r /tmp/requirements-no-torch.txt
 
+# nvidia-ml-py 설치
+RUN pip install --no-cache-dir nvidia-ml-py
+
 # Playwright 브라우저 설치 (Python 모듈로 직접 실행)
 RUN python3 -m playwright install chromium --with-deps
 
