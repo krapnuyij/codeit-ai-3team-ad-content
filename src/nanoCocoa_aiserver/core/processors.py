@@ -34,6 +34,9 @@ from utils import (
 # LLM 기반 텍스트 생성 사용 여부 (True: LLM, False: SDXL)
 USE_LLM_TEXT = True
 
+# 단순 이미지 생성이 아닌 FLUX 대체 모드에서 SDXL Step 1 사용 여부
+USE_FLUX_SDXL_STEP1 = True
+
 
 def process_step1_background(
     engine, input_data: dict, shared_state: dict, stop_event
@@ -90,79 +93,105 @@ def process_step1_background(
     seed = input_data.get("seed")
     bg_model = input_data.get("bg_model", "flux")
 
-    # 모델별 guidance_scale 조정
-    if bg_model == "sdxl":
-        # SDXL 사용
-        bg_img = engine.run_sdxl_bg_gen(
-            prompt=bg_prompt,
-            negative_prompt=bg_negative_prompt,
-            guidance_scale=guidance_scale,
-            seed=seed,
-            auto_unload=False,
-        )
-    else:
-        # Flux 사용 (기본값)
-        bg_img = engine.run_flux_bg_gen(
-            prompt=bg_prompt,
-            negative_prompt=bg_negative_prompt,
-            guidance_scale=guidance_scale,
-            seed=seed,
-            auto_unload=True,
-        )
-
-    # 입력 이미지가 없거나 stop_step=1인 경우, 배경 이미지만 반환
-    if not product_img_b64 or input_data.get("stop_step") == 1:
-        logger.info(
-            f"[Step 1] Skipping Inpainting - product_image: {bool(product_img_b64)}, stop_step: {input_data.get('stop_step')}"
-        )
+    if USE_FLUX_SDXL_STEP1:
+        # 입력 이미지가 없거나 stop_step=1인 경우, 배경 이미지만 반환
+        if not product_img_b64 or input_data.get("stop_step") == 1:
+            bg_img = engine.run_sdxl_bg_gen(
+                prompt=bg_prompt,
+                negative_prompt=bg_negative_prompt,
+                guidance_scale=guidance_scale,
+                seed=seed,
+                auto_unload=False,
+            )
+        else:
+            shared_state["sub_step"] = "sdxl_feature_injection"
+            bg_img = engine.run_sdxl_inpaint_injection(
+                user_bg=raw_img,
+                prompt=bg_prompt,
+                negative_prompt=bg_negative_prompt,
+                guidance_scale=guidance_scale,
+                seed=seed,
+                auto_unload=False,
+            )
         return bg_img
 
-    # 3. 이미지 특성 주입 (Feature Injection via Inpainting)
-    shared_state["sub_step"] = "flux_feature_injection"
-    shared_state["system_metrics"] = get_system_metrics()
+    else:
 
-    # 3-1. 상품 배치 계산
-    bg_w, bg_h = bg_img.size
-    scale = 0.4
+        # 모델별 guidance_scale 조정
+        if bg_model == "sdxl":
+            # SDXL 사용
+            bg_img = engine.run_sdxl_base_bg_gen(
+                prompt=bg_prompt,
+                negative_prompt=bg_negative_prompt,
+                guidance_scale=guidance_scale,
+                seed=seed,
+                auto_unload=False,
+            )
+        else:
+            # Flux 사용 (기본값)
+            bg_img = engine.run_flux_bg_gen(
+                prompt=bg_prompt,
+                negative_prompt=bg_negative_prompt,
+                guidance_scale=guidance_scale,
+                seed=seed,
+                auto_unload=True,
+            )
+        # 입력 이미지가 없거나 stop_step=1인 경우, 배경 이미지만 반환
+        if not product_img_b64 or input_data.get("stop_step") == 1:
+            logger.info(
+                f"[Step 1] Skipping Inpainting - product_image: {bool(product_img_b64)}, stop_step: {input_data.get('stop_step')}"
+            )
+            return bg_img
 
-    # 상품 이미지에서 전경 및 마스크 추출
-    product_fg, mask = engine.run_segmentation(raw_img)
+        # 3. 이미지 특성 주입 (Feature Injection via Inpainting)
+        shared_state["sub_step"] = "flux_feature_injection"
+        shared_state["system_metrics"] = get_system_metrics()
 
-    fg_resized = product_fg.resize(
-        (int(product_fg.width * scale), int(product_fg.height * scale)), Image.LANCZOS
-    )
-    x = (bg_w - fg_resized.width) // 2
-    y = int(bg_h * 0.55)
+        # 3-1. 상품 배치 계산
+        bg_w, bg_h = bg_img.size
+        scale = 0.4
 
-    # 3-2. 상품 마스크 생성 (inpainting 영역)
-    product_mask_placed = Image.new("L", bg_img.size, 0)
-    mask_resized = mask.resize(fg_resized.size, Image.LANCZOS)
-    product_mask_placed.paste(mask_resized, (x, y))
+        # 상품 이미지에서 전경 및 마스크 추출
+        product_fg, mask = engine.run_segmentation(raw_img)
 
-    # 3-3. Inpainting으로 특성 주입
-    composition_prompt = input_data.get("bg_composition_prompt") or (
-        "A photorealistic object integration. "
-        "Heavy contact shadows, ambient occlusion, realistic texture and lighting, "
-        "8k, extremely detailed, cinematic."
-    )
-    composition_negative_prompt = input_data.get("bg_composition_negative_prompt") or (
-        "floating, disconnected, unrealistic shadows, artificial lighting, cut out, sticker effect"
-    )
-    strength = input_data.get("strength", 0.5)
+        fg_resized = product_fg.resize(
+            (int(product_fg.width * scale), int(product_fg.height * scale)),
+            Image.LANCZOS,
+        )
+        x = (bg_w - fg_resized.width) // 2
+        y = int(bg_h * 0.55)
 
-    result_img = engine.run_flux_inpaint_injection(
-        background=bg_img,
-        product_foreground=fg_resized,
-        product_mask=product_mask_placed,
-        position=(x, y),
-        prompt=composition_prompt,
-        negative_prompt=composition_negative_prompt,
-        strength=strength,
-        guidance_scale=guidance_scale,
-        seed=seed,
-    )
+        # 3-2. 상품 마스크 생성 (inpainting 영역)
+        product_mask_placed = Image.new("L", bg_img.size, 0)
+        mask_resized = mask.resize(fg_resized.size, Image.LANCZOS)
+        product_mask_placed.paste(mask_resized, (x, y))
 
-    return result_img
+        # 3-3. Inpainting으로 특성 주입
+        composition_prompt = input_data.get("bg_composition_prompt") or (
+            "A photorealistic object integration. "
+            "Heavy contact shadows, ambient occlusion, realistic texture and lighting, "
+            "8k, extremely detailed, cinematic."
+        )
+        composition_negative_prompt = input_data.get(
+            "bg_composition_negative_prompt"
+        ) or (
+            "floating, disconnected, unrealistic shadows, artificial lighting, cut out, sticker effect"
+        )
+        strength = input_data.get("strength", 0.5)
+
+        result_img = engine.run_flux_inpaint_injection(
+            background=bg_img,
+            product_foreground=fg_resized,
+            product_mask=product_mask_placed,
+            position=(x, y),
+            prompt=composition_prompt,
+            negative_prompt=composition_negative_prompt,
+            strength=strength,
+            guidance_scale=guidance_scale,
+            seed=seed,
+        )
+
+        return result_img
 
 
 def process_step2_text(

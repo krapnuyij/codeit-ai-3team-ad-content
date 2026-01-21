@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import logger
 from utils import get_system_metrics
 from api.middleware import FontHeaderMiddleware
-from api.routers import generation, resources
+from api.routers import generation, resources, dev_dashboard
 
 
 # 전역 상태 관리
@@ -103,18 +103,21 @@ def create_app() -> FastAPI:
     app.include_router(generation.router, tags=["Generation"])
     app.include_router(resources.router, tags=["Resources"])
     # app.include_router(help.router, tags=["Help & Documentation"])
-    # app.include_router(dev_dashboard.router, tags=["Development"])
+    app.include_router(dev_dashboard.router, tags=["Development"])
 
-    # Static files
-    # 대시보드 제거로 인해 static 마운트 제거
-    # if os.path.exists(static_dir):
-    #     app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    # Static files mount for dev dashboard
+    if os.path.exists(static_dir):
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
+        logger.info(f"Static files mounted: {static_dir}")
+    else:
+        logger.warning(f"Static directory not found: {static_dir}")
 
-    # 폰트는 API에서 목록 조회 등으로 사용될 수 있으므로 유지 여부 결정 필요
-    # 하지만 클라이언트가 폰트 파일을 직접 다운로드할 필요가 없다면 마운트 해제 가능
-    # 현재 구조상 backend가 폰트 이름을 보내면 서버가 로컬에서 로드하므로 마운트 불필요
-    # if os.path.exists(fonts_dir):
-    #     app.mount("/fonts", StaticFiles(directory=fonts_dir), name="fonts")
+    # Fonts mount (optional, for future use)
+    if os.path.exists(fonts_dir):
+        app.mount("/fonts", StaticFiles(directory=fonts_dir), name="fonts")
+        logger.info(f"Fonts mounted: {fonts_dir}")
+    else:
+        logger.warning(f"Fonts directory not found: {fonts_dir}")
 
     # Root endpoint
     @app.get("/", include_in_schema=False)

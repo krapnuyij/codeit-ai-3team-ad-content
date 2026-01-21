@@ -9,6 +9,7 @@ from PIL import Image
 from models.segmentation import SegmentationModel
 from models.flux_generator import FluxGenerator
 from models.sdxl_text import SDXLTextGenerator
+from models.sdxl_base_generator import SDXLBaseGenerator
 from models.sdxl_generator import SDXLGenerator
 from models.CompositionEngine import CompositionEngine
 from utils.MaskGenerator import MaskGenerator
@@ -42,8 +43,9 @@ class AIModelEngine:
             logger.debug("AIModelEngine: Initializing sub-models")
             self.segmenter = SegmentationModel()
             self.flux_gen = FluxGenerator()
-            self.sdxl_gen = SDXLTextGenerator()
-            self.sdxl_base_gen = SDXLGenerator()
+            self.sdxl_gen = SDXLGenerator()
+            self.sdxl_text_gen = SDXLTextGenerator()
+            self.sdxl_base_gen = SDXLBaseGenerator()
             self.compositor = CompositionEngine()
             logger.debug("AIModelEngine: Initializing sub-models completed")
         else:
@@ -119,6 +121,44 @@ class AIModelEngine:
         )
 
     def run_sdxl_bg_gen(
+        self,
+        prompt: str,
+        negative_prompt: str = None,
+        guidance_scale: float = 7.5,
+        seed: int = None,
+        auto_unload: bool = True,
+    ) -> Image.Image:
+        return self.sdxl_gen.generate_background(
+            prompt,
+            negative_prompt,
+            guidance_scale,
+            seed,
+            self.progress_callback,
+            auto_unload=auto_unload,
+        )
+
+    def run_sdxl_inpaint_injection(
+        self,
+        background: Image.Image,
+        user_bg: Image.Image,
+        prompt: str,
+        negative_prompt: str = None,
+        strength: float = 0.5,
+        guidance_scale: float = 3.5,
+        seed: int = None,
+        auto_unload: bool = True,
+    ) -> Image.Image:
+        return self.sdxl_gen.generate_background_image(
+            user_bg=user_bg,
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            strength=strength,
+            guidance_scale=guidance_scale,
+            seed=seed,
+            auto_unload=auto_unload,
+        )
+
+    def run_sdxl_base_bg_gen(
         self,
         prompt: str,
         negative_prompt: str = None,
@@ -313,7 +353,7 @@ class AIModelEngine:
         logger.info(f"prompt={prompt}")
         logger.info(f"negative_prompt={negative_prompt}")
 
-        return self.sdxl_gen.generate_text_effect(
+        return self.sdxl_text_gen.generate_text_effect(
             canny_map, prompt, negative_prompt, seed, self.progress_callback
         )
 
@@ -408,6 +448,7 @@ class AIModelEngine:
         log_gpu_memory("Before Step1 models unload")
 
         self.flux_gen.unload()
+        self.sdxl_gen.unload()
 
         log_gpu_memory("After Step1 models unload")
         logger.info("Step 1 models unloaded")
@@ -425,6 +466,7 @@ class AIModelEngine:
         log_gpu_memory("Before Step2 models unload")
 
         self.sdxl_gen.unload()
+        self.sdxl_text_gen.unload()
         self.segmenter.unload()
 
         log_gpu_memory("After Step2 models unload")
