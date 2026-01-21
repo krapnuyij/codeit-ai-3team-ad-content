@@ -64,7 +64,7 @@ async def test_full_pipeline_test_mode(require_aiserver, integration_output_dir)
         # 테스트 모드로 빠르게 실행
         params = GenerateRequest(
             start_step=1,
-            input_image=None,  # 테스트 모드에서는 필수 아님
+            product_image=None,  # 테스트 모드에서는 필수 아님
             bg_prompt="Modern office desk, laptop",
             text_content="TEST",
             text_model_prompt="Gold metallic text",
@@ -116,7 +116,7 @@ async def test_step_by_step_workflow(require_aiserver, integration_output_dir):
         logger.info("[Step 1/3] 배경 생성 시작 - 잠시 기다려주세요...")
         step1_params = GenerateRequest(
             start_step=1,
-            input_image=None,
+            product_image=None,
             bg_prompt="Wooden table, cozy cafe",
             text_content=None,  # 배경만
             test_mode=True,

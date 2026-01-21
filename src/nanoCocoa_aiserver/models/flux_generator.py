@@ -115,6 +115,38 @@ class FluxGenerator:
         logger.info("[FluxGenerator] Inpaint pipeline ready")
         return self.inpaint_pipe
 
+    def unload(self) -> None:
+        """
+        명시적으로 Flux 모델 리소스를 정리합니다.
+
+        캐싱된 모든 파이프라인과 Transformer를 삭제하여 GPU 메모리를 해제합니다.
+        """
+        from services.monitor import log_gpu_memory
+
+        log_gpu_memory("FluxGenerator unload (before)")
+
+        # 모든 파이프라인 삭제
+        if self.t2i_pipe is not None:
+            del self.t2i_pipe
+            self.t2i_pipe = None
+
+        if self.i2i_pipe is not None:
+            del self.i2i_pipe
+            self.i2i_pipe = None
+
+        if self.inpaint_pipe is not None:
+            del self.inpaint_pipe
+            self.inpaint_pipe = None
+
+        # Transformer 삭제
+        if self.transformer is not None:
+            del self.transformer
+            self.transformer = None
+
+        flush_gpu()
+        log_gpu_memory("FluxGenerator unload (after)")
+        logger.info("FluxGenerator unloaded (all pipelines cleared)")
+
     def generate_background(
         self,
         prompt: str,
@@ -179,38 +211,6 @@ class FluxGenerator:
             self.unload()
 
         return image
-
-    def unload(self) -> None:
-        """
-        명시적으로 Flux 모델 리소스를 정리합니다.
-
-        캐싱된 모든 파이프라인과 Transformer를 삭제하여 GPU 메모리를 해제합니다.
-        """
-        from services.monitor import log_gpu_memory
-
-        log_gpu_memory("FluxGenerator unload (before)")
-
-        # 모든 파이프라인 삭제
-        if self.t2i_pipe is not None:
-            del self.t2i_pipe
-            self.t2i_pipe = None
-
-        if self.i2i_pipe is not None:
-            del self.i2i_pipe
-            self.i2i_pipe = None
-
-        if self.inpaint_pipe is not None:
-            del self.inpaint_pipe
-            self.inpaint_pipe = None
-
-        # Transformer 삭제
-        if self.transformer is not None:
-            del self.transformer
-            self.transformer = None
-
-        flush_gpu()
-        log_gpu_memory("FluxGenerator unload (after)")
-        logger.info("FluxGenerator unloaded (all pipelines cleared)")
 
     def refine_image(
         self,
@@ -528,7 +528,7 @@ class FluxGenerator:
         seed: int = None,
         progress_callback=None,
         auto_unload: bool = True,
-    ) -> Image.Image:
+    ) -> Image.Image:  # 사용안함
         """
         Flux Inpainting을 사용하여 텍스트를 배경과 맥락적으로 합성합니다.
 

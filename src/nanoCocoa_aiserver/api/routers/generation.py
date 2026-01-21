@@ -81,7 +81,7 @@ async def generate_ad(req: GenerateRequest, response: Response):
     ### Step 구조 및 실행 방법
     1. **Step 1 (Background)**:
        - `start_step=1` (기본값)
-       - `input_image` (누끼 딸 상품 이미지) 선택
+       - `product_image` (누끼 딸 상품 이미지) 선택
     2. **Step 2 (Text Asset)**:
        - `start_step=2`
        - `step1_image` (배경 합성된 이미지) 필수
@@ -95,6 +95,19 @@ async def generate_ad(req: GenerateRequest, response: Response):
     - 이 서버는 **단일 작업(Single Job)**만 처리합니다.
     - 이미 작업이 돌고 있을 경우 **503 Service Unavailable** 응답과 함께 `Retry-After` 헤더를 반환합니다.
     """
+
+    # stop_step validation
+    if req.stop_step is not None:
+        if req.stop_step < req.start_step:
+            raise HTTPException(
+                status_code=400,
+                detail=f"stop_step ({req.stop_step}) must be >= start_step ({req.start_step})",
+            )
+        if req.stop_step < 1 or req.stop_step > 3:
+            raise HTTPException(
+                status_code=400,
+                detail=f"stop_step must be between 1 and 3, got {req.stop_step}",
+            )
 
     # 동시성 제어
     active_jobs = [j for j, s in JOBS.items() if s["status"] in ("running", "pending")]

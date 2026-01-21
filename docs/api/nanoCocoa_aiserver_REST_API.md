@@ -62,7 +62,7 @@ Step 3: 최종 합성 (약 5초)
 |------|------|------|--------|------|
 | `start_step` | integer | 선택 | 1 | 시작 단계 (1: 전체, 2: 텍스트부터, 3: 합성만) |
 | `text_content` | string \| null | 선택 | null | 광고 텍스트 (null이면 배경만 생성) |
-| `input_image` | string | 조건부 | - | 상품 이미지 (Base64, start_step=1일 때 선택) |
+| `product_image` | string | 조건부 | - | 상품 이미지 (Base64, start_step=1일 때 선택) |
 | `bg_prompt` | string | start_step=1 | 기본 프롬프트 | 배경 생성 프롬프트 |
 | `bg_negative_prompt` | string | 선택 | 기본 네거티브 | 배경 네거티브 프롬프트 |
 | `bg_composition_prompt` | string \| null | 선택 | null | 배경 합성 프롬프트 |
@@ -109,7 +109,7 @@ curl -X POST "http://localhost:8000/generate" \
   -H "Content-Type: application/json" \
   -d '{
     "start_step": 1,
-    "input_image": "iVBORw0KGgoAAAANSUhEUgAA...",
+    "product_image": "iVBORw0KGgoAAAANSUhEUgAA...",
     "bg_prompt": "modern office workspace with natural light and plants",
     "text_content": "New Product",
     "font_name": "NanumSquare/NanumSquareB.ttf",
@@ -443,7 +443,7 @@ curl -X POST "http://localhost:8000/generate" \
   -H "Content-Type: application/json" \
   -d '{
     "start_step": 1,
-    "input_image": "<base64_image>",
+    "product_image": "<base64_image>",
     "bg_prompt": "modern office with natural lighting",
     "text_content": "New Product",
     "font_name": "NanumSquare/NanumSquareB.ttf"
@@ -633,7 +633,7 @@ if vram_percent > 90:
 
 | 값 | 설명 | 필수 입력 |
 |----|------|-----------|
-| 1 | 전체 파이프라인 실행 | `input_image` (선택), `bg_prompt` |
+| 1 | 전체 파이프라인 실행 | `product_image` (선택), `bg_prompt` |
 | 2 | 텍스트 생성부터 시작 | `step1_image`, `text_content` |
 | 3 | 합성만 실행 | `step1_image`, `step2_image` |
 
@@ -789,7 +789,7 @@ def generate_ad(input_image_path: str, bg_prompt: str, text_content: str,
     # 요청 데이터
     payload = {
         "start_step": 1,
-        "input_image": input_image_b64,
+        "product_image": input_image_b64,
         "bg_prompt": bg_prompt,
         "text_content": text_content,
         "font_name": font_name
@@ -900,7 +900,7 @@ async function generateAd(inputImagePath, bgPrompt, textContent, fontName = null
   
   const payload = {
     start_step: 1,
-    input_image: inputImageB64,
+    product_image: inputImageB64,
     bg_prompt: bgPrompt,
     text_content: textContent,
     font_name: fontName
@@ -1015,7 +1015,7 @@ JOB_ID=$(curl -s -X POST "$BASE_URL/generate" \
   -H "Content-Type: application/json" \
   -d "{
     \"start_step\": 1,
-    \"input_image\": \"$INPUT_B64\",
+    \"product_image\": \"$INPUT_B64\",
     \"bg_prompt\": \"modern office with natural lighting\",
     \"text_content\": \"New Product\",
     \"font_name\": \"$FONT\"

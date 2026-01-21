@@ -141,7 +141,18 @@ class LLMAdapter:
             base_prompt += (
                 "[핵심 원칙]\n"
                 "generate_ad_image 호출 시 optional 파라미터를 MUST 생성하세요.\n\n"
+                "[배경 모델 선택 (bg_model)] **필수 생성**\n"
+                "**중요:** bg_model은 ALWAYS 명시적으로 설정해야 합니다. 생략 금지!\n\n"
+                "**'sdxl' 사용 조건** (다음 키워드 포함 시):\n"
+                "  - 속도: '빠르게', '빨리', '신속', '급하게', 'quick', 'fast', 'rapid'\n"
+                "  - 간소화: '심플', '간단', '기본', '테스트', 'simple', 'basic', 'preview'\n"
+                "  - 예: '빠른 배경 이미지' → bg_model='sdxl'\n\n"
+                "**'flux' 사용 조건** (기본값):\n"
+                "  - 고품질: '고품질', '디테일', '포토리얼', 'high-quality', 'photorealistic'\n"
+                "  - 속도 키워드 없음\n"
+                "  - 예: '바나나 광고', '배경 생성' → bg_model='flux'\n\n"
                 "[필수 생성 파라미터]\n"
+                "0. bg_model: 'sdxl' 또는 'flux' (위 조건에 따라)\n"
                 "1. background_negative_prompt (8-15 keywords)\n"
                 "   품질: blurry, low quality, distorted\n"
                 "   조명: bad lighting, harsh shadows, overexposed\n"
@@ -161,6 +172,7 @@ class LLMAdapter:
                 "[예시]\n"
                 "사용자: 바나나 특가 광고 만들어줘\n"
                 "AI: generate_ad_image(\n"
+                "  bg_model='flux',\n"
                 "  background_prompt='Vibrant Korean market, colorful fruit stalls...',\n"
                 "  background_negative_prompt='blurry, cluttered, watermark, harsh shadows',\n"
                 "  bg_composition_prompt='Banana naturally placed, matching warm lighting, realistic depth',\n"
@@ -171,7 +183,7 @@ class LLMAdapter:
                 "  composition_negative_prompt='artificial looking, halos, color mismatch'\n"
                 ")\n\n"
                 "**중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지. 단위, 문맥 등은 적당하게 수정 가능, 나머지 프롬프트(background_prompt, text_prompt, ...prompt 등)는 영문으로 작성하세요.\n"
-                "**중요:** background_prompt 생성시 2000자 이상으로 상세히 작성하세요.\n"
+                "**중요:** background_prompt 생성시 1000자 이상으로 상세히 작성하세요.\n"
             )
             return base_prompt
 
@@ -274,6 +286,32 @@ class LLMAdapter:
             for tool_call in message.tool_calls:
                 tool_name = tool_call.function.name
                 tool_args = json.loads(tool_call.function.arguments)
+
+                # [디버그] LLM이 선택한 파라미터 로깅
+                if tool_name == "generate_ad_image":
+                    logger.info("=" * 60)
+                    logger.info("[LLM 도구 호출] generate_ad_image")
+                    logger.info(f"  bg_model: {tool_args.get('bg_model', 'NOT_SET')}")
+                    logger.info(f"  stop_step: {tool_args.get('stop_step', 'NOT_SET')}")
+                    logger.info(
+                        f"  text_content: {tool_args.get('text_content', 'NOT_SET')}"
+                    )
+                    bg_prompt = tool_args.get("background_prompt", "NOT_SET")
+                    if bg_prompt != "NOT_SET":
+                        logger.info(f"  background_prompt: {bg_prompt[:100]}...")
+                    else:
+                        logger.info(f"  background_prompt: {bg_prompt}")
+                    logger.info("[LLM이 생성한 전체 파라미터]")
+                    for key, value in tool_args.items():
+                        if key not in [
+                            "background_prompt",
+                            "bg_model",
+                            "stop_step",
+                            "text_content",
+                        ]:
+                            val_str = str(value)[:80] if value else "None"
+                            logger.info(f"    {key}: {val_str}")
+                    logger.info("=" * 60)
 
                 # generate_ad_image 필수 optional 파라미터 자동 생성 (누락 시)
                 if tool_name == "generate_ad_image":

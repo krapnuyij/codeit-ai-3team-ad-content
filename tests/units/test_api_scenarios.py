@@ -117,7 +117,7 @@ def test_sequential_api_calls():
 
     req_body = {
         "start_step": 1,
-        "input_image": banana_b64,
+        "product_image": banana_b64,
         "text_content": "First Job",
         "test_mode": True,
     }
@@ -161,7 +161,7 @@ def test_red_rose_generation():
     banana_b64 = get_base64_image(BANANA_IMG_PATH)
     req_body = {
         "start_step": 1,
-        "input_image": banana_b64,
+        "product_image": banana_b64,
         "bg_prompt": "red rose on a table",
         "text_content": "Love",
         "test_mode": True,
@@ -199,7 +199,7 @@ def test_kindergarten_ad_generation():
     banana_b64 = get_base64_image(BANANA_IMG_PATH)
     req_body = {
         "start_step": 1,
-        "input_image": banana_b64,
+        "product_image": banana_b64,
         "bg_prompt": "Kindergarten classroom",
         "text_content": "Recruitment",
         "test_mode": True,
@@ -269,7 +269,7 @@ def test_no_text_content_scenario():
     # text_content를 None으로 설정
     req_body = {
         "start_step": 1,
-        "input_image": banana_b64,
+        "product_image": banana_b64,
         "bg_prompt": "wooden table background",
         "text_content": None,  # TEXT 없음
         "test_mode": True,
@@ -316,7 +316,7 @@ def test_empty_text_content_scenario():
     # text_content를 빈 문자열로 설정
     req_body = {
         "start_step": 1,
-        "input_image": banana_b64,
+        "product_image": banana_b64,
         "bg_prompt": "white studio background",
         "text_content": "",  # 빈 문자열
         "test_mode": True,

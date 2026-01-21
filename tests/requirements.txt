@@ -1,0 +1,30 @@
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.1.0
+torchvision==0.16.0
+xformers==0.0.22.post7
+
+# 이미지 생성 및 변형 (Diffusers)
+diffusers==0.26.3
+transformers==4.38.1
+accelerate==0.27.2
+controlnet_aux==0.0.7
+
+# 배경 제거 (BiRefNet/Segmentation)
+timm==0.9.12
+scipy==1.11.4
+einops==0.7.0
+
+# 이미지 처리 및 수치 연산
+opencv-python==4.9.0.80
+Pillow==10.2.0
+numpy==1.26.4
+
+# API 서버 (FastAPI)
+fastapi==0.109.2
+uvicorn==0.27.1
+python-multipart==0.0.9
+pydantic==2.6.1
+
+# 유틸리티
+python-dotenv==1.0.1
+requests==2.31.0

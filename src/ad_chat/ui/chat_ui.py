@@ -235,11 +235,6 @@ async def generate_ai_response_async(user_message: str):
     """
     api_key = get_session_value("openai_key")
 
-    # 제품 이미지 자동 생성 (없을 경우)
-    product_image = UPLOADS_DIR / "test_product.png"
-    if not product_image.exists():
-        create_test_product_image(product_image)
-
     # 폰트 메타데이터 가져오기
     font_metadata = st.session_state.get("font_metadata", [])
     font_info_section = ""
@@ -301,12 +296,20 @@ async def generate_ai_response_async(user_message: str):
 - 핵심 메시지 및 카피 제안
 - 비주얼 컨셉 제안
 - 폰트 추천 (필요 시 `recommend_font` 도구 사용)
+- bg_model 선택 가이드 제공 (sdxl vs flux)
 
 ### 2단계: 최종 확인 및 생성 실행
 - **중요:** 사용자가 다음 표현을 **명확히** 사용할 때만 `generate_ad_image` 도구 호출:
   - "생성해줘", "만들어줘", "광고 생성", "시작", "실행"
   - "지금 만들어", "이제 생성", "OK 생성", "확인 생성"
-  - 영어: "generate", "create now", "start generation"
+  - **"배경만 만들어줘"**, "배경만 생성", "텍스트 추가해줘", "글자 넣어줘"
+  - 영어: "generate", "create now", "start generation", "add text"
+
+- **부분 생성 요청 감지 및 도구 선택:**
+  - "배경만": `generate_background_only` 도구 사용 또는 `generate_ad_image`에 stop_step=1, text_content=None
+  - "텍스트만 추가", "글자 넣어줘": `generate_text_asset_only` 도구 사용 (step1_image 필요)
+  - "합성만": `compose_final_image` 도구 사용 (step1_image, step2_image 필요)
+  - "배경 + 텍스트만": `generate_ad_image`에 stop_step=2
 
 - **도구 호출 전 확인 금지 표현:**
   - "어떤가요?", "괜찮나요?", "의견 있으세요?", "수정할 부분?", "의견은?"
@@ -319,6 +322,13 @@ async def generate_ai_response_async(user_message: str):
 
 **MCP 도구 호출 규칙:**
 - `generate_ad_image` 필수 파라미터:
+  - **bg_model**: 배경 생성 모델 선택 (중요!)
+    * **"sdxl"**: 빠른 생성 (~30초-1분), 심플한 품질
+      - 사용 시기: "빠르게", "신속하게", "급하게", "빨리", "테스트", "미리보기"
+      - guidance_scale은 자동으로 7.5 조정됨
+    * **"flux"** (기본값): 고품질 생성 (~2-3분), 포토리얼리스틱
+      - 사용 시기: 품질 중요, 최종 결과물, 명시적 요청 없으면 기본값
+      - guidance_scale 기본 3.5 권장
   - background_prompt: 영문 배경 설명 (15-30단어)
     * **중요**: 제품 이미지(product_image_path)를 제공하지 않는 경우, 
       background_prompt에 제품 상세 설명을 반드시 포함해야 함
@@ -333,10 +343,42 @@ async def generate_ai_response_async(user_message: str):
   - product_image_path: 제품 이미지 경로 (제공 안 하면 배경에 제품 포함하여 생성)
   - composition_mode: "overlay" (기본값)
   - wait_for_completion: false (비동기 처리)
+  - **stop_step**: 파이프라인 중단 단계 (1, 2, 3 또는 None)
+    * **배경만 생성**: stop_step=1 + text_content=None
+    * **배경 + 텍스트까지만**: stop_step=2
+    * **전체 생성**: stop_step=None (기본값) 또는 생략
 
 - **제품 이미지 제공 여부에 따른 처리**:
   1. **제품 이미지 있음**: product_image_path 제공 + background_prompt는 배경만 설명
   2. **제품 이미지 없음**: product_image_path 생략 + background_prompt에 제품+배경 모두 설명
+
+- **stop_step 활용 시나리오**:
+  1. **"배경만 만들어줘"**: 
+     - **권장**: `generate_background_only` 도구 사용 (간편함)
+     - 대안: `generate_ad_image`에 stop_step=1, text_content=None
+     - 예: 사용자가 나중에 텍스트를 따로 추가하고 싶을 때
+  
+  2. **"이 이미지에 텍스트만 추가해줘"**:
+     - **권장**: `generate_text_asset_only` 도구 사용
+     - 파라미터: step1_image_path (업로드된 배경 이미지), text_content, text_prompt
+     - 예: 기존 배경에 다양한 텍스트 스타일 테스트
+  
+  3. **"이미지 두 개 합성만 해줘"**:
+     - **권장**: `compose_final_image` 도구 사용
+     - 파라미터: step1_image_path (배경), step2_image_path (텍스트)
+     - 예: 배경과 텍스트를 각각 준비한 후 합성만 실행
+  
+  4. **"배경과 텍스트만 생성하고 합성은 나중에"**:
+     - `generate_ad_image`에 stop_step=2
+     - 예: 여러 합성 옵션을 시도하기 전 배경과 텍스트만 먼저 확보
+
+**MCP 도구 목록:**
+1. **generate_ad_image**: 전체 파이프라인 또는 부분 실행 (stop_step 활용)
+2. **generate_background_only**: 배경만 생성 (Step 1 전용)
+3. **generate_text_asset_only**: 텍스트만 생성 (Step 2 전용, step1_image 필요)
+4. **compose_final_image**: 합성만 실행 (Step 3 전용, step1_image + step2_image 필요)
+5. **recommend_font**: 폰트 추천
+6. **list_fonts_with_metadata**: 전체 폰트 목록
 
 **응답 가이드:**
 - 기획 단계: 컨셉 제안 후 "생성을 원하시면 '생성해줘'라고 말씀해주세요" 안내
@@ -345,7 +387,7 @@ async def generate_ai_response_async(user_message: str):
 - **중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지
 - background_prompt, text_prompt 등 이미지 생성 prompt만 영문으로 작성
 **중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지. 단위, 문맥 등은 적당하게 수정 가능, 나머지 프롬프트(background_prompt, text_prompt, ...prompt 등)는 영문으로 작성하세요.
-**중요:** background_prompt 생성시 2000자 이상으로 상세히 작성하세요.
+**중요:** background_prompt 생성시 1000자 이상으로 상세히 작성하세요.
 """
 
     try:
@@ -372,6 +414,26 @@ async def generate_ai_response_async(user_message: str):
             adapter.conversation_history.insert(
                 0, {"role": "system", "content": system_prompt}
             )
+
+            # [디버그] 시스템 프롬프트 확인
+            # logger.info("=" * 60)
+            # logger.info("[디버그] 시스템 프롬프트 체크")
+            # if "bg_model" in system_prompt:
+            #     logger.info("  ✓ bg_model 가이드 포함됨")
+            #     # bg_model 관련 부분만 추출하여 로깅
+            #     lines = system_prompt.split("\n")
+            #     in_bg_model_section = False
+            #     for line in lines:
+            #         if "bg_model" in line.lower():
+            #             in_bg_model_section = True
+            #         if in_bg_model_section:
+            #             logger.info(f"    {line}")
+            #             if line.strip().startswith("-") and "composition_mode" in line:
+            #                 break
+            # else:
+            #     logger.warning("  ✗ bg_model 가이드 누락!")
+            logger.info(f"[디버그] 사용자 메시지: {user_message}")
+            logger.info("=" * 60)
 
             # LLM 응답 생성 (필요 시 자동으로 MCP 도구 호출)
             response, tool_params = await adapter.chat(user_message, max_tool_calls=3)
@@ -452,17 +514,16 @@ def handle_job_creation(
         generation_params["mcp_server_url"] = MCP_SERVER_URL
         logger.info(f"실제 도구 파라미터 저장: {list(generation_params.keys())}")
     else:
-        # fallback: 기본 파라미터
-        product_image = UPLOADS_DIR / "test_product.png"
+        # fallback: 기본 파라미터 (제품 이미지 없이)
         generation_params = {
             "user_message": user_message,
             "text_content": user_message,
-            "product_image_path": str(product_image),
+            # product_image_path는 명시적으로 제공되지 않으면 None (생략)
             "composition_mode": "overlay",
             "model": OPENAI_MODEL,
             "mcp_server_url": MCP_SERVER_URL,
         }
-        logger.warning("도구 파라미터 없음, 기본값 사용")
+        logger.warning("도구 파라미터 없음, 기본값 사용 (제품 이미지 없음)")
 
     try:
         # 작업 저장 (파일 기반)

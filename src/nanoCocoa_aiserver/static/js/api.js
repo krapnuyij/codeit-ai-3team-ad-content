@@ -117,11 +117,11 @@ async function startGeneration() {
     // Requirement Checks
     if (startStep === 1) {
         const img = document.getElementById('input_image_b64').value;
-        if (isDummy) req.input_image = "DUMMY_IMAGE_DATA";
+        if (isDummy) req.product_image = "DUMMY_IMAGE_DATA";
         else if (img)
-            req.input_image = img;
+            req.product_image = img;
         else
-            req.input_image = null;
+            req.product_image = null;
     }
 
     if (startStep >= 2) {

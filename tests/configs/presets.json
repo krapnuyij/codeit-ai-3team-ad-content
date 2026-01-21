@@ -1,0 +1,20 @@
+{
+  "market_tone": {
+    "prompt": "traditional korean market alley background, soft daylight through blue arcade roof, authentic market atmosphere, blurred storefronts in background, high quality photography, ambient occlusion, soft top lighting",
+    "negative_prompt": "deformed, low quality, distorted, watermark, logo, japanese text, chinese text, messy floor",
+    "strength": 0.28,
+    "controlnet_scale": 0.5
+  },
+  "traditional_dry_fish": {
+    "prompt": "product placed on a rustic wooden tray, background of woven straw mats, warm morning sunlight, korean heritage mood, sharp texture, professional food styling, ambient occlusion, soft top lighting",
+    "negative_prompt": "blurry, messy layout, extra items, artifacts, text, oversaturated",
+    "strength": 0.32,
+    "controlnet_scale": 0.45
+  },
+  "clean_market_interior": {
+    "prompt": "brightly lit modern korean seafood shop, clean white counter top, blurred rows of dried fish in background, natural bright lighting, commercial product photo, 8k resolution, ambient occlusion, soft top lighting",
+    "negative_prompt": "dark, messy, low resolution, duplicate objects, reflections on glass",
+    "strength": 0.25,
+    "controlnet_scale": 0.5
+  }
+}

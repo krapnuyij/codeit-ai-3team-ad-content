@@ -68,7 +68,7 @@ def process_with_openai(
                             "text": f"이 이미지를 참고해서 '{purpose}' 목적의 '{mood}' 분위기 광고용 이미지 생성을 위한 프롬프트를 만들어줘.",
                         },
                         {
-                            "type": "input_image",
+                            "type": "product_image",
                             "image_url": encoded_image,  # ✅ 직접 문자열로 전달
                         },
                     ],
@@ -158,7 +158,7 @@ async def process_with_aiserver(
         # 1. 생성 요청 (전체 파이프라인: Step 1 → 2 → 3)
         payload = {
             "start_step": 1,
-            "input_image": encoded_image,
+            "product_image": encoded_image,
             "text_content": text_content,  # ✅ 활성화
             "bg_prompt": ad_prompt.positive_prompt,
             "bg_negative_prompt": ad_prompt.negative_prompt,

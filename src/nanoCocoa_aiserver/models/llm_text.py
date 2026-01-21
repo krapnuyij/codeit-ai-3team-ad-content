@@ -504,7 +504,7 @@ class LLMTexttoHTML:
 
             # PIL Image 객체인 경우 임시 파일로 저장
             if isinstance(image, Image.Image):
-                temp_image_path = temp_dir / "input_image.png"
+                temp_image_path = temp_dir / "product_image.png"
                 image.save(temp_image_path)
                 logger.debug(f"PIL Image를 임시 파일로 저장: {temp_image_path}")
                 image_path = str(temp_image_path)

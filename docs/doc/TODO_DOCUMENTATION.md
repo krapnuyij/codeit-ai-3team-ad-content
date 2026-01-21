@@ -20,7 +20,7 @@ pragma: no-cache
 ### 1.2. 문서화 필요 항목
 
 #### 1. README 또는 tests/README.md 업데이트
-- [ ] pytest 실행 옵션 섹션 추가
+- [x] pytest 실행 옵션 섹션 추가
   ```bash
   # 기본 실행 (dummy 모드 - GPU 미사용)
   pytest
@@ -42,18 +42,23 @@ pragma: no-cache
   ```
 
 #### 2. CI/CD 파이프라인 스크립트 확인 및 업데이트
-- [ ] `.github/workflows/*.yml` 또는 CI 설정 파일 확인
-- [ ] dummy 기본값 변경에 따른 스크립트 조정
-  - CI에서는 dummy 모드 유지할지 결정
-  - GPU 환경에서는 `--no-dummy` 사용 여부 결정
+- [x] CI/CD 설정 방향 결정
+  - CI에서는 dummy 모드 기본 사용 (빠른 테스트)
+  - GPU 환경에서는 `--no-dummy` 선택적 사용
+- [ ] 실제 `.github/workflows/*.yml` 파일 업데이트 (해당 파일 존재 시)
 
 #### 3. `run_tests.sh` 스크립트 검토
-- [ ] 현재 스크립트에 주석 추가
-- [ ] dummy/실제 엔진 모드 선택 옵션 추가 고려
+- [x] 테스트 실행 스크립트 생성 (`tests/run_tests.sh`)
+  - dummy/실제 엔진 모드 선택 옵션 구현
+  - 단위/통합/빠른 테스트 선택 옵션 추가
+  - 병렬 실행 옵션 추가
+  - conda 환경 확인 기능 포함
   ```bash
-  # 예시:
-  # ./run_tests.sh          # 기본 dummy 모드
-  # ./run_tests.sh --real   # 실제 엔진 모드
+  # 사용 예시:
+  ./tests/run_tests.sh          # 기본 dummy 모드
+  ./tests/run_tests.sh --real   # 실제 엔진 모드
+  ./tests/run_tests.sh --fast   # 빠른 테스트만
+  ./tests/run_tests.sh --unit --parallel  # 단위 테스트 병렬 실행
   ```
 
 #### 4. conftest.py 주석 업데이트
@@ -62,9 +67,45 @@ pragma: no-cache
 
 #### 5. 테스트 타임아웃 최적화
 - [x] 멀티프로세싱 워커 폴링 타임아웃: 5초 → 30초로 증가 완료
-- [ ] 실제 엔진 모드에서 타임아웃 조정 필요 여부 검토
+- [x] 실제 엔진 모드에서 타임아웃 조정 가이드 제공 (TEST_GUIDE.md)
 
 ## 완료된 작업
+
+### 2026-01-20
+1. TEST_GUIDE.md 업데이트
+   - Dummy 모드 vs 실제 엔진 모드 섹션 추가
+   - `--no-dummy` 옵션 사용법 문서화
+   - 예제 명령어에 dummy/no-dummy 옵션 추가
+   - 마커 테이블에 dummy 마커 추가
+
+2. README.md 업데이트
+   - 테스트 실행 섹션 추가
+   - Dummy 모드 기본 사용법 안내
+   - 실제 AI 엔진 테스트 방법 설명
+   - TEST_GUIDE.md 참조 링크 추가
+
+3. TODO_DOCUMENTATION.md 업데이트
+   - 완료된 항목 체크 표시
+   - 2026-01-20 완료 작업 기록
+
+4. tests/run_tests.sh 스크립트 생성
+   - dummy/실제 엔진 모드 선택 옵션 (`--real`)
+   - 테스트 타입 선택 (`--unit`, `--integration`, `--fast`)
+   - 병렬 실행 옵션 (`--parallel`)
+   - conda 환경 자동 확인
+   - 컬러 출력 및 상세 로그
+
+## 남은 작업
+
+### CI/CD 관련
+- [ ] `.github/workflows/*.yml` 파일이 있다면 pytest 옵션 업데이트
+  - dummy 모드 기본 사용
+  - GPU 환경에서는 `--no-dummy` 선택적 활성화
+
+### 선택적 개선 사항
+- [ ] pytest-html 플러그인 추가로 HTML 리포트 생성
+- [ ] 테스트 커버리지 측정 자동화
+- [ ] pre-commit hook에 테스트 자동 실행 추가
 
 ### 2026-01-01
 1. `conftest.py` 수정

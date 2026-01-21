@@ -215,7 +215,7 @@ TEST_IMAGE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "banan
 
 
 @pytest.fixture(scope="session")
-def input_image():
+def product_image():
     if os.path.exists(TEST_IMAGE_PATH):
         return Image.open(TEST_IMAGE_PATH).convert("RGB")
     # Fallback if image missing
@@ -400,14 +400,14 @@ def flux_gen(flux_gen_model):
 
 
 @pytest.fixture
-def seg_result(seg_model, input_image):
+def seg_result(seg_model, product_image):
     # Run segmentation for dependent tests
     try:
         # Note: If passing 'log_func' here was possible, we could log this setup step too.
         # But fixtures don't easily accept other fixtures' return values as functions unless scoped properly.
         # log_func is function scoped. seg_model is session.
         # We'll just run it.
-        res, mask = seg_model.run(input_image)
+        res, mask = seg_model.run(product_image)
         return res
     except Exception as e:
         pytest.skip(f"Segmentation failed: {e}")
