@@ -4,19 +4,17 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
-import torch
 import gc
+
+import torch
+from diffusers import (FluxImg2ImgPipeline, FluxInpaintPipeline, FluxPipeline,
+                       FluxTransformer2DModel)
+from helper_dev_utils import get_auto_logger
 from PIL import Image
-from diffusers import (
-    FluxPipeline,
-    FluxImg2ImgPipeline,
-    FluxInpaintPipeline,
-    FluxTransformer2DModel,
-)
 from transformers import BitsAndBytesConfig
+
 from config import MODEL_IDS, TORCH_DTYPE
 from utils import flush_gpu
-from helper_dev_utils import get_auto_logger
 
 logger = get_auto_logger()
 

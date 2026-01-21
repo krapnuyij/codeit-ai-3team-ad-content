@@ -5,16 +5,17 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
+from helper_dev_utils import get_auto_logger
 from PIL import Image
-from models.segmentation import SegmentationModel
+
+from models.CompositionEngine import CompositionEngine
 from models.flux_generator import FluxGenerator
-from models.sdxl_text import SDXLTextGenerator
 from models.sdxl_base_generator import SDXLBaseGenerator
 from models.sdxl_generator import SDXLGenerator
-from models.CompositionEngine import CompositionEngine
-from utils.MaskGenerator import MaskGenerator
-from helper_dev_utils import get_auto_logger
+from models.sdxl_text import SDXLTextGenerator
+from models.segmentation import SegmentationModel
 from services.monitor import log_gpu_memory
+from utils.MaskGenerator import MaskGenerator
 
 logger = get_auto_logger()
 
@@ -460,8 +461,6 @@ class AIModelEngine:
         """
         if self.dummy_mode:
             return
-
-        from services.monitor import log_gpu_memory
 
         log_gpu_memory("Before Step2 models unload")
 

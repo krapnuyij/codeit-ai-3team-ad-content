@@ -12,13 +12,16 @@ project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
 import gc
-import torch
-from PIL import Image
 from typing import Literal, Optional
-from config import DEVICE, TORCH_DTYPE, MODEL_IDS
-from transformers import BitsAndBytesConfig
-from diffusers import FluxTransformer2DModel, FluxInpaintPipeline
+
+import torch
+from diffusers import FluxInpaintPipeline, FluxTransformer2DModel
 from helper_dev_utils import get_auto_logger
+from PIL import Image
+from transformers import BitsAndBytesConfig
+from services.monitor import log_gpu_memory
+
+from config import DEVICE, MODEL_IDS, TORCH_DTYPE
 
 logger = get_auto_logger()
 
@@ -78,7 +81,6 @@ class CompositionEngine:
 
     def _unload_pipeline(self):
         """메모리 해제"""
-        from services.monitor import log_gpu_memory
 
         if self.pipe is not None:
             log_gpu_memory("Before Flux Inpainting unload")

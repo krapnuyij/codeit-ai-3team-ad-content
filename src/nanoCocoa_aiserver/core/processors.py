@@ -9,23 +9,25 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
+import asyncio
 import gc
 import os
-import asyncio
+import time
 import torch
-
+from helper_dev_utils import get_auto_logger
 from PIL import Image, ImageDraw, ImageFont
 from utils import get_system_metrics
-from helper_dev_utils import get_auto_logger
+from models.llm_text import LLMTexttoHTML
+from utils.images import reposition_text_asset
 
 logger = get_auto_logger()
 
 from utils import (
-    pil_to_base64,
     base64_to_pil,
-    pil_canny_edge,
     get_available_fonts,
     get_font_path,
+    pil_canny_edge,
+    pil_to_base64,
 )
 
 # ==========================================
@@ -35,7 +37,7 @@ from utils import (
 USE_LLM_TEXT = True
 
 # 단순 이미지 생성이 아닌 FLUX 대체 모드에서 SDXL Step 1 사용 여부
-USE_FLUX_SDXL_STEP1 = True
+USE_FLUX_SDXL_STEP1 = False
 
 
 def process_step1_background(
@@ -217,7 +219,6 @@ def process_step2_text(
 
     # 1. 폰트 및 캔버스 준비
     shared_state["sub_step"] = "preparing_text_canvas"
-    from utils import get_system_metrics
 
     shared_state["system_metrics"] = get_system_metrics()
 
@@ -257,9 +258,6 @@ def process_step2_text(
     if hasattr(engine, "auto_unload") and engine.auto_unload:
         logger.info("[Step2] Step 1 모델 언로드 시작")
         engine.unload_step1_models()
-
-        # 명시적 GPU 메모리 정리
-        import time
 
         time.sleep(0.5)
         gc.collect()
@@ -319,9 +317,6 @@ def process_step2_llm_text(
         logger.info("[Step2 LLM] Step 1 모델 언로드 시작")
         engine.unload_step1_models()
 
-        # 명시적 GPU 메모리 정리
-        import time
-
         time.sleep(0.5)
         gc.collect()
         torch.cuda.synchronize()
@@ -347,14 +342,6 @@ def process_step2_llm_text(
         raise ValueError(error_msg)
 
     logger.info("[Step2 LLM] OPENAI_API_KEY found, initializing LLMTexttoHTML...")
-
-    # LLMTexttoHTML import (지연 import로 의존성 격리)
-    try:
-        from models.llm_text import LLMTexttoHTML
-    except ImportError as e:
-        error_msg = f"Failed to import LLMTexttoHTML: {str(e)}"
-        logger.error(f"[Step2 LLM] {error_msg}", exc_info=True)
-        raise ValueError(error_msg)
 
     # 2. Step 1 배경 이미지 로드
     step1_result_b64 = shared_state.get("images", {}).get("step1_result")
@@ -506,8 +493,8 @@ def process_step3_composite(
     final_text_asset = step2_result
 
     if text_position == "auto":
-        from utils.MaskGenerator import MaskGenerator
         from utils.images import reposition_text_asset
+        from utils.MaskGenerator import MaskGenerator
 
         # 1. 최적 위치 자동 감지
         recommended_pos = MaskGenerator.recommend_position(step1_result)
@@ -526,8 +513,6 @@ def process_step3_composite(
         # 수동 위치 선택 시에도, Step 2 결과가 Top에 있다면 이동 필요할 수 있음
         # 하지만 현재 UX상 Step 2 생성 시 위치를 지정하지 않으므로(기본 Top),
         # 합성 단계에서 위치를 바꿀 때 reposition을 해주는 것이 좋음
-        from utils.images import reposition_text_asset
-
         final_text_asset = reposition_text_asset(step2_result, text_position)
 
     logger.info(

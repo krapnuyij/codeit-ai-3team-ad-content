@@ -11,12 +11,14 @@ sys.path.insert(0, str(project_root))
 
 import os
 import time
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
+from fastapi import Response
 
-from utils import get_system_metrics
+from services.fonts import get_fonts_dir
 from services.fonts import get_available_fonts, get_font_metadata
-
+from utils import get_system_metrics
 
 router = APIRouter()
 
@@ -104,16 +106,12 @@ async def get_fonts_metadata():
 @router.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     """파비콘 제공"""
-    from pathlib import Path
-
     base_dir = Path(__file__).resolve().parent.parent.parent
     favicon_path = base_dir / "static" / "favicon.ico"
 
     if favicon_path.exists():
         return FileResponse(str(favicon_path))
     else:
-        from fastapi import Response
-
         return Response(status_code=204)
 
 
@@ -176,8 +174,6 @@ async def serve_font(font_path: str):
     """
     폰트 파일 제공 (Custom File Response for Korean support)
     """
-    from services.fonts import get_fonts_dir
-
     fonts_dir = get_fonts_dir()
 
     # URL decoding is handled by FastAPI automatically for path params

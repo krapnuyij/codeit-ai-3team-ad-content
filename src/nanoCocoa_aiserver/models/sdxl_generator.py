@@ -23,23 +23,22 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
-import torch
-import numpy as np
 import cv2
-from PIL import Image, ImageFilter
+import numpy as np
+import torch
 from diffusers import StableDiffusionXLPipeline
-from config import MODEL_IDS, TORCH_DTYPE, DEVICE
-from utils import flush_gpu
 from helper_dev_utils import get_auto_logger
+from PIL import Image, ImageFilter
+
+from config import DEVICE, MODEL_IDS, TORCH_DTYPE
 from services.monitor import log_gpu_memory
+from utils import flush_gpu
 
 try:
-    from diffusers import (
-        StableDiffusionXLControlNetInpaintPipeline,
-        ControlNetModel,
-        StableDiffusionXLPipeline,
-    )
-    from transformers import BlipProcessor, BlipForConditionalGeneration
+    from diffusers import (ControlNetModel,
+                           StableDiffusionXLControlNetInpaintPipeline,
+                           StableDiffusionXLPipeline)
+    from transformers import BlipForConditionalGeneration, BlipProcessor
 
     AI_AVAILABLE = True
 except ImportError:

@@ -5,12 +5,13 @@ project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
 import torch
-from PIL import Image
 from diffusers import StableDiffusionXLPipeline
-from config import MODEL_IDS, TORCH_DTYPE, DEVICE
-from utils import flush_gpu
 from helper_dev_utils import get_auto_logger
+from PIL import Image
+
+from config import DEVICE, MODEL_IDS, TORCH_DTYPE
 from services.monitor import log_gpu_memory
+from utils import flush_gpu
 
 logger = get_auto_logger()
 
@@ -73,7 +74,7 @@ class SDXLBaseGenerator:
         """
         logger.info("[SDXLGenerator] Generating background with Text-to-Image...")
 
-        num_steps = 30
+        num_steps = 15
 
         def callback_fn(pipe_obj, step_index, timestep, callback_kwargs):
             if progress_callback:

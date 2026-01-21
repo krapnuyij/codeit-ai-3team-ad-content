@@ -10,15 +10,15 @@ project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
 import multiprocessing
-import uuid
 import time
+import uuid
+
 from fastapi import APIRouter, HTTPException, Response, status
 
-from config import logger, TOTAL_ESTIMATED_TIME
-from utils import get_system_metrics
-from schemas import GenerateRequest, StatusResponse, SystemMetrics, GPUMetric
+from config import TOTAL_ESTIMATED_TIME, logger
 from core.worker import worker_process
-
+from schemas import GenerateRequest, GPUMetric, StatusResponse, SystemMetrics
+from utils import get_system_metrics
 
 router = APIRouter()
 
@@ -397,6 +397,7 @@ async def server_reset():
     - elapsed_sec: 소요 시간 (초)
     """
     import gc
+
     import torch
 
     # 통계 정보 수집

@@ -21,18 +21,20 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parents
 sys.path.insert(0, str(project_root))
 
-import torch
-import warnings
-import numpy as np
-import cv2
 import traceback
+import warnings
+
+import cv2
+import numpy as np
+import torch
+from helper_dev_utils import get_auto_logger
 from PIL import Image, ImageFilter
 from torchvision import transforms
 from transformers import AutoModelForImageSegmentation
-from config import MODEL_IDS, DEVICE
-from utils import flush_gpu
+
+from config import DEVICE, MODEL_IDS
 from services.monitor import log_gpu_memory
-from helper_dev_utils import get_auto_logger
+from utils import flush_gpu
 
 # timm 라이브러리 deprecation 경고 억제
 warnings.filterwarnings("ignore", category=FutureWarning, module="timm")

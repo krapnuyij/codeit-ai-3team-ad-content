@@ -14,6 +14,7 @@ sys.path.insert(0, str(project_root))
 
 from fastapi import APIRouter, Response, status
 from fastapi.responses import HTMLResponse
+
 from config import logger
 
 router = APIRouter(

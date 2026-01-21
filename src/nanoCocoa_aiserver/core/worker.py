@@ -11,8 +11,9 @@ sys.path.insert(0, str(project_root))
 
 import multiprocessing
 import time
-from PIL import Image
+
 from helper_dev_utils import print_dic_tree
+from PIL import Image
 
 # CUDA 호환성을 위한 안전장치: spawn 방식 확인
 # main.py에서 이미 설정되었지만, 직접 실행 시를 대비
@@ -23,23 +24,14 @@ except RuntimeError:
     # 이미 설정된 경우 무시
     pass
 
-from utils import (
-    pil_to_base64,
-    base64_to_pil,
-    flush_gpu,
-    step_stats_manager,
-    get_system_metrics,
-)
-from core.engine import AIModelEngine
-from core import processors
-from core.processors import (
-    process_step1_background,
-    process_step2_text,
-    process_step2_llm_text,
-    process_step3_composite,
-)
-
 from helper_dev_utils import get_auto_logger
+
+from core import processors
+from core.engine import AIModelEngine
+from core.processors import (process_step1_background, process_step2_llm_text,
+                             process_step2_text, process_step3_composite)
+from utils import (base64_to_pil, flush_gpu, get_system_metrics, pil_to_base64,
+                   step_stats_manager)
 
 logger = get_auto_logger()
 

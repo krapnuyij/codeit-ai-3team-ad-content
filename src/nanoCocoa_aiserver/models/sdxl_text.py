@@ -5,14 +5,17 @@ project_root = Path(__file__).resolve().parents
 sys.path.insert(0, str(project_root))
 
 import torch
-from PIL import Image
 from diffusers import (
-    StableDiffusionXLControlNetPipeline,
-    ControlNetModel,
     AutoencoderKL,
+    ControlNetModel,
+    StableDiffusionXLControlNetPipeline,
 )
-from config import MODEL_IDS, TORCH_DTYPE, DEVICE
+from PIL import Image
+from services.monitor import log_gpu_memory
 from utils import flush_gpu
+
+from config import DEVICE, MODEL_IDS, TORCH_DTYPE
+
 from helper_dev_utils import get_auto_logger
 
 logger = get_auto_logger()
@@ -121,12 +124,9 @@ class SDXLTextGenerator:
         현재 SDXL은 generate_text_effect() 호출 시마다 로드/언로드하므로
         별도 정리 작업이 불필요하지만, 인터페이스 통일을 위해 구현합니다.
         """
-        from services.monitor import log_gpu_memory
 
         log_gpu_memory("SDXLTextGenerator unload (no-op)")
-        from utils import flush_gpu
 
         flush_gpu()
-        from config import logger
 
         logger.info("SDXLTextGenerator unloaded")

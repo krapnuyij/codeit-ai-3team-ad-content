@@ -11,7 +11,6 @@ sys.path.insert(0, str(project_root))
 
 from fastapi import APIRouter
 
-
 router = APIRouter()
 
 

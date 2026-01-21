@@ -6,15 +6,15 @@ sys.path.insert(0, str(project_root))
 
 import io
 import re
-import tempfile
 import shutil
+import tempfile
 from pathlib import Path
-from typing import Optional, Union, Dict
+from typing import Dict, Optional, Union
 
+from helper_dev_utils import get_auto_logger
+from openai import OpenAI
 from PIL import Image
 from playwright.async_api import async_playwright
-from openai import OpenAI
-from helper_dev_utils import get_auto_logger
 
 from .qwen_analyzer import QwenAnalyzer
 

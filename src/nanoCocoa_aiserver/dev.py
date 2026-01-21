@@ -5,6 +5,7 @@
 import os
 import sys
 from pathlib import Path
+
 import uvicorn
 
 if __name__ == "__main__":

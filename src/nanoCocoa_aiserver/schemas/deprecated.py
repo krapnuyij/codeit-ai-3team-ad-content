@@ -3,6 +3,7 @@ deprecated.py
 더 이상 사용하지 않는 스키마
 """
 from typing import Optional
+
 from pydantic import BaseModel, Field
 
 

@@ -12,16 +12,16 @@ sys.path.insert(0, str(project_root))
 import multiprocessing
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import RedirectResponse, FileResponse
-from fastapi.middleware.cors import CORSMiddleware
 
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+
+from api.middleware import FontHeaderMiddleware
+from api.routers import dev_dashboard, generation, resources
 from config import logger
 from utils import get_system_metrics
-from api.middleware import FontHeaderMiddleware
-from api.routers import generation, resources, dev_dashboard
-
 
 # 전역 상태 관리
 manager = multiprocessing.Manager()

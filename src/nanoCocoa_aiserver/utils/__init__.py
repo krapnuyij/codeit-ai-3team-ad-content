@@ -14,17 +14,19 @@
 def __getattr__(name):
     # Image utilities
     if name in ("pil_to_base64", "base64_to_pil", "pil_canny_edge"):
-        from utils.images import pil_to_base64, base64_to_pil, pil_canny_edge
+        from utils.images import base64_to_pil, pil_canny_edge, pil_to_base64
 
         return locals()[name]
     # System monitoring
     elif name in ("flush_gpu", "get_system_metrics", "log_gpu_memory"):
-        from services.monitor import flush_gpu, get_system_metrics, log_gpu_memory
+        from services.monitor import (flush_gpu, get_system_metrics,
+                                      log_gpu_memory)
 
         return locals()[name]
     # Font management
     elif name in ("get_fonts_dir", "get_available_fonts", "get_font_path"):
-        from services.fonts import get_fonts_dir, get_available_fonts, get_font_path
+        from services.fonts import (get_available_fonts, get_font_path,
+                                    get_fonts_dir)
 
         return locals()[name]
     # Stats management

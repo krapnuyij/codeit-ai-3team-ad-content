@@ -9,18 +9,20 @@ from pathlib import Path
 project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
-import torch
-from PIL import Image, ImageDraw
-from transformers import Qwen2VLForConditionalGeneration, AutoProcessor
-from qwen_vl_utils import process_vision_info
-from typing import Union, Dict, List, Tuple, Optional
-import re
 import logging
+import re
+from typing import Dict, List, Optional, Tuple, Union
+
+import torch
 from helper_dev_utils import get_auto_logger
+from PIL import Image, ImageDraw
+from qwen_vl_utils import process_vision_info
+from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
 
 logger = get_auto_logger()
 
 from utils import flush_gpu
+from services.monitor import log_gpu_memory
 
 
 class QwenAnalyzer:
@@ -56,21 +58,9 @@ class QwenAnalyzer:
 
     def unload(self) -> None:
         """명시적 리소스 정리 (표준 인터페이스)"""
-        try:
-            from services.monitor import log_gpu_memory
-
-            log_gpu_memory("QwenAnalyzer unload (before)")
-        except ImportError:
-            pass
-
+        log_gpu_memory("QwenAnalyzer unload (before)")
         self._unload_model()
-
-        try:
-            from services.monitor import log_gpu_memory
-
-            log_gpu_memory("QwenAnalyzer unload (after)")
-        except ImportError:
-            pass
+        log_gpu_memory("QwenAnalyzer unload (after)")
 
         logger.info("QwenAnalyzer unloaded")
 
@@ -139,9 +129,7 @@ class QwenAnalyzer:
 
             # 경로가 제공된 경우 이미지 로드
             if isinstance(image, str):
-                from .utils import load_image
-
-                image = load_image(image)
+                image = Image.open(image)
 
             image_size = image.size  # (width, height)
 

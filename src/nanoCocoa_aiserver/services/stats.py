@@ -14,7 +14,10 @@ project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
 from typing import Dict, Optional
-from config import logger
+
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 
 class StepStatsManager:

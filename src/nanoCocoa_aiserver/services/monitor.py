@@ -6,21 +6,20 @@ CPU, RAM, GPU, VRAM 사용량을 추적하고 GPU 메모리를 정리합니다.
 
 import gc
 import sys
+from pathlib import Path
+
 import psutil
 import torch
-from pathlib import Path
 
 project_root = Path(__file__).resolve().parent
 sys.path.insert(0, str(project_root))
 
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+import nvidia_smi as pynvml
 
-try:
-    import pynvml
-except ImportError:
-    pynvml = None
+from helper_dev_utils import get_auto_logger
 
-from config import logger
+logger = get_auto_logger()
 
 
 def flush_gpu() -> None:
