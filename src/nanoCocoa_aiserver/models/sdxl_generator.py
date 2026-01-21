@@ -10,6 +10,7 @@ from diffusers import StableDiffusionXLPipeline
 from config import MODEL_IDS, TORCH_DTYPE, DEVICE
 from utils import flush_gpu
 from helper_dev_utils import get_auto_logger
+from services.monitor import log_gpu_memory
 
 logger = get_auto_logger()
 
@@ -117,7 +118,6 @@ class SDXLGenerator:
 
         캐싱된 파이프라인을 삭제하여 GPU 메모리를 해제합니다.
         """
-        from services.monitor import log_gpu_memory
 
         log_gpu_memory("SDXLGenerator unload (before)")
 

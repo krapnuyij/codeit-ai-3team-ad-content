@@ -13,6 +13,7 @@ from models.sdxl_generator import SDXLGenerator
 from models.CompositionEngine import CompositionEngine
 from utils.MaskGenerator import MaskGenerator
 from helper_dev_utils import get_auto_logger
+from services.monitor import log_gpu_memory
 
 logger = get_auto_logger()
 
@@ -105,6 +106,8 @@ class AIModelEngine:
                         sub_step_name="flux_bg_generation",
                     )
             return self._create_dummy_image(1024, 1024, "lightblue")
+
+        self.sdxl_base_gen.unload()
 
         return self.flux_gen.generate_background(
             prompt,
@@ -200,6 +203,8 @@ class AIModelEngine:
         logger.info(f"prompt={prompt}")
         logger.info(f"negative_prompt={negative_prompt}")
 
+        self.sdxl_base_gen.unload()
+
         return self.flux_gen.refine_image(
             draft_image=draft_image,
             prompt=prompt,
@@ -256,6 +261,8 @@ class AIModelEngine:
 
         logger.info(f"prompt={prompt}")
         logger.info(f"negative_prompt={negative_prompt}")
+
+        self.sdxl_base_gen.unload()
 
         return self.flux_gen.inject_features_via_inpaint(
             background=background,
@@ -397,8 +404,6 @@ class AIModelEngine:
         """
         if self.dummy_mode:
             return
-
-        from services.monitor import log_gpu_memory
 
         log_gpu_memory("Before Step1 models unload")
 

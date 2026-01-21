@@ -98,7 +98,7 @@ def process_step1_background(
             negative_prompt=bg_negative_prompt,
             guidance_scale=guidance_scale,
             seed=seed,
-            auto_unload=True,
+            auto_unload=False,
         )
     else:
         # Flux 사용 (기본값)
