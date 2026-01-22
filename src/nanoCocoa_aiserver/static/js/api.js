@@ -96,6 +96,7 @@ async function startGeneration() {
         text_content: document.getElementById('text_content').value,
         bg_prompt: document.getElementById('bg_prompt').value,
         bg_negative_prompt: document.getElementById('bg_negative_prompt').value,
+        bg_model: document.getElementById('bg_model').value,
         bg_composition_prompt: document.getElementById('bg_composition_prompt')?.value || null,
         bg_composition_negative_prompt: document.getElementById('bg_composition_negative_prompt')?.value || null,
         text_prompt: document.getElementById('text_prompt').value,

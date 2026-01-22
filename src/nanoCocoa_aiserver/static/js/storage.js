@@ -27,6 +27,7 @@ function saveToLocalStorage() {
             text_content: document.getElementById('text_content')?.value || '',
             bg_prompt: document.getElementById('bg_prompt')?.value || '',
             bg_negative_prompt: document.getElementById('bg_negative_prompt')?.value || '',
+            bg_model: document.getElementById('bg_model')?.value || 'flux',
             text_prompt: document.getElementById('text_prompt')?.value || '',
             text_negative_prompt: document.getElementById('text_negative_prompt')?.value || '',
             font_name: document.getElementById('font_name')?.value || '',
@@ -73,6 +74,12 @@ function restoreFromLocalStorage() {
                 if (el) el.value = data[id];
             }
         });
+        
+        // Restore bg_model select
+        if (data.bg_model !== undefined) {
+            const el = document.getElementById('bg_model');
+            if (el) el.value = data.bg_model;
+        }
         
         // Restore sliders
         if (data.strength !== undefined) {

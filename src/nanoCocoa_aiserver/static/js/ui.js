@@ -79,7 +79,7 @@ function initializeUI() {
     // Add change listeners for all input fields
     ['bg_prompt', 'bg_negative_prompt', 'bg_composition_prompt', 'bg_composition_negative_prompt', 
      'text_prompt', 'negative_prompt', 'seed', 
-     'composition_mode', 'text_position', 'composition_prompt', 'composition_negative_prompt'].forEach(id => {
+     'composition_mode', 'text_position', 'composition_prompt', 'composition_negative_prompt', 'bg_model'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input', saveToLocalStorage);
@@ -248,4 +248,31 @@ function resetUI() {
 function updateUI() {
     // Can hide/show panels based on start_step selection
     // For now, keep all visible for editing parameters
+}
+
+/**
+ * Adjust guidance_scale based on selected bg_model
+ * Called when bg_model select changes
+ */
+function adjustGuidanceForModel() {
+    const bgModel = document.getElementById('bg_model').value;
+    const guidanceScaleInput = document.getElementById('guidance_scale');
+    const guidanceValDisplay = document.getElementById('guidance_val');
+    
+    // Recommended guidance_scale values
+    const recommendedGuidance = {
+        'flux': 3.5,
+        'sdxl': 7.5
+    };
+    
+    const newValue = recommendedGuidance[bgModel] || 3.5;
+    
+    // Update slider and display
+    guidanceScaleInput.value = newValue;
+    guidanceValDisplay.innerText = newValue;
+    
+    // Save to localStorage
+    saveToLocalStorage();
+    
+    console.log(`Guidance scale adjusted to ${newValue} for model: ${bgModel}`);
 }
