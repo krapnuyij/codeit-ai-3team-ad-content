@@ -70,8 +70,14 @@ class MCPClient:
     async def close(self):
         """HTTP 클라이언트 종료"""
         if self._client:
-            await self._client.aclose()
-            self._client = None
+            try:
+                await self._client.aclose()
+            except RuntimeError as e:
+                # 이벤트 루프가 이미 닫혔을 경우 무시
+                if "Event loop is closed" not in str(e):
+                    raise
+            finally:
+                self._client = None
 
     async def call_tool(
         self,

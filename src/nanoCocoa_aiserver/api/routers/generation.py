@@ -25,7 +25,7 @@ router = APIRouter()
 # CUDA 호환성을 위한 spawn context 명시적 사용
 mp_context = multiprocessing.get_context("spawn")
 
-# 전역 상태 (main.py에서 주입됨)
+# 전역 상태 (app.py에서 주입됨)
 manager = None
 JOBS = None
 PROCESSES = None

@@ -16,4 +16,7 @@ asyncpg
 # Utilities
 python-dotenv
 pyyaml
+tqdm
+Pillow
+helper_dev_utils
 

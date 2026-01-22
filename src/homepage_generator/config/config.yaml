@@ -7,6 +7,9 @@ openai_config:
 paths:
   generated_path: "./generated_ad"
 
+mcp_config:
+  server_url: "http://34.44.205.198:3000"
+
 store_config:
   store_name: "아늑한 다락"
   store_type: "카페"

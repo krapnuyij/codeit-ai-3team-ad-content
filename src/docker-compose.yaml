@@ -32,7 +32,9 @@ services:
       - ./backend/postgres_data:/var/lib/postgresql/data
 
   homepage_generator:
-    build: ./homepage_generator
+    build:
+      context: ../
+      dockerfile: ./src/homepage_generator/Dockerfile
     container_name: homepage_generator
     env_file:
       - .env
@@ -43,10 +45,12 @@ services:
       - "8891:8891"
     command: uvicorn api:app --host 0.0.0.0 --port 8891
     volumes:
-      - ./backend/generated_sites:/app/generated_ad
+      - ./backend/generated_sites:/app/src/homepage_generator/generated_ad
 
   nanococoa_aiserver:
-    build: ./nanoCocoa_aiserver
+    build:
+      context: ../
+      dockerfile: ./src/nanoCocoa_aiserver/Dockerfile
     container_name: nanococoa_aiserver
     env_file:
       - .env

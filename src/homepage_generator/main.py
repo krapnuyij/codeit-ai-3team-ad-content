@@ -75,6 +75,8 @@ class AdGenGraph:
             "html_codes": {},  # MPA: 페이지별 main 콘텐츠
             "css_code": "",
             "generated_code": GeneratedCode(),
+            # 이미지 생성
+            "generated_images": {},  # LLM MCP로 생성된 이미지 (Base64)
             # 메타 정보
             "agent_discussions": [],
             "output_path": "",
@@ -137,17 +139,19 @@ class AdGenGraph:
         workflow.add_node("homepage_designer", self.nodes._node_homepage_designer)
         workflow.add_node("content_designer", self.nodes._node_content_designer)
         # workflow.add_node("dom_contract", self.nodes._node_dom_contract)  # DEPRECATED: Tailwind 방식 사용
+        workflow.add_node("generate_images", self.nodes._node_generate_images)  # LLM MCP 이미지 생성
         workflow.add_node("header_footer", self.nodes._node_header_footer)  # 공통 Header/Footer 생성
         workflow.add_node("html_code", self.nodes._node_html_code)  # Main 콘텐츠만 생성
         # workflow.add_node("css_code", self.nodes._node_css_code)  # DEPRECATED: Tailwind CDN 사용
         workflow.add_node("package_output", self.nodes._node_package_output)
 
-        # Edge 정의 (workflow 흐름) - Header/Footer 분리 방식
+        # Edge 정의 (workflow 흐름) - 이미지 생성 추가
         workflow.set_entry_point("concept_designer")
         workflow.add_edge("concept_designer", "marketing_strategy")
         workflow.add_edge("marketing_strategy", "homepage_designer")
         workflow.add_edge("homepage_designer", "content_designer")
-        workflow.add_edge("content_designer", "header_footer")  # Header/Footer 먼저 생성
+        workflow.add_edge("content_designer", "generate_images")  # 콘텐츠 디자인 후 이미지 생성
+        workflow.add_edge("generate_images", "header_footer")  # 이미지 생성 후 Header/Footer
         workflow.add_edge("header_footer", "html_code")  # 그 다음 Main 콘텐츠 생성
         workflow.add_edge("html_code", "package_output")  # 최종 조합
         workflow.add_edge("package_output", END)

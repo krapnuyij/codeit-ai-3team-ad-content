@@ -490,6 +490,13 @@ class LLMAdapter:
 
                         for key, value in explicit_params.items():
                             if key in valid_params:
+                                # stop_step 검증 (MCP 서버 제약: 1-3)
+                                if key == "stop_step" and not (1 <= value <= 3):
+                                    logger.warning(
+                                        f"[명시적 파라미터 무시] {key}={value} (유효 범위: 1-3, 1=배경만/2=텍스트까지/3=전체)"
+                                    )
+                                    continue
+
                                 if key not in tool_args or tool_args[key] != value:
                                     logger.info(
                                         f"[명시적 파라미터 적용] {key}={value} (LLM이 생성한 값: {tool_args.get(key, 'None')} → 덮어쓰기)"

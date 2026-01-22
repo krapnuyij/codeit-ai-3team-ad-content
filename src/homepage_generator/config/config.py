@@ -7,11 +7,12 @@ from dotenv import load_dotenv
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 
+
 class StoreConfig(BaseModel):
     store_name: str
     store_type: str
-    budget: int # 만원단위
-    period: int # 일
+    budget: int  # 만원단위
+    period: int  # 일
     advertising_goal: str
     target_customer: str
     store_strength: str
@@ -19,12 +20,21 @@ class StoreConfig(BaseModel):
     location: str
     phone_number: str
 
+
 class OpenAIConfig(BaseModel):
     chat_model: str
     api_key: str = None
 
+
 class PathConfig(BaseModel):
     generated_path: str
+
+
+class MCPConfig(BaseModel):
+    """MCP 서버 설정"""
+
+    server_url: str = "http://localhost:3000"
+
 
 class AgentConfig(BaseModel):
     name: str
@@ -32,10 +42,13 @@ class AgentConfig(BaseModel):
     system_message: str
     user_message: str = ""
 
+
 class GroupChatConfig(BaseModel):
     """GroupChat 설정"""
+
     max_turns: int = 10
     select_speaker_auto_mode: str = "auto"
+
 
 class PromptsConfig(BaseModel):
     user_prompt: str
@@ -52,17 +65,18 @@ class Settings(BaseSettings):
         case_sensitive=False,
     )
 
-    root_marker: str =".env"
+    root_marker: str = ".env"
     project_root: Optional[Path] = None
 
     store_config: StoreConfig
     openai_config: OpenAIConfig
     paths: PathConfig
+    mcp_config: MCPConfig
 
     OPENAI_API_KEY: Optional[str] = Field(None, alias="OPENAI_API_KEY")
 
-    @model_validator(mode='after')
-    def resolve_logic(self) -> 'Settings':
+    @model_validator(mode="after")
+    def resolve_logic(self) -> "Settings":
         """프로젝트 루트 탐색, 경로 변환 및 API 키 동기화"""
         # 1. 프로젝트 루트 탐색
         if self.project_root is None:
@@ -97,7 +111,7 @@ class Settings(BaseSettings):
         if not os.path.exists(yaml_path):
             raise FileNotFoundError(f"지정한 YAML 경로를 찾을 수 없습니다: {yaml_path}")
 
-        with open(yaml_path, 'r', encoding='utf-8') as f:
+        with open(yaml_path, "r", encoding="utf-8") as f:
             content = f.read()
 
         # 정규식을 이용해 ${VAR_NAME} 패턴을 실제 환경 변수로 치환
@@ -109,7 +123,7 @@ class Settings(BaseSettings):
                 val = os.getenv("HUGGINGFACE_TOKEN")
             return val if val is not None else ""
 
-        content = re.sub(r'\$\{(\w+)\}', replace_env_var, content)
+        content = re.sub(r"\$\{(\w+)\}", replace_env_var, content)
         data = yaml.safe_load(content)
 
         # Pydantic 인스턴스 생성 및 검증
@@ -118,10 +132,11 @@ class Settings(BaseSettings):
     @classmethod
     def load_prompts(cls, prompts_path: str) -> PromptsConfig:
         """prompts.yaml 로드"""
-        with open(prompts_path, 'r', encoding='utf-8') as f:
+        with open(prompts_path, "r", encoding="utf-8") as f:
             content = f.read()
         data = yaml.safe_load(content)
         return PromptsConfig(**data)
+
 
 if __name__ == "__main__":
     # 실행 시 config_new.yaml의 경로를 정확히 지정하세요.
@@ -132,7 +147,9 @@ if __name__ == "__main__":
         default_yaml_path = current_file.parent.parent / "config" / "config.yaml"
         print(default_yaml_path)
         settings = Settings.load(str(default_yaml_path))
-        prompts_settings = Settings.load_prompts(str(current_file.parent.parent / "config" / "prompts.yaml"))
+        prompts_settings = Settings.load_prompts(
+            str(current_file.parent.parent / "config" / "prompts.yaml")
+        )
         print(type(settings))
         print(type(prompts_settings))
 

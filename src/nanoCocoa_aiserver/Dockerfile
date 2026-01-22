@@ -72,8 +72,12 @@ RUN python3 -m pip install --upgrade pip setuptools wheel
 # 작업 디렉토리 생성
 WORKDIR /app
 
-# requirements 복사 및 설치
-COPY requirements-docker.txt .
+# src 폴더 구조 유지하여 복사
+COPY src/mcpadapter /app/src/mcpadapter
+COPY src/nanoCocoa_aiserver /app/src/nanoCocoa_aiserver
+
+# mcpadapter 설치 (editable mode)
+RUN pip install --no-cache-dir -e /app/src/mcpadapter
 
 # PyTorch는 별도 인덱스에서 설치 (CUDA 12.8 호환)
 RUN pip install --no-cache-dir \
@@ -81,7 +85,7 @@ RUN pip install --no-cache-dir \
     torch==2.9.0+cu128 torchvision==0.24.0+cu128 torchaudio==2.9.0+cu128
 
 # 나머지 패키지 설치 (torch 관련 제외)
-RUN grep -v "^torch" requirements-docker.txt | grep -v "^--index-url" > /tmp/requirements-no-torch.txt && \
+RUN grep -v "^torch" /app/src/nanoCocoa_aiserver/requirements-docker.txt | grep -v "^--index-url" > /tmp/requirements-no-torch.txt && \
     pip install --no-cache-dir -r /tmp/requirements-no-torch.txt
 
 # nvidia-ml-py 설치
@@ -90,14 +94,14 @@ RUN pip install --no-cache-dir nvidia-ml-py
 # Playwright 브라우저 설치 (Python 모듈로 직접 실행)
 RUN python3 -m playwright install chromium --with-deps
 
-# 애플리케이션 코드 복사
-COPY . .
+# nanoCocoa_aiserver 폴더를 작업 디렉토리로 설정
+WORKDIR /app/src/nanoCocoa_aiserver
 
 # 디렉토리 구조 생성
 RUN mkdir -p \
-    /app/static/uploads \
-    /app/static/results \
-    /app/logs \
+    static/uploads \
+    static/results \
+    logs \
     /root/.cache/huggingface
 
 # 포트 노출

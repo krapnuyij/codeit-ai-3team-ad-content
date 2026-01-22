@@ -19,6 +19,7 @@ peft==0.18.0
 safetensors==0.7.0
 sentencepiece==0.2.1
 tokenizers==0.22.1
+qwen-vl-utils==0.0.8
 
 # LLM Inference (Disabled - not needed for current workflow)
 # vllm==0.13.0
