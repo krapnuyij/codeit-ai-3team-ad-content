@@ -477,7 +477,7 @@ async def generate_homepage(request: Request, customer_id: int):
             "HOMEPAGE_GENERATOR_URL", "http://homepage_generator:8891"
         )
 
-        async with httpx.AsyncClient(timeout=600.0) as client:
+        async with httpx.AsyncClient(timeout=7200.0) as client:
             response = await client.post(
                 f"{homepage_generator_url}/generate", json=customer_data
             )

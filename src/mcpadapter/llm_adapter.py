@@ -238,7 +238,7 @@ class LLMAdapter:
                 '- **"배경 + 텍스트만"**: generate_ad_image에 stop_step=2\n\n'
                 "**[필수 생성 파라미터]**\n"
                 "0. **bg_model**: 'sdxl' 또는 'flux' (위 조건에 따라)\n\n"
-                "1. **background_prompt** (100자 이상, 영문)\n"
+                "1. **background_prompt** (100단어 이상, 영문)\n"
                 "   - 제품 이미지 제공 시: 배경만 상세 설명\n"
                 "   - 제품 이미지 없을 시: 제품+배경 모두 상세 설명\n"
                 "   - 조명, 색상, 분위기, 스타일 포함\n\n"
@@ -347,7 +347,7 @@ class LLMAdapter:
                 "3. 폰트 메타데이터: get_fonts_metadata(), list_available_fonts()\n"
                 "4. 작업 관리: check_*, get_*, delete_*, stop_*\n\n"
                 "[광고 생성 시 필수]\n"
-                "bg_model (sdxl/flux), background_prompt (100자 이상), background_negative_prompt, "
+                "bg_model (sdxl/flux), background_prompt (100단어 이상), background_negative_prompt, "
                 "bg_composition_prompt, bg_composition_negative_prompt, text_prompt, text_negative_prompt, "
                 "composition_prompt, composition_negative_prompt를 영문으로 생성하세요.\n"
                 "text_content는 원문 언어를 유지하세요.\n\n"
