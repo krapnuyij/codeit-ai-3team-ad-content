@@ -316,7 +316,7 @@ class LLMAdapter:
                 "**[중요 규칙]**\n"
                 "- **text_content**: 원문 언어 유지 (영어→영어, 한글→한글). 단위, 문맥 등은 적당하게 수정 가능\n"
                 "- **모든 prompt 파라미터**: 영문으로 작성 (background_prompt, text_prompt, ...prompt 등)\n"
-                "- **background_prompt**: 100자 이상 상세 작성\n"
+                "- **background_prompt**: 100단어 이상 상세 작성\n"
                 "- **wait_for_completion**: 기본값 false (비동기 처리, job_id 즉시 반환)\n"
                 "- **composition_mode**: 기본값 'overlay' 사용\n"
             )

@@ -21,11 +21,46 @@ Architecture:
         └── state_manager.py (Session State 관리)
 """
 
+import asyncio
 import streamlit as st
 from helper_streamlit_utils import *
-from config import PAGE_TITLE, PAGE_ICON, LAYOUT
+from helper_dev_utils import get_auto_logger
+from config import PAGE_TITLE, PAGE_ICON, LAYOUT, MCP_SERVER_URL
 from utils.state_manager import init_session_state, is_authenticated, get_page
 from ui import render_auth_ui, render_chat_ui, render_history_ui
+
+logger = get_auto_logger()
+
+
+async def wait_for_mcp_server(max_wait: int = 30) -> bool:
+    """
+    MCP 서버가 준비될 때까지 대기
+
+    Args:
+        max_wait: 최대 대기 시간(초)
+
+    Returns:
+        bool: 서버 준비 완료 여부
+    """
+    from mcpadapter.mcp_client import MCPClient
+    import time
+
+    start = time.time()
+    logger.info(f"MCP 서버 준비 대기 시작: {MCP_SERVER_URL}")
+
+    while time.time() - start < max_wait:
+        try:
+            async with MCPClient(base_url=MCP_SERVER_URL, timeout=5) as client:
+                await client.list_tools()
+                elapsed = time.time() - start
+                logger.info(f"MCP 서버 준비 완료 ({elapsed:.1f}초)")
+                return True
+        except Exception as e:
+            logger.debug(f"MCP 서버 대기 중... ({time.time() - start:.1f}초)")
+            await asyncio.sleep(1)
+
+    logger.error(f"MCP 서버 대기 시간 초과 ({max_wait}초)")
+    return False
 
 
 def main() -> None:
@@ -40,6 +75,14 @@ def main() -> None:
     )
 
     st_style_page_margin_hidden()
+
+    # MCP 서버 준비 대기
+    if "mcp_ready" not in st.session_state:
+        with st.spinner("MCP 서버 연결 대기 중..."):
+            st.session_state.mcp_ready = asyncio.run(wait_for_mcp_server())
+            if not st.session_state.mcp_ready:
+                st.error("MCP 서버 연결 실패. 관리자에게 문의하세요.")
+                st.stop()
 
     # Session State 초기화
     init_session_state()

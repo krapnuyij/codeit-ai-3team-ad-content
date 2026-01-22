@@ -3,6 +3,7 @@ MCP HTTP 클라이언트
 HTTP/SSE transport를 통해 MCP 서버와 통신
 """
 
+import asyncio
 import httpx
 import sys
 from pathlib import Path
@@ -83,13 +84,17 @@ class MCPClient:
         self,
         tool_name: str,
         arguments: Dict[str, Any],
+        max_retries: int = 3,
+        initial_delay: float = 1.0,
     ) -> Any:
         """
-        MCP 도구 호출
+        MCP 도구 호출 (지수 백오프 재시도 포함)
 
         Args:
             tool_name: 도구 이름 (예: "generate_ad_image")
             arguments: 도구 인자 딕셔너리
+            max_retries: 최대 재시도 횟수 (기본값: 3)
+            initial_delay: 초기 대기 시간 (기본값: 1.0초)
 
         Returns:
             도구 실행 결과
@@ -99,24 +104,39 @@ class MCPClient:
         """
         await self._ensure_client()
 
-        try:
-            response = await self._client.post(
-                f"{self.base_url}/tools/{tool_name}",
-                json=arguments,
-            )
-            response.raise_for_status()
+        last_error = None
+        delay = initial_delay
 
-            data = response.json()
+        for attempt in range(max_retries):
+            try:
+                response = await self._client.post(
+                    f"{self.base_url}/tools/{tool_name}",
+                    json=arguments,
+                )
+                response.raise_for_status()
 
-            if data.get("error"):
-                raise MCPClientError(data["error"])
+                data = response.json()
 
-            return data.get("result")
+                if data.get("error"):
+                    raise MCPClientError(data["error"])
 
-        except httpx.HTTPStatusError as e:
-            raise MCPClientError(f"HTTP {e.response.status_code}: {e.response.text}")
-        except httpx.RequestError as e:
-            raise MCPClientError(f"연결 에러: {e}")
+                return data.get("result")
+
+            except httpx.HTTPStatusError as e:
+                raise MCPClientError(
+                    f"HTTP {e.response.status_code}: {e.response.text}"
+                )
+            except httpx.RequestError as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        f"연결 실패 (시도 {attempt + 1}/{max_retries}), "
+                        f"{delay:.1f}초 후 재시도: {e}"
+                    )
+                    await asyncio.sleep(delay)
+                    delay *= 2  # 지수 백오프
+                else:
+                    raise MCPClientError(f"연결 에러 (최대 재시도 초과): {e}")
 
     async def list_tools(self) -> List[Dict[str, Any]]:
         """

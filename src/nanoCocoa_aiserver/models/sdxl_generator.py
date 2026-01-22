@@ -26,6 +26,7 @@ import traceback
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any, List
 
+import torch
 import cv2
 from PIL import Image, ImageFilter
 
@@ -67,6 +68,12 @@ except ImportError:
 # 디바이스 설정 (GPU 우선)
 DEVICE: str = "cuda" if torch.cuda.is_available() else "cpu"
 TORCH_DTYPE = torch.float16 if DEVICE == "cuda" else torch.float32
+
+# 경로 설정
+# 입력: 배경이 제거된 제품 이미지 경로
+# 출력: 합성 완료된 이미지 저장 경로
+INPUT_FG = Path("outputs/fg_cut")
+OUT_COMP = Path("outputs/compose")
 
 # 출력 폴더 자동 생성
 OUT_COMP.mkdir(parents=True, exist_ok=True)
