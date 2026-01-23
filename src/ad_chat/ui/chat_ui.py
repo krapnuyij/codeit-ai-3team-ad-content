@@ -837,7 +837,11 @@ def display_completed_job_result(job: dict) -> None:
             st.rerun()
     with col2:
         if st.button("📊 평가하기", key=f"eval_{job['job_id']}"):
+            logger.info(f"[평가] 버튼 클릭: job_id={job.get('job_id')}")
             set_evaluation_target(job)
+            logger.info(
+                f"[평가] 세션 상태 설정 완료: evaluation_job_id={st.session_state.get('evaluation_job_id')}"
+            )
             set_page("evaluate")
             st.rerun()
     with col3:

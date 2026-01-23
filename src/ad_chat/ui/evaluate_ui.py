@@ -134,14 +134,23 @@ def render_evaluate_ui() -> None:
     eval_job = st.session_state.get("evaluation_job")
     eval_job_id = st.session_state.get("evaluation_job_id")
 
+    logger.info(
+        f"[평가 UI] 초기화: eval_job={eval_job is not None}, eval_job_id={eval_job_id}"
+    )
+
     # Job Store에서 재조회 시도 (fallback)
     if eval_job_id and not eval_job:
+        logger.info(f"[평가 UI] Job Store에서 재조회 시도: {eval_job_id}")
         eval_job = job_store.get_job(eval_job_id)
         if eval_job:
             st.session_state.evaluation_job = eval_job
+            logger.info(f"[평가 UI] 재조회 성공: {eval_job.get('job_id')}")
+        else:
+            logger.warning(f"[평가 UI] 재조회 실패: {eval_job_id}")
 
     # 전달받은 작업 정보 표시
     if eval_job:
+        logger.info(f"[평가 UI] 작업 표시: {eval_job.get('job_id')}")
         st.info(
             f"💡 채팅/히스토리에서 전달된 작업을 평가합니다 (작업 ID: `{eval_job.get('job_id', 'N/A')[:16]}...`)"
         )
