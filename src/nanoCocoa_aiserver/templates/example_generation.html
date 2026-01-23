@@ -33,11 +33,26 @@
             <!-- Execution Control -->
             <div class="panel">
                 <div class="panel-header">실행 범위 설정</div>
-                <div style="display: flex; gap: 12px;">
-                    <label><input type="radio" name="start_step" value="1" checked onchange="updateUI()"> 1단계
-                        (전체)</label>
-                    <label><input type="radio" name="start_step" value="2" onchange="updateUI()"> 2단계 (텍스트)</label>
-                    <label><input type="radio" name="start_step" value="3" onchange="updateUI()"> 3단계 (합성)</label>
+                <div class="control-group">
+                    <label>시작 단계 (Start Step)</label>
+                    <div style="display: flex; gap: 12px;">
+                        <label><input type="radio" name="start_step" value="1" checked onchange="updateUI()"> 1단계
+                            (전체)</label>
+                        <label><input type="radio" name="start_step" value="2" onchange="updateUI()"> 2단계 (텍스트)</label>
+                        <label><input type="radio" name="start_step" value="3" onchange="updateUI()"> 3단계 (합성)</label>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label>종료 단계 (Stop Step)</label>
+                    <select id="stop_step" onchange="saveToLocalStorage()">
+                        <option value="" selected>전체 실행 (완료까지)</option>
+                        <option value="1">1단계까지만 (배경 생성)</option>
+                        <option value="2">2단계까지만 (배경 + 텍스트)</option>
+                        <option value="3">3단계까지 (전체 완성)</option>
+                    </select>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                        특정 단계까지만 실행하고 중단 (비어있으면 전체 실행)
+                    </div>
                 </div>
             </div>
 
@@ -61,10 +76,6 @@
                     <select id="bg_model" onchange="adjustGuidanceForModel()">
                         <option value="flux" selected>Flux (고품질, 빠른 생성, guidance 3.5 권장)</option>
                         <option value="sdxl">SDXL (심플, guidance 7.5 권장)</option>
-                        <option value="sdxl2">SDXL2</option>
-                        <option value="sdxl3">SDXL3</option>
-                        <option value="sdxl4">SDXL4</option>
-                        <option value="sdxl5">SDXL5</option>
                     </select>
                     <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
                         배경 이미지 생성에 사용할 AI 모델

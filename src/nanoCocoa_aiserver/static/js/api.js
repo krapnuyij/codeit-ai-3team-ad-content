@@ -90,8 +90,10 @@ async function startGeneration() {
     const isDummy = document.getElementById('test_mode').checked;
 
     // Build Request
+    const stopStepValue = document.getElementById('stop_step').value;
     const req = {
         start_step: startStep,
+        stop_step: stopStepValue ? parseInt(stopStepValue) : null,
         test_mode: isDummy,
         text_content: document.getElementById('text_content').value,
         bg_prompt: document.getElementById('bg_prompt').value,

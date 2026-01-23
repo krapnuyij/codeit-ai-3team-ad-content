@@ -79,7 +79,7 @@ function initializeUI() {
     // Add change listeners for all input fields
     ['bg_prompt', 'bg_negative_prompt', 'bg_composition_prompt', 'bg_composition_negative_prompt', 
      'text_prompt', 'negative_prompt', 'seed', 
-     'composition_mode', 'text_position', 'composition_prompt', 'composition_negative_prompt', 'bg_model'].forEach(id => {
+     'composition_mode', 'text_position', 'composition_prompt', 'composition_negative_prompt', 'bg_model', 'stop_step'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input', saveToLocalStorage);

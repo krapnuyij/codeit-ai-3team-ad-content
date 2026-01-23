@@ -23,6 +23,7 @@ function saveToLocalStorage() {
     try {
         const data = {
             start_step: document.querySelector('input[name="start_step"]:checked')?.value || '1',
+            stop_step: document.getElementById('stop_step')?.value || '',
             test_mode: document.getElementById('test_mode')?.checked || false,
             text_content: document.getElementById('text_content')?.value || '',
             bg_prompt: document.getElementById('bg_prompt')?.value || '',
@@ -79,6 +80,12 @@ function restoreFromLocalStorage() {
         if (data.bg_model !== undefined) {
             const el = document.getElementById('bg_model');
             if (el) el.value = data.bg_model;
+        }
+        
+        // Restore stop_step select
+        if (data.stop_step !== undefined) {
+            const el = document.getElementById('stop_step');
+            if (el) el.value = data.stop_step;
         }
         
         // Restore sliders
