@@ -15,13 +15,13 @@ pragma: no-cache
 
 ## 목차
 
-1. [개요](#1-개요)
-2. [시스템 요구사항](#2-시스템-요구사항)
-3. [배포 아키텍처](#3-배포-아키텍처)
-4. [설치 및 실행](#4-설치-및-실행)
-5. [서비스 관리](#5-서비스-관리)
-6. [문제 해결](#6-문제-해결)
-7. [모니터링](#7-모니터링)
+1. [개요](#1-개요)<br/>
+2. [시스템 요구사항](#2-시스템-요구사항)<br/>
+3. [배포 아키텍처](#3-배포-아키텍처)<br/>
+4. [설치 및 실행](#4-설치-및-실행)<br/>
+5. [서비스 관리](#5-서비스-관리)<br/>
+6. [문제 해결](#6-문제-해결)<br/>
+7. [모니터링](#7-모니터링)<br/>
 
 ---
 
@@ -122,7 +122,7 @@ HuggingFace Cache"]
 
     Internet["Internet"] -->|Port 8000| AIServer
     Internet -.->|Port 3000| MCPServer
-    Claude["Claude Desktop/Code"] -.->|MCP Protocol| MCPServer
+    LLM["LLM Desktop/Code"] -.->|MCP Protocol| MCPServer
     MCPServer -->|Internal Network| AIServer
     AIServer -.->|GPU Access| GPU
     AIServer -.->|Volume Mount| Storage

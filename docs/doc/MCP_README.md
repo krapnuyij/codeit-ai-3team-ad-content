@@ -15,7 +15,7 @@ AI 기반 광고 이미지 생성을 위한 MCP (Model Context Protocol) 서버
 
 ## 개요
 
-nanoCocoa_mcpserver는 nanoCocoa_aiserver의 REST API를 MCP 프로토콜로 감싸서 제공하는 브릿지 서버입니다. LLM(GPT, Claude 등)이 자연어 명령을 통해 AI 광고 이미지를 생성할 수 있도록 합니다.
+nanoCocoa_mcpserver는 nanoCocoa_aiserver의 REST API를 MCP 프로토콜로 감싸서 제공하는 브릿지 서버입니다. LLM(GPT, LLM 등)이 자연어 명령을 통해 AI 광고 이미지를 생성할 수 있도록 합니다.
 
 ### 시스템 아키텍처
 

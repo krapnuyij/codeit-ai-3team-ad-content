@@ -56,12 +56,16 @@ graph TD
             Loader["Model Loader (JIT)"]
             M1["BiRefNet (Segmentation)"]
             M2["FLUX.1-dev (Background/Refine)"]
-            M3["SDXL ControlNet (Text 3D)"]
+            M3["Qwen2-VL (Image Analysis, Optional)"]
+            M4["LLM (HTML/CSS Generator)"]
+            M5["HTML Renderer (Text Layer)"]
             
             Worker --> Loader
             Loader --> M1
             Loader --> M2
             Loader --> M3
+            Worker --> M4
+            Worker --> M5
         end
         
         M1 -.-> GPU["NVIDIA L4 (24GB)"]
@@ -120,35 +124,29 @@ graph TD
 
 **3.2.2. Pipeline Stages (파이프라인 단계)**
 
-실제 구현에서는 **3단계 Step 구조**로 설계되어 있습니다:
+실제 구현에서는 **2단계 Step 구조**로 설계되어 있습니다:
 
 * **Step 1 (Background Generation - 배경 생성):**
 1. `BiRefNet` 로드 → 제품 누끼(Segmentation) → 언로드
-2. `FLUX` 로드 → 배경 생성(T2I) → 언로드
+2. `FLUX.1-dev` 로드 → 배경 생성(Text-to-Image) → 언로드
 3. 합성(Compositing) 및 그림자 생성 (CPU 연산)
-4. `FLUX Img2Img` 로드 → 리터칭(Refinement) → 언로드
+4. `FLUX.1-dev Img2Img` 로드 → 리터칭(Refinement) → 언로드
    - **출력**: 배경과 합성된 상품 이미지 (step1_result)
-   - **진행률**: 0% → 33%
+   - **진행률**: 0% → 50%
 
-* **Step 2 (Text Asset Generation - 텍스트 자산 생성):**
-1. 텍스트 레이아웃 및 Canny Map 생성 (CPU/PIL)
-2. `SDXL ControlNet` 로드 → 3D 텍스트 생성 → 언로드
-3. `BiRefNet` 재로드 → 텍스트 배경 제거 → 언로드
-   - **출력**: 배경 제거된 3D 텍스트 이미지 (step2_result)
-   - **진행률**: 33% → 66%
-
-* **Step 3 (Final Composition - 최종 합성):**
-1. Step 1 결과 (배경 이미지)와 Step 2 결과 (텍스트 이미지)를 합성
-2. FLUX Inpainting을 사용한 지능형 합성 (텍스트 위치, 합성 모드 적용)
-3. 최종 레이어 합성 (CPU/PIL)
+* **Step 2 (LLM-based HTML Text Rendering - LLM 기반 HTML 텍스트 렌더링):**
+1. *(선택적)* `Qwen2-VL` 로드 → Step 1 결과 이미지 분석 (공간, 색감, 조명, 분위기) → 언로드
+2. LLM 호출 → Qwen 분석 결과를 텍스트로 전달 + 광고 문구에 적합한 HTML/CSS 코드 생성
+3. HTML Renderer → HTML을 고품질 이미지로 렌더링 (Chrome Headless 또는 Selenium)
+4. 투명 배경 처리 (Alpha Channel)
+5. Step 1 결과 위에 텍스트 레이어 합성 (CPU/PIL)
    - **출력**: 최종 광고 이미지 (final_result)
-   - **진행률**: 66% → 100%
+   - **진행률**: 50% → 100%
 
 **단계별 재시작(Resume) 지원:**
 - `start_step` 파라미터를 통해 특정 단계부터 시작 가능
 - Step 2부터 시작 시 `step1_image` 필수 제공
-- Step 3부터 시작 시 `step1_image`, `step2_image` 모두 필수 제공
-- 텍스트가 없을 경우 (`text_content == null`), Step 2/3 건너뛰고 Step 1 결과를 최종 이미지로 사용
+- 텍스트가 없을 경우 (`text_content == null`), Step 2 건너뛰고 Step 1 결과를 최종 이미지로 사용
 
 
 
@@ -185,17 +183,14 @@ MCP(Model Context Protocol)를 지원하기 위해 JSON 기반의 명시적인 �
   "bg_composition_prompt": "A photorealistic object lying naturally on a rustic wooden table...",
   "bg_composition_negative_prompt": "floating, disconnected, unrealistic shadows",
   "step1_image": null,
-  "text_model_prompt": "3D render of Gold foil balloon text, inflated, shiny metallic texture",
-  "negative_prompt": "floor, ground, dirt, debris, ugly, low quality",
-  "font_name": "NanumSquare/NanumSquareB.ttf",
-  "step2_image": null,
-  "composition_mode": "overlay",
+  "html_style_prompt": "Modern bold design with gold gradient, drop shadow, 3D effect",
+  "use_qwen_analysis": true,
+  "font_family": "Arial, sans-serif",
+  "font_weight": "bold",
+  "text_color": "linear-gradient(45deg, #FFD700, #FFA500)",
   "text_position": "top",
-  "composition_prompt": "with subtle shadow, cinematic lighting",
-  "composition_negative_prompt": "floating, disconnected, bad integration",
-  "composition_strength": 0.4,
-  "composition_steps": 28,
-  "composition_guidance_scale": 3.5,
+  "text_size": 72,
+  "use_llm_html": true,
   "strength": 0.6,
   "guidance_scale": 3.5,
   "seed": null,
@@ -204,9 +199,13 @@ MCP(Model Context Protocol)를 지원하기 위해 JSON 기반의 명시적인 �
 ```
 
 **주요 파라미터 설명:**
-- `start_step` (1~3): 실행 시작 단계 (Human-in-the-loop 지원)
-- `step1_image`, `step2_image`: 이전 단계 결과를 수정하여 재주입 가능
-- `composition_mode`: 합성 방식 (`overlay`, `blend`, `behind`)
+- `start_step` (1~2): 실행 시작 단계 (Human-in-the-loop 지원)
+- `step1_image`: Step 1 결과를 수정하여 재주입 가능
+- `html_style_prompt`: LLM에게 전달할 HTML/CSS 스타일 지시사항
+- `use_qwen_analysis`: Qwen2-VL로 이미지 상세 분석 사용 여부 (기본값: true)
+  - true: 배경 이미지의 공간, 색감, 조명, 분위기를 분석하여 LLM에 텍스트로 전달
+  - false: 이미지 분석 없이 바로 HTML 생성 (빠르지만 덜 정교함)
+- `use_llm_html`: LLM 기반 HTML 생성 사용 여부 (기본값: true)
 - `text_position`: 텍스트 위치 (`top`, `center`, `bottom`, `auto`)
 - `test_mode`: 더미 모드 (AI 모델 없이 빠른 테스트)
 
@@ -219,9 +218,9 @@ MCP(Model Context Protocol)를 지원하기 위해 JSON 기반의 명시적인 �
   "job_id": "550e8400-e29b-41d4-a716-446655440000",
   "status": "running",
   "progress_percent": 45,
-  "current_step": "step2_text_asset",
-  "sub_step": "sdxl_text_generation (15/28)",
-  "message": "Generating 3D text...",
+  "current_step": "step2_html_rendering",
+  "sub_step": "llm_html_generation",
+  "message": "Generating HTML text layout...",
   "elapsed_sec": 67.3,
   "eta_seconds": 85,
   "step_eta_seconds": 42,
@@ -255,12 +254,12 @@ MCP(Model Context Protocol)를 지원하기 위해 JSON 기반의 명시적인 �
 **주요 필드 설명:**
 - `status`: `pending`, `running`, `completed`, `failed`, `stopped`
 - `progress_percent`: 0~100% 진행률 (가중치 기반 계산)
-- `current_step`: 현재 메인 단계 (`step1_background`, `step2_text_asset`, `step3_composite`)
-- `sub_step`: 현재 서브 단계 및 추론 스텝 (예: `flux_bg_generation (10/28)`)
+- `current_step`: 현재 메인 단계 (`step1_background`, `step2_html_rendering`)
+- `sub_step`: 현재 서브 단계 및 추론 스텝 (예: `flux_bg_generation (10/28)`, `llm_html_generation`)
 - `eta_seconds`: 전체 작업 예상 남은 시간 (통계 기반 동적 계산, 음수는 초과)
 - `step_eta_seconds`: 현재 단계 예상 남은 시간
 - `system_metrics`: 실시간 CPU/RAM/GPU 사용률
-- `step1_result`, `step2_result`, `final_result`: 단계별 결과 이미지 (Base64)
+- `step1_result`, `final_result`: 단계별 결과 이미지 (Base64)
 
 ---
 
@@ -304,56 +303,45 @@ sequenceDiagram
         Worker->>Worker: Segmentation
         Worker->>GPU: Free VRAM (Flush)
 
-        Worker->>Worker: Load FLUX
+        Worker->>Worker: Load FLUX.1-dev
         Worker->>GPU: Alloc VRAM (High Load)
         Worker->>Worker: T2I Background Generation
         Worker->>GPU: Free VRAM (Flush)
 
         Worker->>Worker: Compositing (CPU)
-        Worker->>Worker: Load FLUX Img2Img
+        Worker->>Worker: Load FLUX.1-dev Img2Img
         Worker->>GPU: Alloc VRAM
         Worker->>Worker: Feature Injection (Refinement)
         Worker->>GPU: Free VRAM (Flush)
 
         Worker->>Mgr: Update Shared Memory (step1_result Base64)
-        Worker->>Mgr: Update progress: 33%
+        Worker->>Mgr: Update progress: 50%
     end
 
     User->>API: GET /status/{id}
     API->>Mgr: Read Progress
     Mgr-->>API: Return Status + Images + Metrics
-    API-->>User: JSON Response (progress=33%, step1_result)
+    API-->>User: JSON Response (progress=50%, step1_result)
 
-    loop Step 2 (Text Asset)
-        Worker->>Worker: Update status: step2_text_asset
-        Worker->>Worker: Canny Processing (CPU)
-        Worker->>Worker: Load SDXL ControlNet
-        Worker->>GPU: Alloc VRAM
-        Worker->>Worker: Generate 3D Text
-        Worker->>GPU: Free VRAM (Flush)
+    loop Step 2 (HTML Text Rendering)
+        Worker->>Worker: Update status: step2_html_rendering
+        
+        alt use_qwen_analysis=true
+            Worker->>Worker: Load Qwen2-VL
+            Worker->>GPU: Alloc VRAM
+            Worker->>Worker: Analyze Step1 Result (Spatial, Color, Lighting, Mood)
+            Worker->>GPU: Free VRAM (Flush)
+            Worker->>Worker: Extract Text Analysis Result
+        end
+        
+        Worker->>Worker: Call LLM API
+        Worker->>LLM: Generate HTML/CSS (with Qwen analysis text)
+        LLM-->>Worker: Return HTML/CSS Code
 
-        Worker->>Worker: Load BiRefNet
-        Worker->>GPU: Alloc VRAM
-        Worker->>Worker: Remove Text Background
-        Worker->>GPU: Free VRAM (Flush)
+        Worker->>Worker: Render HTML to Image (Headless Browser)
+        Worker->>Worker: Process Alpha Channel
 
-        Worker->>Mgr: Update Shared Memory (step2_result Base64)
-        Worker->>Mgr: Update progress: 66%
-    end
-
-    User->>API: GET /status/{id}
-    API->>Mgr: Read Progress
-    Mgr-->>API: Return Status + Images
-    API-->>User: JSON Response (progress=66%, step2_result)
-
-    loop Step 3 (Composition)
-        Worker->>Worker: Update status: step3_composite
-        Worker->>Worker: Load FLUX Inpainting
-        Worker->>GPU: Alloc VRAM
-        Worker->>Worker: Intelligent Composition
-        Worker->>GPU: Free VRAM (Flush)
-
-        Worker->>Worker: Final Layer Composition (CPU)
+        Worker->>Worker: Composite Text Layer on Step1 Result (CPU)
         Worker->>Mgr: Update Shared Memory (final_result Base64)
         Worker->>Mgr: Update progress: 100%
     end
@@ -432,26 +420,133 @@ sequenceDiagram
 
 **코드 참조**: [worker.py:103-124](d:/project/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver/core/worker.py#L103-L124)
 
-### 8.2. 지능형 합성 (Intelligent Composition)
+### 8.2. LLM 기반 HTML 텍스트 렌더링 (LLM-based HTML Text Rendering)
 
-Step 3에서는 FLUX Inpainting을 사용한 고급 합성 기능을 제공합니다:
+Step 2에서는 LLM을 활용한 동적 HTML/CSS 생성으로 고품질 텍스트 레이어를 생성합니다:
 
-- **합성 모드** (`composition_mode`):
-  - `overlay`: 텍스트를 배경 위에 명확하게 배치
-  - `blend`: 텍스트를 배경과 자연스럽게 섞어 조화
-  - `behind`: 텍스트를 배경 뒤에 배치 (깊이감)
+- **Qwen2-VL 이미지 분석 (선택적)**:
+  - `use_qwen_analysis=true`인 경우, Qwen2-VL Vision-Language 모델로 이미지 상세 분석
+  - 분석 항목:
+    - `spatial`: 객체의 공간적 배치 및 위치 정보
+    - `color_material`: 색감 및 재질 분석 (주조색, 보조색, 재질 질감)
+    - `lighting_mood`: 조명, 분위기, 시간대 분석
+    - `overall`: 전체적인 장면 설명
+  - Qwen 분석 결과는 **텍스트 형태**로 LLM에 전달 (이미지 직접 전송 X)
+  - 분석 완료 후 즉시 모델 언로드 (VRAM 확보)
 
-- **자동 위치 선정** (`text_position`):
+- **LLM HTML 생성**:
+  - Qwen 분석 텍스트 + 사용자의 광고 문구와 스타일 프롬프트를 LLM에 전달
+  - LLM이 배경 이미지와 조화로운 HTML/CSS 코드 생성 (그라데이션, 그림자, 3D 효과 등)
+  - 예시 프롬프트: "이미지 분석: 따뜻한 우드 톤, 중앙에 여백 많음, 자연광 → Gold gradient text with drop shadow"
+
+- **HTML 렌더링**:
+  - Chrome Headless 또는 Selenium을 사용하여 HTML을 고해상도 이미지로 렌더링
+  - 투명 배경 (Alpha Channel) 자동 처리
+  - 다양한 폰트 및 스타일 지원
+
+- **텍스트 위치 설정** (`text_position`):
   - `auto`: 배경 여백 자동 감지하여 최적 위치 선정
   - `top`, `center`, `bottom`: 수동 지정
 
-- **프롬프트 기반 세밀 조정**:
-  - `composition_prompt`: 합성 스타일 추가 지정 (예: "with subtle shadow")
-  - `composition_negative_prompt`: 제외 요소 지정
+- **장점**:
+  - SDXL ControlNet 대비 VRAM 사용량 제로 (CPU 전용 렌더링)
+  - 텍스트 품질 및 가독성 향상
+  - 다양한 스타일 및 효과 지원 (CSS 활용)
+  - 빠른 렌더링 속도
 
 **코드 참조**: [processors.py](d:/project/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver/core/processors.py)
 
-### 8.3. 멀티프로세싱 아키텍처
+### 8.3. Qwen2-VL 이미지 분석 (Image Analysis with Qwen2-VL)
+
+Qwen2-VL은 Vision-Language 모델로, 배경 이미지를 상세히 분석하여 텍스트 정보로 LLM에 전달합니다.
+
+**주요 특징**:
+- **멀티모달 입력**: 이미지 + 텍스트 질문을 동시에 처리
+- **상세 분석**: 공간, 색감, 조명, 분위기 등 다각도 분석
+- **텍스트 출력**: 분석 결과를 한국어/영어 텍스트로 반환 (이미지 토큰 절약)
+- **JIT 방식**: 분석 후 즉시 언로드하여 VRAM 확보
+
+**분석 프로세스**:
+1. Step 1 결과 이미지를 Qwen2-VL에 입력
+2. 4가지 관점으로 이미지 분석:
+   - `spatial`: "중앙에 여백이 많고, 왼쪽에 제품 배치..."
+   - `color_material`: "따뜻한 우드 톤, 자연스러운 조명..."
+   - `lighting_mood`: "부드러운 자연광, 따뜻한 분위기..."
+   - `overall`: "카페 테이블 위의 제품 사진..."
+3. 분석 텍스트를 LLM 프롬프트에 포함
+4. LLM이 이미지와 조화로운 HTML/CSS 생성
+
+**코드 구조** (`qwen_analyzer.py`):
+```python
+class QwenAnalyzer:
+    def analyze_image_details(
+        self, 
+        image: Image.Image, 
+        auto_unload: bool = True
+    ) -> Dict[str, str]:
+        \"\"\"
+        이미지를 4가지 관점으로 상세 분석
+        
+        Returns:
+            {
+                'spatial': '공간 배치 설명',
+                'color_material': '색감 및 재질 설명',
+                'lighting_mood': '조명 및 분위기 설명',
+                'overall': '전체 장면 설명'
+            }
+        \"\"\"
+        # Qwen2-VL 로드
+        self._load_model()
+        
+        # 4가지 질문으로 분석
+        spatial_info = self._query_model(image, "공간 배치 질문")
+        color_info = self._query_model(image, "색감 재질 질문")
+        lighting_info = self._query_model(image, "조명 분위기 질문")
+        overall_info = self._query_model(image, "전체 장면 질문")
+        
+        # 모델 언로드
+        if auto_unload:
+            self._unload_model()
+        
+        return {
+            'spatial': spatial_info,
+            'color_material': color_info,
+            'lighting_mood': lighting_info,
+            'overall': overall_info
+        }
+```
+
+**LLM 프롬프트 예시** (`llm_text.py`):
+```python
+user_prompt = f\"\"\"다음 이미지 분석 정보를 바탕으로 광고 문구가 포함된 완전한 HTML을 생성해주세요:
+
+[이미지 분석 정보]
+- 전체 장면: {analysis['overall']}
+- 색감/재질: {analysis['color_material']}
+- 조명/분위기: {analysis['lighting_mood']}
+- 공간 배치: {analysis['spatial']}
+
+[광고 정보]
+- 광고 문구: "{ad_text}"
+- 스타일 힌트: {style_hint}
+
+위 분석을 참고하여 배경과 조화로운 HTML/CSS를 생성하세요.
+\"\"\"
+```
+
+**메모리 효율성**:
+- Qwen2-VL: ~14GB VRAM (bfloat16)
+- 분석 완료 후 즉시 언로드
+- LLM API는 외부 서비스 사용 (VRAM 불필요)
+- 최종 HTML 렌더링은 CPU 전용 (Headless Browser)
+
+**코드 참조**: 
+- [qwen_analyzer.py](d:/project/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver/models/qwen_analyzer.py)
+- [llm_text.py](d:/project/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver/models/llm_text.py)
+
+---
+
+**9. 멀티프로세싱 아키텍처 (Multiprocessing Architecture)**
 
 - **프로세스 격리**: FastAPI 메인 스레드와 AI 추론 작업 완전 분리
 - **공유 메모리**: `multiprocessing.Manager.dict()`를 통한 프로세스 간 상태 공유
@@ -460,7 +555,7 @@ Step 3에서는 FLUX Inpainting을 사용한 고급 합성 기능을 제공합�
 
 **코드 참조**: [generation.py](d:/project/codeit-ai-3team-ad-content/src/nanoCocoa_aiserver/api/routers/generation.py)
 
-### 8.4. GPU 메모리 관리
+### 9.2. GPU 메모리 관리
 
 ```python
 def flush_gpu():
@@ -479,7 +574,7 @@ def flush_gpu():
 
 ---
 
-**9. 디렉토리 구조 (Directory Structure)**
+**10. 디렉토리 구조 (Directory Structure)**
 
 ```
 src/nanoCocoa_aiserver/
@@ -498,7 +593,8 @@ src/nanoCocoa_aiserver/
 │   ├── base.py                   # 기본 모델 래퍼
 │   ├── segmentation.py           # BiRefNet 모델
 │   ├── flux_generator.py         # FLUX 모델
-│   ├── sdxl_text.py              # SDXL ControlNet 모델
+│   ├── qwen_analyzer.py          # Qwen2-VL 이미지 분석 모델
+│   ├── llm_text.py               # LLM 기반 HTML 텍스트 생성
 │   └── CompositionEngine.py      # 합성 엔진
 ├── schemas/
 │   ├── request.py                # 요청 스키마 (GenerateRequest)
