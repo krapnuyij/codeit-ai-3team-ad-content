@@ -310,3 +310,63 @@ def resize_image_if_needed(base64_str: str, max_dimension: int = 2048) -> str:
 
     except Exception as e:
         raise ImageProcessingError(f"이미지 리사이즈 실패: {e}")
+
+
+def resize_and_encode_for_clip(file_path: str | Path) -> str:
+    """
+    CLIP 평가를 위해 이미지를 224x224로 리사이즈하고 Base64로 인코딩
+
+    Args:
+        file_path: 이미지 파일 경로
+
+    Returns:
+        224x224로 리사이즈된 이미지의 Base64 문자열
+
+    Raises:
+        ImageProcessingError: 파일 읽기 또는 리사이즈 실패
+    """
+    try:
+        # 경로 해석
+        path = resolve_image_path(file_path)
+
+        # 파일 존재 확인
+        if not path.exists():
+            raise ImageProcessingError(
+                f"파일을 찾을 수 없습니다: {path} (원본: {file_path})"
+            )
+
+        # 파일 크기 확인
+        file_size_mb = path.stat().st_size / (1024 * 1024)
+        if file_size_mb > MAX_IMAGE_SIZE_MB:
+            raise ImageProcessingError(
+                f"파일 크기가 너무 큽니다: {file_size_mb:.2f}MB "
+                f"(최대: {MAX_IMAGE_SIZE_MB}MB)"
+            )
+
+        # 이미지 로드 및 유효성 검증
+        with Image.open(path) as img:
+            img_format = img.format
+            if img_format not in SUPPORTED_IMAGE_FORMATS:
+                raise ImageProcessingError(
+                    f"지원하지 않는 이미지 포맷: {img_format}. "
+                    f"지원 포맷: {', '.join(SUPPORTED_IMAGE_FORMATS)}"
+                )
+
+            # RGB로 변환 (RGBA, L 등 처리)
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+
+            # 224x224로 리사이즈 (CLIP 모델 입력 크기)
+            img_resized = img.resize((224, 224), Image.Resampling.LANCZOS)
+
+            # Base64로 인코딩
+            buffer = io.BytesIO()
+            img_resized.save(buffer, format="PNG")
+            image_data = buffer.getvalue()
+
+        return base64.b64encode(image_data).decode("utf-8")
+
+    except ImageProcessingError:
+        raise
+    except Exception as e:
+        raise ImageProcessingError(f"CLIP 이미지 처리 중 에러 발생: {e}")

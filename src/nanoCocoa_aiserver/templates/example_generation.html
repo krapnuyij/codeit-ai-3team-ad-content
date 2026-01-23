@@ -334,6 +334,83 @@
                         <span class="placeholder">결과가 여기에 표시됩니다</span>
                     </div>
                 </div>
+
+                <!-- CLIP Score Evaluation -->
+                <div class="result-card" style="border-color: var(--accent-color);">
+                    <div class="panel-header" style="color: #fff;">📊 CLIP Score 평가</div>
+                    <div style="padding: 16px;">
+                        <div class="control-group">
+                            <label>평가할 이미지 선택</label>
+                            <select id="clip_image_select" onchange="updateClipImagePreview()">
+                                <option value="">이미지를 선택하세요</option>
+                                <option value="step1">1단계 결과 (배경)</option>
+                                <option value="step2">2단계 결과 (텍스트)</option>
+                                <option value="final">최종 결과</option>
+                                <option value="upload">직접 업로드...</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group" id="clip_upload_section" style="display: none;">
+                            <label>이미지 업로드</label>
+                            <input type="file" id="clip_image_file" accept="image/*"
+                                onchange="encodeImage(this, 'clip_image_b64')">
+                            <input type="hidden" id="clip_image_b64">
+                        </div>
+
+                        <div class="control-group">
+                            <label>프롬프트 (한글/영문)</label>
+                            <textarea id="clip_prompt" rows="3" 
+                                placeholder="예: 사과가 그려져 있고 가격과 판매 장소가 적혀 있는 광고 포스터"></textarea>
+                            <button class="btn-secondary" onclick="useGenerationPrompt()" 
+                                style="margin-top: 8px; font-size: 12px;">
+                                🔄 생성 프롬프트 사용
+                            </button>
+                        </div>
+
+                        <div class="control-group">
+                            <label>모델 선택</label>
+                            <select id="clip_model_type">
+                                <option value="koclip" selected>KoCLIP (한글 프롬프트)</option>
+                                <option value="openai">OpenAI CLIP (영문 프롬프트)</option>
+                            </select>
+                        </div>
+
+                        <button class="btn-primary" onclick="calculateClipScore()" style="width: 100%;">
+                            CLIP Score 계산
+                        </button>
+
+                        <div id="clip_result" style="margin-top: 16px; display: none;">
+                            <div style="background: rgba(76, 175, 80, 0.1); border: 1px solid rgba(76, 175, 80, 0.3); 
+                                border-radius: 8px; padding: 16px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <span style="font-size: 13px; color: var(--text-muted);">CLIP Score</span>
+                                    <span id="clip_score" style="font-size: 24px; font-weight: bold; color: var(--accent-color);">
+                                        -
+                                    </span>
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">
+                                    사용 모델: <span id="clip_used_model">-</span>
+                                </div>
+                                <div id="clip_interpretation" 
+                                    style="font-size: 13px; color: #fff; line-height: 1.5;">
+                                    -
+                                </div>
+                                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.1);">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">점수 가이드</div>
+                                    <div style="font-size: 11px; color: var(--text-muted); line-height: 1.6;">
+                                        • 0.7 이상: 매우 높은 일치도<br>
+                                        • 0.5~0.7: 높은 일치도<br>
+                                        • 0.3~0.5: 중간 일치도<br>
+                                        • 0.3 미만: 낮은 일치도
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="clip_error" style="color: var(--error-color); font-size: 12px; margin-top: 10px; display: none;">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -344,6 +421,168 @@
     <script src="/static/js/timing.js"></script>
     <script src="/static/js/api.js"></script>
     <script src="/static/js/main.js"></script>
+
+    <!-- CLIP Score Functions -->
+    <script>
+        // CLIP Score 관련 전역 변수
+        let generatedImages = {
+            step1: null,
+            step2: null,
+            final: null
+        };
+
+        // 이미지 선택 시 업로드 섹션 표시/숨김
+        function updateClipImagePreview() {
+            const select = document.getElementById('clip_image_select');
+            const uploadSection = document.getElementById('clip_upload_section');
+            
+            if (select.value === 'upload') {
+                uploadSection.style.display = 'block';
+            } else {
+                uploadSection.style.display = 'none';
+            }
+        }
+
+        // 생성 프롬프트를 CLIP 프롬프트로 복사
+        function useGenerationPrompt() {
+            const bgPrompt = document.getElementById('bg_prompt').value;
+            const textContent = document.getElementById('text_content').value;
+            
+            let prompt = '';
+            if (textContent) {
+                prompt = `${textContent} 텍스트가 있는 광고. ${bgPrompt}`;
+            } else {
+                prompt = bgPrompt;
+            }
+            
+            document.getElementById('clip_prompt').value = prompt;
+        }
+
+        // 생성된 이미지를 저장 (기존 displayResult 함수 수정 필요)
+        function saveGeneratedImage(step, base64Image) {
+            generatedImages[step] = base64Image;
+        }
+
+        // CLIP Score 계산
+        async function calculateClipScore() {
+            const imageSelect = document.getElementById('clip_image_select').value;
+            const prompt = document.getElementById('clip_prompt').value;
+            const modelType = document.getElementById('clip_model_type').value;
+            const clipError = document.getElementById('clip_error');
+            const clipResult = document.getElementById('clip_result');
+
+            // 입력 검증
+            if (!imageSelect) {
+                clipError.textContent = '이미지를 선택해주세요.';
+                clipError.style.display = 'block';
+                clipResult.style.display = 'none';
+                return;
+            }
+
+            if (!prompt.trim()) {
+                clipError.textContent = '프롬프트를 입력해주세요.';
+                clipError.style.display = 'block';
+                clipResult.style.display = 'none';
+                return;
+            }
+
+            // 이미지 Base64 가져오기
+            let imageBase64;
+            if (imageSelect === 'upload') {
+                imageBase64 = document.getElementById('clip_image_b64').value;
+                if (!imageBase64) {
+                    clipError.textContent = '이미지를 업로드해주세요.';
+                    clipError.style.display = 'block';
+                    clipResult.style.display = 'none';
+                    return;
+                }
+            } else {
+                imageBase64 = generatedImages[imageSelect];
+                if (!imageBase64) {
+                    clipError.textContent = '선택한 단계의 이미지가 아직 생성되지 않았습니다.';
+                    clipError.style.display = 'block';
+                    clipResult.style.display = 'none';
+                    return;
+                }
+            }
+
+            // data:image/png;base64, 접두사 제거
+            if (imageBase64.includes(',')) {
+                imageBase64 = imageBase64.split(',')[1];
+            }
+
+            // 로딩 표시
+            clipError.style.display = 'none';
+            clipResult.style.display = 'block';
+            document.getElementById('clip_score').textContent = '계산 중...';
+            document.getElementById('clip_interpretation').textContent = 'CLIP Score를 계산하고 있습니다. 첫 요청 시 모델 로딩으로 5~10초 소요될 수 있습니다.';
+
+            try {
+                const response = await fetch('/clip-score', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        image_base64: imageBase64,
+                        prompt: prompt,
+                        model_type: modelType
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'CLIP Score 계산 실패');
+                }
+
+                const result = await response.json();
+
+                // 결과 표시
+                document.getElementById('clip_score').textContent = result.clip_score.toFixed(4);
+                document.getElementById('clip_used_model').textContent = result.model_type === 'koclip' ? 'KoCLIP (한글)' : 'OpenAI CLIP (영문)';
+                document.getElementById('clip_interpretation').textContent = result.interpretation;
+
+                // 점수에 따라 색상 변경
+                const scoreElement = document.getElementById('clip_score');
+                const score = result.clip_score;
+                if (score >= 0.7) {
+                    scoreElement.style.color = '#4CAF50'; // 녹색
+                } else if (score >= 0.5) {
+                    scoreElement.style.color = '#8BC34A'; // 연두색
+                } else if (score >= 0.3) {
+                    scoreElement.style.color = '#FFC107'; // 노란색
+                } else {
+                    scoreElement.style.color = '#FF5722'; // 빨간색
+                }
+
+            } catch (error) {
+                console.error('CLIP Score calculation error:', error);
+                clipError.textContent = `오류: ${error.message}`;
+                clipError.style.display = 'block';
+                clipResult.style.display = 'none';
+            }
+        }
+
+        // 기존 displayResult 함수를 오버라이드하여 이미지 저장 기능 추가
+        const originalDisplayResult = window.displayResult;
+        if (typeof originalDisplayResult === 'function') {
+            window.displayResult = function(data) {
+                // 원본 함수 실행
+                originalDisplayResult(data);
+                
+                // 이미지 저장
+                if (data.step1_result) {
+                    saveGeneratedImage('step1', data.step1_result);
+                }
+                if (data.step2_result) {
+                    saveGeneratedImage('step2', data.step2_result);
+                }
+                if (data.final_result) {
+                    saveGeneratedImage('final', data.final_result);
+                }
+            };
+        }
+    </script>
 </body>
 
 </html>

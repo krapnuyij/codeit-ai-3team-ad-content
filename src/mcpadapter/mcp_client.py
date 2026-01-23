@@ -38,7 +38,7 @@ class MCPClient:
     def __init__(
         self,
         base_url: str = "http://localhost:3000",
-        timeout: int = 600,
+        timeout: int = 900,
     ):
         """
         Args:

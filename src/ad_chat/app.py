@@ -27,7 +27,7 @@ from helper_streamlit_utils import *
 from helper_dev_utils import get_auto_logger
 from config import PAGE_TITLE, PAGE_ICON, LAYOUT, MCP_SERVER_URL
 from utils.state_manager import init_session_state, is_authenticated, get_page
-from ui import render_auth_ui, render_chat_ui, render_history_ui
+from ui import render_auth_ui, render_chat_ui, render_history_ui, render_evaluate_ui
 
 logger = get_auto_logger()
 
@@ -99,6 +99,8 @@ def main() -> None:
             render_chat_ui()
         elif current_page == "history":
             render_history_ui()
+        elif current_page == "evaluate":
+            render_evaluate_ui()
         else:
             # 기본값: 채팅 화면
             render_chat_ui()

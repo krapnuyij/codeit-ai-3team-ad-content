@@ -5,7 +5,10 @@
 import logging
 import base64
 import io
-from typing import Optional
+import json
+import asyncio
+import httpx
+from typing import Optional, Dict, Any, Literal
 from PIL import Image
 
 from client.api_client import AIServerClient, AIServerError
@@ -13,8 +16,14 @@ from schemas.api_models import GenerateRequest
 from utils.image_utils import (
     image_file_to_base64,
     base64_to_image_file,
+    resize_and_encode_for_clip,
     ImageProcessingError,
 )
+from utils.text_utils import (
+    detect_language,
+    summarize_prompt,
+)
+from config import AISERVER_BASE_URL
 
 from helper_dev_utils import get_auto_logger
 
@@ -259,3 +268,120 @@ async def stop_generation(job_id: str) -> str:
         import json
 
         return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+async def evaluate_image_clip(
+    image_path: str,
+    prompt: str,
+    model_type: Literal["auto", "koclip", "openai"] = "auto",
+) -> str:
+    """
+    이미지와 프롬프트의 CLIP 유사도 평가
+
+    Args:
+        image_path: 평가할 이미지 파일 경로
+        prompt: 비교할 텍스트 프롬프트
+        model_type: CLIP 모델 타입
+            - "auto": 한글 포함 시 koclip, 영문만 있으면 openai (기본값)
+            - "koclip": KoCLIP 모델 강제 사용
+            - "openai": OpenAI CLIP 모델 강제 사용
+
+    Returns:
+        JSON 문자열: {"clip_score": float, "interpretation": str, "model_type": str, "prompt": str}
+
+    Raises:
+        ImageProcessingError: 이미지 처리 실패
+        httpx.HTTPError: CLIP API 호출 실패
+    """
+    try:
+        # 1. 이미지 리사이즈 및 Base64 인코딩 (224x224)
+        logger.info(f"CLIP 평가 시작: image_path={image_path}")
+        image_base64 = resize_and_encode_for_clip(image_path)
+
+        # 2. 프롬프트 전처리 (긴 프롬프트 요약)
+        original_prompt = prompt
+        if len(prompt.split()) > 77:
+            prompt = summarize_prompt(prompt, max_words=50)
+            logger.info(
+                f"프롬프트 요약: {len(original_prompt.split())}단어 -> {len(prompt.split())}단어"
+            )
+
+        # 3. 모델 타입 자동 선택
+        if model_type == "auto":
+            model_type = detect_language(prompt)
+            logger.info(f"자동 모델 선택: {model_type} (프롬프트: {prompt[:50]}...)")
+
+        # 4. CLIP Score API 호출 (재시도 로직 포함)
+        clip_api_url = f"{AISERVER_BASE_URL}/clip-score"
+        request_payload = {
+            "image_base64": image_base64,
+            "prompt": prompt,
+            "model_type": model_type,
+        }
+
+        max_retries = 3
+        retry_delay = 1.0
+
+        for attempt in range(max_retries):
+            try:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    response = await client.post(clip_api_url, json=request_payload)
+                    response.raise_for_status()
+                    result = response.json()
+
+                    # 성공 시 결과 반환
+                    logger.info(
+                        f"CLIP 평가 완료: score={result['clip_score']:.3f}, "
+                        f"model={result['model_type']}"
+                    )
+                    return json.dumps(
+                        {
+                            "clip_score": result["clip_score"],
+                            "interpretation": result["interpretation"],
+                            "model_type": result["model_type"],
+                            "prompt": prompt,
+                        },
+                        ensure_ascii=False,
+                    )
+
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code == 503 and attempt < max_retries - 1:
+                    # 503 Service Unavailable 시 재시도
+                    logger.warning(
+                        f"CLIP API 503 에러 (시도 {attempt + 1}/{max_retries}), "
+                        f"{retry_delay:.1f}초 후 재시도"
+                    )
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                else:
+                    raise
+
+            except httpx.RequestError as e:
+                if attempt < max_retries - 1:
+                    logger.warning(
+                        f"CLIP API 연결 실패 (시도 {attempt + 1}/{max_retries}), "
+                        f"{retry_delay:.1f}초 후 재시도: {e}"
+                    )
+                    await asyncio.sleep(retry_delay)
+                    retry_delay *= 2
+                else:
+                    raise
+
+        # 최대 재시도 초과
+        raise httpx.RequestError(
+            f"CLIP API 호출 실패 (최대 재시도 {max_retries}회 초과)"
+        )
+
+    except ImageProcessingError as e:
+        logger.error(f"이미지 처리 에러: {e}")
+        return json.dumps({"error": f"이미지 처리 실패: {str(e)}"}, ensure_ascii=False)
+
+    except httpx.HTTPError as e:
+        logger.error(f"CLIP API 호출 에러: {e}")
+        return json.dumps(
+            {"error": f"CLIP API 호출 실패: {str(e)}"}, ensure_ascii=False
+        )
+
+    except Exception as e:
+        logger.error(f"CLIP 평가 중 예외 발생: {e}")
+        return json.dumps({"error": f"CLIP 평가 실패: {str(e)}"}, ensure_ascii=False)

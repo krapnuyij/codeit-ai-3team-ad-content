@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from api.middleware import FontHeaderMiddleware
-from api.routers import dev_dashboard, generation, resources
+from api.routers import clip, dev_dashboard, generation, resources
 from config import logger
 from utils import get_system_metrics
 
@@ -101,6 +101,7 @@ def create_app() -> FastAPI:
 
     # 라우터 등록
     app.include_router(generation.router, tags=["Generation"])
+    app.include_router(clip.router, tags=["CLIP Score"])
     app.include_router(resources.router, tags=["Resources"])
     # app.include_router(help.router, tags=["Help & Documentation"])
     app.include_router(dev_dashboard.router, tags=["Development"])

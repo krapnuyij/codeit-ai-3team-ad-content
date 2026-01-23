@@ -31,16 +31,23 @@ async def list_available_fonts() -> str:
 
 async def get_fonts_metadata() -> str:
     """폰트 메타데이터를 조회합니다 (스타일, 굵기, 용도 등)."""
+    import json
+
     try:
         client = await get_api_client()
         metadata = await client.get_fonts_metadata()
 
-        import json
-
         return json.dumps(metadata, ensure_ascii=False, indent=2)
 
     except AIServerError as e:
-        return f"AI 서버 에러: {str(e)}"
+        logger.error(f"AI 서버 연결 실패: {e}")
+        # JSON 형식으로 에러 반환 (파싱 오류 방지)
+        error_response = {
+            "error": "ai_server_connection_failed",
+            "message": str(e),
+            "fonts": [],  # 빈 폰트 목록 반환
+        }
+        return json.dumps(error_response, ensure_ascii=False)
 
 
 async def recommend_font_for_ad(

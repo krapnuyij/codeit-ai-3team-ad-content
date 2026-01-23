@@ -11,6 +11,14 @@ safetensors==0.7.0
 sentencepiece==0.2.1
 tokenizers==0.22.1
 
+# CLIP (for CLIP Score calculation)
+ftfy==6.3.2
+regex==2025.11.3
+git+https://github.com/openai/CLIP.git
+
+# KoCLIP (Korean CLIP support via Hugging Face)
+# Uses transformers library (already installed above)
+
 # NVIDIA/CUDA (Linux/Windows with CUDA)
 nvidia-ml-py==13.590.44
 nvidia-ml-py3==7.352.0

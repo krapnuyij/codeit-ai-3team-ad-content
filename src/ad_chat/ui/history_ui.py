@@ -199,9 +199,7 @@ def render_completed_status(job: dict) -> None:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button(
-            "📝 불러오기", key=f"load_{job['job_id']}", use_container_width=True
-        ):
+        if st.button("📝 불러오기", key=f"load_{job['job_id']}", width="stretch"):
             load_job_to_chat(job)
             set_page("chat")
             st.success("작업을 채팅에 불러왔습니다!")
@@ -211,7 +209,7 @@ def render_completed_status(job: dict) -> None:
         if st.button(
             "🗑️ 삭제",
             key=f"delete_{job['job_id']}",
-            use_container_width=True,
+            width="stretch",
             type="secondary",
         ):
             if job_store.delete_job(job["job_id"]):
@@ -224,7 +222,7 @@ def render_completed_status(job: dict) -> None:
         if st.button(
             "🔁 동일 설정으로 재생성",
             key=f"regenerate_{job['job_id']}",
-            use_container_width=True,
+            width="stretch",
         ):
             st.info("재생성 기능은 추후 구현 예정입니다.")
             # TODO: 동일 파라미터로 새 작업 생성
@@ -241,9 +239,7 @@ def render_failed_status(job: dict) -> None:
     st.error(f"❌ 작업 실패: {error_msg}")
 
     # 삭제 버튼
-    if st.button(
-        "🗑️ 삭제", key=f"delete_failed_{job['job_id']}", use_container_width=True
-    ):
+    if st.button("🗑️ 삭제", key=f"delete_failed_{job['job_id']}", width="stretch"):
         if job_store.delete_job(job["job_id"]):
             st.success("작업이 삭제되었습니다.")
             st.rerun()

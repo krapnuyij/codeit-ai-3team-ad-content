@@ -233,14 +233,26 @@ function pollStatus(jobId, startStep) {
                 showImage('container_step1', data.step1_result);
                 appCache.step1_image = data.step1_result;
                 saveToLocalStorage();
+                // CLIP Score용 이미지 저장
+                if (typeof saveGeneratedImage === 'function') {
+                    saveGeneratedImage('step1', data.step1_result);
+                }
             }
             if (data.step2_result) {
                 showImage('container_step2', data.step2_result);
                 appCache.step2_image = data.step2_result;
                 saveToLocalStorage();
+                // CLIP Score용 이미지 저장
+                if (typeof saveGeneratedImage === 'function') {
+                    saveGeneratedImage('step2', data.step2_result);
+                }
             }
             if (data.final_result) {
                 showImage('container_final', data.final_result);
+                // CLIP Score용 이미지 저장
+                if (typeof saveGeneratedImage === 'function') {
+                    saveGeneratedImage('final', data.final_result);
+                }
             }
 
             if (['completed', 'stopped', 'failed', 'error'].includes(data.status)) {

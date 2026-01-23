@@ -69,6 +69,51 @@ class LLMAdapter:
         """비동기 컨텍스트 매니저 종료"""
         await self.mcp_client.__aexit__(exc_type, exc_val, exc_tb)
 
+    async def evaluate_image(
+        self, image_path: str, prompt: str, model_type: str = "auto"
+    ) -> Dict[str, Any]:
+        """
+        이미지와 프롬프트의 CLIP 유사도 평가
+
+        Args:
+            image_path: 평가할 이미지 파일 경로
+            prompt: 비교할 텍스트 프롬프트
+            model_type: CLIP 모델 타입 ('auto', 'koclip', 'openai')
+
+        Returns:
+            평가 결과 딕셔너리
+            {
+                "clip_score": float,
+                "interpretation": str,
+                "model_type": str,
+                "prompt": str
+            }
+
+        Raises:
+            MCPClientError: MCP 서버 호출 실패
+        """
+        try:
+            result = await self.mcp_client.call_tool(
+                "evaluate_image_clip",
+                {
+                    "image_path": image_path,
+                    "prompt": prompt,
+                    "model_type": model_type,
+                },
+            )
+
+            # JSON 문자열이면 파싱
+            if isinstance(result, str):
+                import json
+
+                return json.loads(result)
+
+            return result
+
+        except MCPClientError as e:
+            logger.error(f"이미지 평가 실패: {e}")
+            raise
+
     def _parse_explicit_params(self, user_message: str) -> Dict[str, Any]:
         """
         사용자 메시지에서 명시적 파라미터 추출
@@ -119,6 +164,7 @@ class LLMAdapter:
         - 생성: generate_ad_image, generate_background_only, generate_text_asset_only
         - 조회/관리: check_*, get_*, delete_*, stop_*
         - 추천: recommend_font_for_ad, get_fonts_metadata
+        - 평가: evaluate_image_clip
 
         Args:
             user_message: 사용자 메시지
@@ -146,6 +192,20 @@ class LLMAdapter:
         ]
         is_generation = any(kw in msg_lower for kw in generation_keywords)
 
+        # 평가 키워드 감지
+        evaluation_keywords = [
+            "평가",
+            "점수",
+            "clip",
+            "유사도",
+            "매칭",
+            "evaluate",
+            "score",
+            "similarity",
+            "match",
+        ]
+        is_evaluation = any(kw in msg_lower for kw in evaluation_keywords)
+
         # 조회/관리 키워드 감지
         query_keywords = [
             "확인",
@@ -162,6 +222,36 @@ class LLMAdapter:
             "get",
         ]
         is_query = any(kw in msg_lower for kw in query_keywords)
+
+        # 평가 프롬프트 우선 반환
+        if is_evaluation:
+            return (
+                "당신은 이미지-텍스트 유사도 평가 전문 AI입니다.\n\n"
+                "[역할]\n"
+                "- 이미지와 프롬프트의 CLIP 유사도 평가\n"
+                "- 한글 프롬프트 → KoCLIP 모델 자동 선택\n"
+                "- 영문 프롬프트 → OpenAI CLIP 모델 자동 선택\n\n"
+                "[도구 사용]\n"
+                "evaluate_image_clip(image_path, prompt, model_type='auto')\n"
+                "  - image_path: 평가할 이미지 파일 경로 (필수)\n"
+                "  - prompt: 비교할 텍스트 프롬프트 (필수)\n"
+                "  - model_type: 'auto' (자동 감지, 기본값) | 'koclip' (한글) | 'openai' (영문)\n\n"
+                "[반환 결과]\n"
+                "  - clip_score: 0.0~1.0 (코사인 유사도)\n"
+                "  - interpretation: 점수 해석 메시지\n"
+                "  - model_type: 사용된 모델 ('koclip' 또는 'openai')\n"
+                "  - prompt: 평가에 사용된 프롬프트\n\n"
+                "[점수 해석]\n"
+                "  - 0.7+: 매우 높은 일치도\n"
+                "  - 0.5~0.7: 높은 일치도\n"
+                "  - 0.3~0.5: 중간 일치도\n"
+                "  - 0.3 미만: 낮은 일치도\n\n"
+                "[지침]\n"
+                "- 사용자가 이미지 경로와 프롬프트를 제공하면 즉시 평가 수행\n"
+                "- 긴 프롬프트(77단어 초과)는 자동 요약됨\n"
+                "- 한글 포함 시 KoCLIP, 영문만 있으면 OpenAI CLIP 자동 선택\n"
+                "- 평가 결과를 명확하게 설명하여 사용자에게 전달"
+            )
 
         if is_generation and not is_query:
             # 생성 작업: max_tool_calls에 따라 모드 결정
@@ -343,9 +433,10 @@ class LLMAdapter:
                 "당신은 광고 이미지 생성 전문 AI입니다.\n\n"
                 "[주요 기능]\n"
                 "1. 광고 생성: generate_ad_image (상세 파라미터 필요)\n"
-                "2. 폰트 추천: recommend_font_for_ad(text_content, ad_type, tone, weight)\n"
-                "3. 폰트 메타데이터: get_fonts_metadata(), list_available_fonts()\n"
-                "4. 작업 관리: check_*, get_*, delete_*, stop_*\n\n"
+                "2. 이미지 평가: evaluate_image_clip(image_path, prompt, model_type='auto')\n"
+                "3. 폰트 추천: recommend_font_for_ad(text_content, ad_type, tone, weight)\n"
+                "4. 폰트 메타데이터: get_fonts_metadata(), list_available_fonts()\n"
+                "5. 작업 관리: check_*, get_*, delete_*, stop_*\n\n"
                 "[광고 생성 시 필수]\n"
                 "bg_model (sdxl/flux), background_prompt (100단어 이상), background_negative_prompt, "
                 "bg_composition_prompt, bg_composition_negative_prompt, text_prompt, text_negative_prompt, "

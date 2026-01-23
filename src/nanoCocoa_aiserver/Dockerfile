@@ -76,6 +76,9 @@ WORKDIR /app
 COPY src/mcpadapter /app/src/mcpadapter
 COPY src/nanoCocoa_aiserver /app/src/nanoCocoa_aiserver
 
+# fonts 폴더 명시적 복사 (용량이 크므로 별도 처리)
+COPY src/nanoCocoa_aiserver/fonts /app/src/nanoCocoa_aiserver/fonts
+
 # mcpadapter 설치 (editable mode)
 RUN pip install --no-cache-dir -e /app/src/mcpadapter
 

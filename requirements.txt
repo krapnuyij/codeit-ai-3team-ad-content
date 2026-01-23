@@ -197,6 +197,7 @@ sentry-sdk==2.48.0
 py-cpuinfo==9.0.0
 
 # Other
+ftfy==6.3.2
 regex==2025.11.3
 semantic-version==2.10.0
 shellingham==1.5.4

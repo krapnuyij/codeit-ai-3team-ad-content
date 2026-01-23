@@ -107,3 +107,16 @@ STATUS_PROCESSING = "processing"
 STATUS_COMPLETED = "completed"
 STATUS_FAILED = "failed"
 STATUS_TIMEOUT = "timeout"
+
+# ===================================================================
+# CLIP 평가 설정
+# ===================================================================
+CLIP_MODEL_AUTO = "auto"  # 자동 선택 (한글 포함 시 koclip, 영문만 openai)
+CLIP_MODEL_KOCLIP = "koclip"  # 한국어 CLIP
+CLIP_MODEL_OPENAI = "openai"  # OpenAI CLIP
+
+# CLIP 점수 해석 기준
+CLIP_SCORE_EXCELLENT = 0.7  # 매우 높은 일치도
+CLIP_SCORE_GOOD = 0.5  # 높은 일치도
+CLIP_SCORE_FAIR = 0.3  # 중간 일치도
+# 0.3 미만: 낮은 일치도

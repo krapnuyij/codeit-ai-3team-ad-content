@@ -93,20 +93,36 @@ async def load_fonts_async() -> Optional[list]:
             async with MCPClient(base_url=MCP_SERVER_URL, timeout=60) as client:
                 result = await client.call_tool("get_fonts_metadata", {})
 
-                logger.info(f"폰트 메타데이터 응답 수신: 타입={type(result)}")
+            logger.info(
+                f"폰트 메타데이터 응답 수신: 타입={type(result)}, 길이={len(str(result)) if result else 0}"
+            )
+            logger.debug(
+                f"폰트 메타데이터 원본: {result[:200] if result else 'None'}..."
+            )  # 처음 200자만 로깅
 
-                # 결과 파싱
-                if isinstance(result, str):
-                    fonts = json.loads(result)
-                else:
-                    fonts = result
+            # 빈 응답 체크
+            if not result or (isinstance(result, str) and not result.strip()):
+                logger.error(f"빈 응답 수신 (시도 {attempt + 1})")
+                raise ValueError("Empty response from MCP server")
 
-                if not fonts:
-                    logger.warning("폰트 메타데이터가 비어 있습니다")
-                    return []
+            # 결과 파싱
+            if isinstance(result, str):
+                fonts = json.loads(result)
+            else:
+                fonts = result
 
-                logger.info(f"✓ 폰트 메타데이터 로드 완료: {len(fonts)}개")
-                return fonts
+            # 에러 응답 체크
+            if isinstance(fonts, dict) and "error" in fonts:
+                error_msg = fonts.get("message", "Unknown error")
+                logger.error(f"AI 서버 에러 응답 (시도 {attempt + 1}): {error_msg}")
+                raise ValueError(f"AI Server Error: {error_msg}")
+
+            if not fonts:
+                logger.warning("폰트 메타데이터가 비어 있습니다")
+                return []
+
+            logger.info(f"✓ 폰트 메타데이터 로드 완료: {len(fonts)}개")
+            return fonts
 
         except json.JSONDecodeError as e:
             logger.error(
@@ -146,12 +162,12 @@ def render_chat_ui() -> None:
         st.info("ℹ️ 사용 가능한 폰트가 없습니다. 기본 폰트를 사용합니다.")
 
     # 상단 메뉴
-    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
     with col1:
         st.subheader("💬 AI 광고 기획 채팅")
 
     with col2:
-        if st.button("➕ 새로운 광고", width="content"):
+        if st.button("➕ 새로운 광고", width="stretch"):
             # 채팅 히스토리가 있으면 확인 팝업
             if st.session_state.chat_history:
                 st.session_state.show_reset_confirm = True
@@ -161,11 +177,17 @@ def render_chat_ui() -> None:
             st.rerun()
 
     with col3:
-        if st.button("📁 히스토리", width="content"):
+        if st.button("📊 평가", width="stretch"):
+            set_page("evaluate")
+            st.rerun()
+
+    with col4:
+        if st.button("📁 히스토리", width="stretch"):
             set_page("history")
             st.rerun()
-    with col4:
-        if st.button("🚪 로그아웃", width="content"):
+
+    with col5:
+        if st.button("🚪 로그아웃", width="stretch"):
             logout()
             st.rerun()
 
@@ -279,7 +301,7 @@ async def generate_ai_response_async(user_message: str):
 새로운 광고를 생성하려면 사용자가 명확히 "새 광고 생성", "다시 만들어줘" 등을 표현해야 합니다.
 """
 
-    # 시스템 프롬프트 (2단계 프로세스: 기획 → 확인 → 생성)
+    # 광고 생성 시스템 프롬프트
     system_prompt = f"""당신은 나노코코아(nanoCocoa) AI 광고 생성 시스템의 전문 어시스턴트입니다.
 
 **역할:**

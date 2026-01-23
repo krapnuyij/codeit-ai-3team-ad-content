@@ -32,6 +32,12 @@
 |--------|----------|------|-------------|
 | GET | `/example_generation` | 개발 대시보드 | ❌ 미구현 (UI용) |
 
+### 1.5. CLIP Score APIs (이미지 평가) ✨ **NEW**
+| Method | Endpoint | 설명 | MCP 툴 매핑 |
+|--------|----------|------|-------------|
+| POST | `/clip-score` | CLIP Score 계산 | 🔄 예정 |
+| GET | `/clip-score/health` | CLIP 서비스 상태 | 🔄 예정 |
+
 ---
 
 ## 2. MCP Server 툴 목록

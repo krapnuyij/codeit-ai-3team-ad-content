@@ -30,6 +30,7 @@ from handlers import (
     generate_ad_image,
     check_generation_status,
     stop_generation,
+    evaluate_image_clip,
     list_available_fonts,
     get_fonts_metadata,
     recommend_font_for_ad,
@@ -279,6 +280,30 @@ TOOL_SCHEMAS = [
             "required": ["job_id"],
         },
     },
+    {
+        "name": "evaluate_image_clip",
+        "description": "이미지와 텍스트 프롬프트의 CLIP 유사도를 평가합니다. 광고 이미지가 설명과 얼마나 일치하는지 0-1 범위의 점수로 반환합니다.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "image_path": {
+                    "type": "string",
+                    "description": "평가할 이미지 파일의 절대 경로",
+                },
+                "prompt": {
+                    "type": "string",
+                    "description": "비교할 텍스트 프롬프트 (한글/영문 모두 지원)",
+                },
+                "model_type": {
+                    "type": "string",
+                    "description": "CLIP 모델 타입 (auto: 자동 선택, koclip: 한국어 모델, openai: 영문 모델)",
+                    "enum": ["auto", "koclip", "openai"],
+                    "default": "auto",
+                },
+            },
+            "required": ["image_path", "prompt"],
+        },
+    },
 ]
 
 # Tool name → function mapping
@@ -286,6 +311,7 @@ TOOL_FUNCTIONS = {
     "generate_ad_image": generate_ad_image,
     "check_generation_status": check_generation_status,
     "stop_generation": stop_generation,
+    "evaluate_image_clip": evaluate_image_clip,
     "list_available_fonts": list_available_fonts,
     "get_fonts_metadata": get_fonts_metadata,
     "recommend_font_for_ad": recommend_font_for_ad,

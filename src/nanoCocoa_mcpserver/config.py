@@ -102,7 +102,7 @@ LOG_FILE: Final[str] = os.getenv("LOG_FILE", "/tmp/nanococoa_mcpserver.log")
 # 이미지 처리
 # =============================================================================
 
-MAX_IMAGE_SIZE_MB: Final[int] = 20
+MAX_IMAGE_SIZE_MB: Final[int] = 30
 """업로드 가능한 최대 이미지 크기 (메가바이트)"""
 
 SUPPORTED_IMAGE_FORMATS: Final[set[str]] = {"PNG", "JPEG", "JPG", "WEBP"}
