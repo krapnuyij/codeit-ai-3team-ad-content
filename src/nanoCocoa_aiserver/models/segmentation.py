@@ -1,314 +1,272 @@
 """
-segmenter_pipeline.py
+segmentation_engine.py
 
-Hybrid Segmentation Pipeline (v4)
-- Base: BiRefNet (fallback RMBG)
-- Optional: CLAHE contrast enhancement (white container / low-contrast boundary)
-- Mask post-processing:
-  - Soft clamp (remove weak alpha)
-  - Light morphology (close) to fill tiny holes
-  - Edge feather (blur)
-  - Anti-box / anti-halo tuning
-
-Usage:
-- 다른 파이프라인에서 import 해서 사용
-- CLI 실행도 가능하게 main 포함
+GCP 환경 배포용 하이브리드 세그멘테이션 엔진
+- 주요 기능: 상품 이미지 배경 제거 (누끼)
+- 모델: BiRefNet (Fallback: RMBG-1.4)
+- 특징: CLAHE 전처리, 정교한 마스크 후처리(Clamp, Morph, Feather)
+- 튜닝된 파라미터(v5)를 그대로 유지하여 최적의 엣지 품질 보장
 """
 
-import sys
-from pathlib import Path
-
-project_root = Path(__file__).resolve().parents
-sys.path.insert(0, str(project_root))
-
+import os
+import gc
+import logging
 import traceback
-import warnings
+from pathlib import Path
+from typing import Optional, Tuple
 
-import cv2
-import numpy as np
 import torch
-from helper_dev_utils import get_auto_logger
+import numpy as np
+import cv2
 from PIL import Image, ImageFilter
-from torchvision import transforms
-from transformers import AutoModelForImageSegmentation
 
-from config import DEVICE, MODEL_IDS
-from services.monitor import log_gpu_memory
-from utils import flush_gpu
+# -----------------------------------------------------------------------------
+# 로깅 및 라이브러리 설정
+# -----------------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("SegmentationEngine")
 
-# timm 라이브러리 deprecation 경고 억제
-warnings.filterwarnings("ignore", category=FutureWarning, module="timm")
+try:
+    from transformers import AutoModelForImageSegmentation
+    AI_AVAILABLE = True
+except ImportError:
+    logger.error("transformers 라이브러리가 설치되지 않았습니다.")
+    AI_AVAILABLE = False
 
-logger = get_auto_logger()
-
-# Paths (로컬 실행용)
-INPUT_DIR = Path("data/inputs")
-OUT_FG = Path("outputs/fg_cut")
-OUT_MASK = Path("outputs/fg_mask")
-OUT_FG.mkdir(parents=True, exist_ok=True)
-OUT_MASK.mkdir(parents=True, exist_ok=True)
-
+# -----------------------------------------------------------------------------
+# 설정 및 상수
+# -----------------------------------------------------------------------------
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-_cached_models = {}
 
-
-# Config (튜닝 포인트)
+# 사용자 튜닝 파라미터 (v5 값 유지)
 CFG = {
-    # 1) CLAHE (seg3 feature)
+    # 1) CLAHE: 대비가 낮은 경계선 강화
     "USE_CLAHE": True,
     "CLAHE_CLIP_LIMIT": 2.5,
     "CLAHE_TILE_GRID": (8, 8),
-    # 2) Clamp (seg2 feature)
-    "ALPHA_LOW_CUT": 20,  # 약한 알파 제거
-    "ALPHA_HIGH_CUT": 235,  # 강한 알파 고정
-    # 3) Morphology (seg3 feature but lighter)
+
+    # 2) 임계값: 흐릿한 경계 제거 (타이트한 엣지)
+    "ALPHA_LOW_CUT": 60,
+    "ALPHA_HIGH_CUT": 235,
+
+    # 3) 모폴로지: 구멍 메우기 (확장 방지를 위해 Dilate 0 설정 유지)
     "USE_MORPH": True,
-    "MORPH_CLOSE_KERNEL": 7,  # 5~9
-    "MORPH_DILATE_KERNEL": 0,  # 0이면 비활성, 3 이상부터 의미
+    "MORPH_CLOSE_KERNEL": 15,
+    "MORPH_DILATE_KERNEL": 0,
     "MORPH_DILATE_ITER": 1,
-    # 4) Feather / Blur
-    "FINAL_FEATHER_RADIUS": 2.0,  # 1~3
+
+    # 4) 페더링: 엣지 부드럽게 처리 (1.0 유지)
+    "FINAL_FEATHER_RADIUS": 1.0,
     "MID_SOFTEN_ENABLE": True,
     "MID_RANGE": (60, 200),
-    "MID_SOFTEN_GAIN": 0.92,
-    # 5) Output
-    "SAVE_DEBUG_MASK": True,
+    "MID_SOFTEN_GAIN": 0.92
 }
 
-
-class SegmentationModel:
+# -----------------------------------------------------------------------------
+# 유틸리티 함수
+# -----------------------------------------------------------------------------
+def apply_clahe_rgb(img_pil: Image.Image) -> Image.Image:
     """
-    BiRefNet을 사용하여 이미지 세그멘테이션(누끼 따기)을 수행하는 클래스입니다.
+    CLAHE 적용: LAB 색상 공간에서 L 채널만 강조하여 색감 변화 없이 경계 강화
     """
+    img = np.array(img_pil)
+    lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
 
+    l, a, b = cv2.split(lab)
+    clahe = cv2.createCLAHE(
+        clipLimit=float(CFG["CLAHE_CLIP_LIMIT"]),
+        tileGridSize=tuple(CFG["CLAHE_TILE_GRID"])
+    )
+    cl = clahe.apply(l)
+    merged = cv2.merge((cl, a, b))
+    merged = cv2.cvtColor(merged, cv2.COLOR_LAB2RGB)
+
+    return Image.fromarray(merged)
+
+
+def postprocess_mask_hybrid(out: torch.Tensor, size_wh: Tuple[int, int]) -> Image.Image:
+    """
+    하이브리드 마스크 후처리 (v5 로직)
+    """
+    W, H = size_wh
+
+    # 1. 원본 마스크 추출 (Sigmoid -> 0~255)
+    mask = torch.sigmoid(out)[0, 0].detach().cpu().numpy()
+    mask = (mask * 255.0).astype(np.uint8)
+
+    # 2. 리사이즈 (OpenCV Lanczos4 사용으로 엣지 보존)
+    mask = cv2.resize(mask, (W, H), interpolation=cv2.INTER_LANCZOS4)
+
+    # 3. 클램프 (흐릿한 영역 제거)
+    low = int(CFG["ALPHA_LOW_CUT"])
+    high = int(CFG["ALPHA_HIGH_CUT"])
+    mask[mask < low] = 0
+    mask[mask > high] = 255
+
+    # 4. 모폴로지 (구멍 메우기)
+    if CFG["USE_MORPH"]:
+        k_close = int(CFG["MORPH_CLOSE_KERNEL"])
+        if k_close > 1:
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_close, k_close))
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+        k_dilate = int(CFG["MORPH_DILATE_KERNEL"])
+        if k_dilate >= 3:
+            kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (k_dilate, k_dilate))
+            mask = cv2.dilate(mask, kernel, iterations=int(CFG["MORPH_DILATE_ITER"]))
+
+    # 5. 중간값 부드럽게 처리
+    if CFG["MID_SOFTEN_ENABLE"]:
+        lo, hi = CFG["MID_RANGE"]
+        mid = (mask > lo) & (mask < hi)
+        mask[mid] = np.clip(
+            mask[mid].astype(np.float32) * float(CFG["MID_SOFTEN_GAIN"]), 0, 255
+        ).astype(np.uint8)
+
+    # 6. 페더링 (최종 블러)
+    mask_pil = Image.fromarray(mask).convert("L")
+    r = float(CFG["FINAL_FEATHER_RADIUS"])
+    if r > 0:
+        mask_pil = mask_pil.filter(ImageFilter.GaussianBlur(radius=r))
+
+    return mask_pil
+
+
+class ProductSegmentationEngine:
+    """
+    대시보드용 상품 누끼(Segmentation) 엔진 클래스
+    """
     def __init__(self):
-        self.device = DEVICE
+        self._cache = {}
+        logger.info(f"Segmentation 엔진 초기화 완료 (Device: {DEVICE})")
 
-    def load_model(self, repo: str):
-        """
-        BiRefNet / RMBG 로딩 (캐싱)
-        """
-        if repo in _cached_models:
-            return _cached_models[repo]
+    def unload(self):
+        """GPU 메모리 정리"""
+        for k in list(self._cache.keys()):
+            del self._cache[k]
+        if DEVICE == "cuda":
+            gc.collect()
+            torch.cuda.empty_cache()
+        logger.info("메모리 정리 완료 (Unload)")
 
-        model = (
-            AutoModelForImageSegmentation.from_pretrained(repo, trust_remote_code=True)
-            .to(DEVICE)
-            .eval()
-        )
+    def _load_model(self, repo: str):
+        """모델 로드 및 캐싱"""
+        if repo in self._cache:
+            return self._cache[repo]
 
-        _cached_models[repo] = model
+        logger.info(f"모델 로딩 중: {repo}")
+        model = AutoModelForImageSegmentation.from_pretrained(
+            repo, trust_remote_code=True
+        ).to(DEVICE).eval()
+
+        self._cache[repo] = model
         return model
 
-    def apply_clahe_rgb(self, img_pil: Image.Image) -> Image.Image:
-        """
-        CLAHE 적용: 흰 용기/밝은 배경 경계 강화
-        """
-        img = np.array(img_pil)
-        lab = cv2.cvtColor(img, cv2.COLOR_RGB2LAB)
-        l, a, b = cv2.split(lab)
+    def _run_inference(self, img_pil: Image.Image, repo: str):
+        """추론 실행 공통 함수"""
+        model = self._load_model(repo)
 
-        clahe = cv2.createCLAHE(
-            clipLimit=float(CFG["CLAHE_CLIP_LIMIT"]),
-            tileGridSize=tuple(CFG["CLAHE_TILE_GRID"]),
-        )
-        cl = clahe.apply(l)
+        # CLAHE 전처리 적용 여부
+        if CFG["USE_CLAHE"]:
+            img_input = apply_clahe_rgb(img_pil)
+        else:
+            img_input = img_pil
 
-        merged = cv2.merge((cl, a, b))
-        merged = cv2.cvtColor(merged, cv2.COLOR_LAB2RGB)
-        return Image.fromarray(merged)
-
-    def run_inference(self, img_pil: Image.Image, repo: str):
-        """
-        BiRefNet / RMBG 공통 추론
-        - 출력 타입 (logits / list / tuple) 모두 대응
-        """
-        model = self.load_model(repo)
-
-        # Optional CLAHE
-        img_input = self.apply_clahe_rgb(img_pil) if CFG["USE_CLAHE"] else img_pil
-
+        # 입력 전처리 (1024x1024 리사이즈)
         x = img_input.resize((1024, 1024), Image.LANCZOS)
         x = torch.from_numpy(np.array(x)).permute(2, 0, 1).float() / 255.0
         x = x.unsqueeze(0).to(DEVICE)
 
+        # 추론
         with torch.no_grad():
             out = model(x)
 
-        # 출력 타입 대응
+        # 모델별 출력 형식 대응
         if hasattr(out, "logits"):
-            out = out.logits
+            return out.logits
         elif isinstance(out, (list, tuple)):
-            out = out[-1]
+            return out[-1]
+        return out
 
-        return out, model
-
-    def postprocess_mask_hybrid(self, out: torch.Tensor, size_wh):
+    def process(self, img_path: str, save_dir: Optional[str] = None) -> str:
         """
-        Hybrid mask post-processing
-        - seg2: clamp + feather + mid soften
-        - seg3: morphology 최소 적용
-        """
-        W, H = size_wh
-
-        # (1) raw mask
-        mask = torch.sigmoid(out)[0, 0].detach().cpu().numpy()
-        mask = (mask * 255.0).astype(np.uint8)
-
-        # (2) resize with OpenCV (edge 유지)
-        mask = cv2.resize(mask, (W, H), interpolation=cv2.INTER_LANCZOS4)
-
-        # (3) clamp
-        low = int(CFG["ALPHA_LOW_CUT"])
-        high = int(CFG["ALPHA_HIGH_CUT"])
-        mask[mask < low] = 0
-        mask[mask > high] = 255
-
-        # (4) light morphology
-        if CFG["USE_MORPH"]:
-            k_close = int(CFG["MORPH_CLOSE_KERNEL"])
-            if k_close > 1:
-                kernel = cv2.getStructuringElement(
-                    cv2.MORPH_ELLIPSE, (k_close, k_close)
-                )
-                mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-
-            k_dilate = int(CFG["MORPH_DILATE_KERNEL"])
-            if k_dilate >= 3:
-                kernel = cv2.getStructuringElement(
-                    cv2.MORPH_ELLIPSE, (k_dilate, k_dilate)
-                )
-                mask = cv2.dilate(
-                    mask, kernel, iterations=int(CFG["MORPH_DILATE_ITER"])
-                )
-
-        # (5) mid soften
-        if CFG["MID_SOFTEN_ENABLE"]:
-            lo, hi = CFG["MID_RANGE"]
-            mid = (mask > lo) & (mask < hi)
-            mask[mid] = np.clip(
-                mask[mid].astype(np.float32) * float(CFG["MID_SOFTEN_GAIN"]), 0, 255
-            ).astype(np.uint8)
-
-        # (6) feather
-        mask_pil = Image.fromarray(mask).convert("L")
-        r = float(CFG["FINAL_FEATHER_RADIUS"])
-        if r > 0:
-            mask_pil = mask_pil.filter(ImageFilter.GaussianBlur(radius=r))
-
-        return mask_pil
-
-    # Public API
-    def segment_image(self, img_pil: Image.Image) -> tuple[Image.Image, Image.Image]:
-        """
-        입력 PIL 이미지 -> (foreground_rgba, mask_pil) 반환
-        """
-        logger.debug("[Engine] Loading BiRefNet... (BiRefNet 모델 로딩 중)")
-        flush_gpu()
-
-        img = img_pil.convert("RGB")
-        W, H = img.size
-
-        try:
-            out, model = self.run_inference(img, "ZhengPeng7/BiRefNet")
-        except Exception:
-            print(traceback.format_exc())
-            out, model = self.run_inference(img, "briaai/RMBG-1.4")
-
-        mask = self.postprocess_mask_hybrid(out, (W, H))
-
-        fg = img.convert("RGBA")
-        fg.putalpha(mask)
-
-        # 리소스 정리
-        del model
-
-        flush_gpu()
-
-        return fg, mask
-
-    def segment_one(self, img_path: Path):
-        img = Image.open(img_path).convert("RGB")
-
-        fg, mask = self.segment_image(img)
-
-        fg_path = OUT_FG / f"{img_path.stem}_fg.png"
-        mask_path = OUT_MASK / f"{img_path.stem}_mask.png"
-
-        fg.save(fg_path)
-        mask.save(mask_path)
-
-        if CFG["SAVE_DEBUG_MASK"]:
-            bg = Image.new("RGB", img.size, "white")
-            preview = bg.copy()
-            preview.paste(img, mask=mask)
-            preview.save(OUT_MASK / f"{img_path.stem}_preview.png")
-
-        print("Saved:", fg_path.name, mask_path.name)
-
-    def run(self, image: Image.Image) -> tuple[Image.Image, Image.Image]:
-        """
-        이미지의 배경을 제거합니다.
-
+        이미지 경로를 받아 배경을 제거하고 저장된 경로를 반환합니다.
+        
         Args:
-            image (Image.Image): 입력 이미지
-
+            img_path (str): 입력 이미지 경로
+            save_dir (str, optional): 저장할 디렉토리 (기본값: outputs/fg_cut)
+            
         Returns:
-            tuple[Image.Image, Image.Image]: (배경 제거된 이미지, 마스크)
+            str: 처리된 이미지(RGBA)가 저장된 경로
         """
-        # logger.debug("[Engine] Loading BiRefNet... (BiRefNet 모델 로딩 중)")
-        # flush_gpu()
+        try:
+            path_obj = Path(img_path)
+            if not path_obj.exists():
+                raise FileNotFoundError(f"파일을 찾을 수 없습니다: {img_path}")
 
-        # model = (
-        #     AutoModelForImageSegmentation.from_pretrained(
-        #         MODEL_IDS["SEG"], trust_remote_code=True
-        #     )
-        #     .to(self.device)
-        #     .eval()
-        # )
+            # 1. 이미지 로드
+            img = Image.open(path_obj).convert("RGB")
+            W, H = img.size
+            logger.info(f"누끼 처리 시작: {path_obj.name} ({W}x{H})")
 
-        # W, H = image.size
-        # # 고해상도 처리를 위해 리사이즈 (필요 시 조정 가능)
-        # img_resized = image.resize((1024, 1024), Image.LANCZOS)
+            # 2. 모델 추론 (BiRefNet 우선 -> 실패 시 RMBG)
+            try:
+                out = self._run_inference(img, "ZhengPeng7/BiRefNet")
+            except Exception as e:
+                logger.warning(f"BiRefNet 실패, RMBG로 재시도: {e}")
+                out = self._run_inference(img, "briaai/RMBG-1.4")
 
-        # transform = transforms.Compose(
-        #     [
-        #         transforms.ToTensor(),
-        #         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-        #     ]
-        # )
+            # 3. 마스크 후처리
+            mask = postprocess_mask_hybrid(out, (W, H))
 
-        # input_tensor = transform(img_resized).unsqueeze(0).to(self.device)
+            # 4. 배경 제거 적용 (RGBA)
+            fg = img.convert("RGBA")
+            fg.putalpha(mask)
 
-        # with torch.no_grad():
-        #     preds = model(input_tensor)[-1].sigmoid().cpu()
+            # 5. 저장
+            if save_dir:
+                out_dir = Path(save_dir)
+            else:
+                out_dir = Path("outputs/fg_cut")
+            
+            out_dir.mkdir(parents=True, exist_ok=True)
+            
+            # 원본 파일명 유지하며 _fg 접미사 추가 (선택 사항)
+            # 여기서는 편의상 원본 이름 그대로 사용하거나, 필요시 변경 가능
+            save_path = out_dir / f"{path_obj.stem}.png"
+            
+            fg.save(save_path)
+            logger.info(f"누끼 저장 완료: {save_path}")
+            
+            # 메모리 정리
+            self.unload()
+            
+            return str(save_path)
 
-        # pred = preds[0].squeeze()
-        # mask = transforms.ToPILImage()(pred).resize((W, H), Image.LANCZOS)
+        except Exception as e:
+            logger.error(f"세그멘테이션 처리 중 오류: {e}")
+            traceback.print_exc()
+            self.unload()
+            raise e
 
-        # # 마스크 이진화 (Thresholding)
-        # mask = mask.point(lambda x: 255 if x > 128 else 0)
-
-        # result = image.copy()
-        # result.putalpha(mask)
-
-        # # 리소스 정리
-        # del model, input_tensor
-        # flush_gpu()
-
-        # return result, mask
-
-        fg, mask = self.segment_image(image)
-
-        return fg, mask
-
-    def unload(self) -> None:
-        """
-        명시적으로 모델 리소스를 정리합니다.
-
-        현재 BiRefNet은 run() 호출 시마다 로드/언로드하므로
-        별도 정리 작업이 불필요하지만, 인터페이스 통일을 위해 구현합니다.
-        """
-        log_gpu_memory("BiRefNet unload (no-op)")
-        flush_gpu()
-        logger.info("BiRefNet unloaded")
+# -----------------------------------------------------------------------------
+# 실행 진입점 (테스트용)
+# -----------------------------------------------------------------------------
+if __name__ == "__main__":
+    # 테스트 경로 설정
+    TEST_INPUT_DIR = Path("data/inputs")
+    TEST_OUTPUT_DIR = Path("outputs/fg_cut")
+    
+    if not TEST_INPUT_DIR.exists():
+        print(f"테스트 폴더가 없습니다: {TEST_INPUT_DIR}")
+    else:
+        engine = ProductSegmentationEngine()
+        files = sorted(TEST_INPUT_DIR.glob("*.*"))
+        
+        for f in files:
+            if f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]:
+                result_path = engine.process(str(f), str(TEST_OUTPUT_DIR))
+                print(f"Processed: {result_path}")
