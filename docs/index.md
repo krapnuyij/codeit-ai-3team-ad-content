@@ -82,52 +82,68 @@ gantt
 graph TB
     subgraph "사용자 환경"
         User["사용자 (소상공인)"]
+        LLMClient["LLM / GPT
+(MCP 클라이언트)"]
     end
 
-    subgraph "프론트엔드 계층 (Docker Container 1)"
-        Frontend["FastAPI UI
-FastAPI 기반
-Port: External"]
-    end
-
-    subgraph "백엔드 계층 (Docker Container 2)"
-        Backend["FastAPI 서버
+    subgraph "Docker Network: nanococoa-network"
+        subgraph "백엔드 계층 (backend)"
+            Backend["FastAPI 서버
 비즈니스 로직
-LLM 연동
 Port: 8080"]
-        LLM["OpenAI GPT-5-mini
-프롬프트 생성"]
-    end
-
-    subgraph "모델서빙 계층 (Docker Container 3)"
-        ModelServer["FastAPI 모델 서버
-Port: 8000"]
-
-        subgraph "AI 모델 파이프라인"
-            BiRefNet["BiRefNet
-(이미지 누끼)"]
-            FLUX["FLUX.1-dev
-(배경 생성)"]
-            SDXL["SDXL ControlNet
-(3D 텍스트)"]
+            HPGen["Homepage Generator
+LangGraph + Multi-Agent
+Port: 8081"]
+            DB[("PostgreSQL
+고객 데이터")]
         end
 
-        GPU["NVIDIA L4 GPU
+        subgraph "MCP 서버 (nanoCocoa_mcpserver)"
+            MCPServer["MCP 서버
+MCP Protocol Bridge
+Port: 3000"]
+        end
+
+        subgraph "모델서빙 계층 (nanoCocoa_aiserver)"
+            ModelServer["FastAPI 모델 서버
+Port: 8000"]
+
+            subgraph "AI 모델 파이프라인"
+                BiRefNet["BiRefNet
+(이미지 누끼)"]
+                FLUX["FLUX.1-dev
+(배경 생성)"]
+                Qwen["Qwen2-VL
+(이미지 분석)"]
+            end
+
+            LLMText["OpenAI API
+(HTML/CSS 생성)"]
+            GPU["NVIDIA L4 GPU
 24GB VRAM"]
+        end
     end
 
-    User -->|HTTP 요청| Frontend
-    Frontend -->|"REST API
-Port 8080"| Backend
-    Backend -->|LLM API| LLM
+    User -->|HTTP/웹| Backend
+    Backend --> DB
+    Backend --> HPGen
+    HPGen -->|HTTP| MCPServer
     Backend -->|"REST API
 Port 8000"| ModelServer
+    
+    LLMClient -.->|"MCP Protocol
+(SSE)"| MCPServer
+    MCPServer -->|"REST API
+Internal Network"| ModelServer
+    
     ModelServer --> BiRefNet
     ModelServer --> FLUX
-    ModelServer --> SDXL
+    ModelServer --> Qwen
+    ModelServer --> LLMText
+    
     BiRefNet -.->|JIT 로딩| GPU
     FLUX -.->|JIT 로딩| GPU
-    SDXL -.->|JIT 로딩| GPU
+    Qwen -.->|JIT 로딩| GPU
 ```
 
 **시퀀스 다이어그램**
@@ -162,19 +178,27 @@ sequenceDiagram
         MS->>MS: Stage 1 실행
         MS->>GPU: BiRefNet 로드
         GPU-->>MS: 누끼 이미지
-        MS->>GPU: FLUX 로드
+        MS->>GPU: FLUX.1-dev 로드
         GPU-->>MS: 배경 이미지
         MS->>MS: 합성 및 리터칭
 
-        MS-->>BE: 14. {status: "running", progress: 30%, step1_result}
+        MS-->>BE: 14. {status: "running", progress: 50%, step1_result}
         BE-->>FE: 15. {progress, step1_preview}
         FE-->>User: 16. 진행률 + 중간 결과 표시
 
         MS->>MS: Stage 2 실행
-        MS->>GPU: SDXL 로드
-        GPU-->>MS: 3D 텍스트 이미지
+        
+        alt use_qwen_analysis=true
+            MS->>GPU: Qwen2-VL 로드
+            GPU-->>MS: 이미지 분석 텍스트
+            MS->>GPU: Qwen2-VL 언로드
+        end
+        
+        MS->>LLM: HTML/CSS 생성 요청 (Qwen 분석 포함)
+        LLM-->>MS: HTML/CSS 코드
+        MS->>MS: HTML 렌더링 (Headless Browser)
+        MS->>MS: 텍스트 레이어 합성
 
-        MS->>MS: Stage 3 실행 (최종 합성)
         MS-->>BE: 17. {status: "completed", final_result}
         BE-->>FE: 18. {status: "done", final_image}
     end
