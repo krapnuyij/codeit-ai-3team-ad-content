@@ -209,3 +209,14 @@ def reset_for_new_ad() -> None:
         del st.session_state.loaded_job_id
     if "loaded_job_metadata" in st.session_state:
         del st.session_state.loaded_job_metadata
+
+
+def set_evaluation_target(job: dict) -> None:
+    """
+    평가 페이지로 작업 전달
+
+    Args:
+        job: 평가할 작업 데이터 (job_store의 job 문서)
+    """
+    st.session_state.evaluation_job = job
+    st.session_state.evaluation_job_id = job.get("job_id")

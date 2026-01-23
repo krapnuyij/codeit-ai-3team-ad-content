@@ -19,6 +19,7 @@ from utils.state_manager import (
     get_session_value,
     set_session_value,
     load_job_to_chat,
+    set_evaluation_target,
 )
 
 # 작업 저장소
@@ -196,7 +197,7 @@ def render_completed_status(job: dict) -> None:
             st.json(metadata)
 
     # 액션 버튼
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         if st.button("📝 불러오기", key=f"load_{job['job_id']}", width="stretch"):
@@ -206,6 +207,12 @@ def render_completed_status(job: dict) -> None:
             st.rerun()
 
     with col2:
+        if st.button("📊 평가하기", key=f"eval_{job['job_id']}", width="stretch"):
+            set_evaluation_target(job)
+            set_page("evaluate")
+            st.rerun()
+
+    with col3:
         if st.button(
             "🗑️ 삭제",
             key=f"delete_{job['job_id']}",
@@ -218,7 +225,7 @@ def render_completed_status(job: dict) -> None:
             else:
                 st.error("삭제 실패")
 
-    with col3:
+    with col4:
         if st.button(
             "🔁 동일 설정으로 재생성",
             key=f"regenerate_{job['job_id']}",

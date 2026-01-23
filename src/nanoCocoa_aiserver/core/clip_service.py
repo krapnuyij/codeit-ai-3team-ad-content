@@ -149,6 +149,7 @@ class ClipService:
         image_base64: str,
         prompt: str,
         model_type: Literal["openai", "koclip"] = "openai",
+        auto_unload: bool = True,
     ) -> float:
         """
         CLIP Score 계산 (이미지-텍스트 코사인 유사도)
@@ -159,6 +160,7 @@ class ClipService:
             model_type (str): 사용할 모델 타입
                 - "openai": OpenAI CLIP (영문 프롬프트 권장)
                 - "koclip": KoCLIP (한글 프롬프트 지원)
+            auto_unload (bool): 계산 후 자동 언로드 여부 (기본값: True)
 
         Returns:
             float: CLIP Score (코사인 유사도, 범위: -1.0 ~ 1.0)
@@ -179,11 +181,13 @@ class ClipService:
         image = self._decode_base64_image(image_base64)
 
         if model_type == "openai":
-            return self._calculate_openai_clip_score(image, prompt)
+            return self._calculate_openai_clip_score(image, prompt, auto_unload)
         else:  # koclip
-            return self._calculate_koclip_score(image, prompt)
+            return self._calculate_koclip_score(image, prompt, auto_unload)
 
-    def _calculate_openai_clip_score(self, image: Image.Image, prompt: str) -> float:
+    def _calculate_openai_clip_score(
+        self, image: Image.Image, prompt: str, auto_unload: bool = True
+    ) -> float:
         """OpenAI CLIP으로 점수 계산"""
         # 모델 로딩 (첫 호출 시에만)
         self._load_clip_model()
@@ -212,13 +216,23 @@ class ClipService:
             logger.debug(
                 f"[ClipService] OpenAI CLIP Score: {similarity:.4f} | Prompt: {prompt[:50]}..."
             )
-            return float(similarity)
+
+            result = float(similarity)
+
+            # Auto unload
+            if auto_unload:
+                logger.info("[ClipService] Auto-unloading OpenAI CLIP model")
+                self.unload_model(model_type="openai")
+
+            return result
 
         except Exception as e:
             logger.error(f"[ClipService] Failed to calculate OpenAI CLIP Score: {e}")
             raise RuntimeError(f"OpenAI CLIP Score calculation failed: {e}")
 
-    def _calculate_koclip_score(self, image: Image.Image, prompt: str) -> float:
+    def _calculate_koclip_score(
+        self, image: Image.Image, prompt: str, auto_unload: bool = True
+    ) -> float:
         """KoCLIP으로 점수 계산 (한글 프롬프트 지원)"""
         # 모델 로딩 (첫 호출 시에만)
         self._load_koclip_model()
@@ -245,7 +259,15 @@ class ClipService:
             logger.debug(
                 f"[ClipService] KoCLIP Score: {similarity:.4f} | Prompt: {prompt[:50]}..."
             )
-            return float(similarity)
+
+            result = float(similarity)
+
+            # Auto unload
+            if auto_unload:
+                logger.info("[ClipService] Auto-unloading KoCLIP model")
+                self.unload_model(model_type="koclip")
+
+            return result
 
         except Exception as e:
             logger.error(f"[ClipService] Failed to calculate KoCLIP Score: {e}")

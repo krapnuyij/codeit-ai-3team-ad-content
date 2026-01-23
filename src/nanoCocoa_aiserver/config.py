@@ -11,7 +11,9 @@ import torch
 from helper_dev_utils import get_auto_logger
 
 # PyTorch CUDA 메모리 최적화 설정 (메모리 단편화 완화)
-os.environ.setdefault("PYTORCH_ALLOC_CONF", "expandable_segments:True")
+os.environ.setdefault(
+    "PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True,max_split_size_mb:512"
+)
 
 # ==========================================
 # ⚙️ 설정 & 상수 (Configuration)

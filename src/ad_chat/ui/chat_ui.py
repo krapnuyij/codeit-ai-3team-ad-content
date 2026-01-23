@@ -34,6 +34,7 @@ from utils.state_manager import (
     set_page,
     logout,
     reset_for_new_ad,
+    set_evaluation_target,
 )
 import time
 from PIL import Image as PILImage
@@ -828,12 +829,17 @@ def display_completed_job_result(job: dict) -> None:
         metadata = job.get("metadata", {})
         st.json(metadata)
 
-    # 히스토리 페이지 링크
-    col1, col2 = st.columns(2)
+    # 히스토리 페이지 링크 및 평가 버튼
+    col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("📁 히스토리에서 자세히 보기", key=f"view_{job['job_id']}"):
             set_page("history")
             st.rerun()
     with col2:
+        if st.button("📊 평가하기", key=f"eval_{job['job_id']}"):
+            set_evaluation_target(job)
+            set_page("evaluate")
+            st.rerun()
+    with col3:
         if st.button("🔄 새로운 광고 생성", key=f"new_{job['job_id']}"):
             st.rerun()

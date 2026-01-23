@@ -7,8 +7,12 @@ sys.path.insert(0, str(project_root))
 import gc
 
 import torch
-from diffusers import (FluxImg2ImgPipeline, FluxInpaintPipeline, FluxPipeline,
-                       FluxTransformer2DModel)
+from diffusers import (
+    FluxImg2ImgPipeline,
+    FluxInpaintPipeline,
+    FluxPipeline,
+    FluxTransformer2DModel,
+)
 from helper_dev_utils import get_auto_logger
 from PIL import Image
 from transformers import BitsAndBytesConfig
@@ -179,6 +183,11 @@ class FluxGenerator:
 
         # 캐싱된 파이프라인 사용
         callback_fn(None, 0, None, None)
+
+        # 메모리 정리 후 파이프라인 로딩
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        gc.collect()
 
         pipe = self._load_t2i_pipeline()
 

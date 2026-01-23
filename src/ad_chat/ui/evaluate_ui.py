@@ -25,6 +25,7 @@ from config import (
 )
 from services import MCPClient
 from utils.state_manager import set_page, logout
+from services import get_job_store
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +97,10 @@ def render_evaluate_ui() -> None:
     """
     CLIP 평가 전용 UI 렌더링
     """
+    job_store = get_job_store()
+
     # 상단 메뉴
-    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+    col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
     with col1:
         st.subheader("📊 이미지-텍스트 유사도 평가")
 
@@ -116,7 +119,46 @@ def render_evaluate_ui() -> None:
             logout()
             st.rerun()
 
+    with col5:
+        if st.button("🆕 신규 평가", width="stretch"):
+            # 이전 평가 작업 초기화
+            if "evaluation_job" in st.session_state:
+                del st.session_state.evaluation_job
+            if "evaluation_job_id" in st.session_state:
+                del st.session_state.evaluation_job_id
+            st.rerun()
+
     st_div_divider()
+
+    # 전달받은 작업이 있는지 확인
+    eval_job = st.session_state.get("evaluation_job")
+    eval_job_id = st.session_state.get("evaluation_job_id")
+
+    # Job Store에서 재조회 시도 (fallback)
+    if eval_job_id and not eval_job:
+        eval_job = job_store.get_job(eval_job_id)
+        if eval_job:
+            st.session_state.evaluation_job = eval_job
+
+    # 전달받은 작업 정보 표시
+    if eval_job:
+        st.info(
+            f"💡 채팅/히스토리에서 전달된 작업을 평가합니다 (작업 ID: `{eval_job.get('job_id', 'N/A')[:16]}...`)"
+        )
+
+        with st.expander("📋 작업 정보", expanded=False):
+            col_info1, col_info2 = st.columns(2)
+            with col_info1:
+                st.markdown(f"**작업 ID:** `{eval_job.get('job_id', 'N/A')}`")
+                st.markdown(f"**상태:** `{eval_job.get('status', 'N/A')}`")
+            with col_info2:
+                metadata = eval_job.get("metadata", {})
+                user_message = metadata.get(
+                    "user_message", eval_job.get("prompt", "N/A")
+                )
+                st.markdown(f"**생성 요청:** {user_message[:100]}...")
+
+        st_div_divider()
 
     # 설명 섹션
     with st.expander("ℹ️ CLIP 평가란?", expanded=False):
@@ -145,46 +187,101 @@ def render_evaluate_ui() -> None:
 
     st_div_divider()
 
-    # 이미지 업로드 섹션
-    st.markdown("### 1️⃣ 이미지 업로드")
-    uploaded_file = st.file_uploader(
-        "평가할 이미지를 업로드하세요 (PNG, JPG, JPEG)",
-        type=["png", "jpg", "jpeg"],
-        key="evaluate_image_uploader",
-    )
+    # 이미지 소스 선택: 전달받은 작업 또는 직접 업로드
+    st.markdown("### 1️⃣ 이미지 선택")
 
     image_path = None
+    image_source = "upload"  # "job" 또는 "upload"
 
-    if uploaded_file is not None:
-        # 업로드된 파일 저장
-        upload_path = UPLOADS_DIR / uploaded_file.name
-        UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    # 전달받은 작업이 있으면 해당 이미지 사용 옵션 제공
+    if eval_job:
+        result_image_path = eval_job.get("result_image_path")
 
-        with open(upload_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
+        if result_image_path and Path(result_image_path).exists():
+            col_src1, col_src2 = st.columns(2)
+            with col_src1:
+                use_job_image = st.checkbox(
+                    "✅ 전달받은 작업 이미지 사용",
+                    value=True,
+                    key="use_job_image",
+                    help="채팅/히스토리에서 전달받은 광고 이미지를 평가합니다.",
+                )
+                if use_job_image:
+                    image_source = "job"
+                    image_path = result_image_path
 
-        image_path = str(upload_path)
+            with col_src2:
+                if use_job_image:
+                    st.info("📍 전달받은 이미지를 사용합니다.")
 
-        # 미리보기
-        col1, col2 = st.columns([1, 2])
-        with col1:
-            st.image(uploaded_file, caption=uploaded_file.name, width="stretch")
-        with col2:
-            st.success(f"✅ 업로드 완료: `{uploaded_file.name}`")
-            st.info(f"📍 저장 경로: `{upload_path}`")
+            # 전달받은 이미지 미리보기
+            if use_job_image:
+                with open(result_image_path, "rb") as f:
+                    col1, col2 = st.columns([1, 2])
+                    with col1:
+                        st.image(
+                            f.read(),
+                            caption="전달받은 광고 이미지",
+                            use_container_width=True,
+                        )
+                    with col2:
+                        st.success(
+                            f"✅ 전달받은 이미지: `{Path(result_image_path).name}`"
+                        )
+                        st.info(f"📍 경로: `{result_image_path}`")
+        else:
+            st.warning(
+                "⚠️ 전달받은 작업에 이미지가 없거나 파일을 찾을 수 없습니다. 직접 업로드하세요."
+            )
+
+    # 직접 업로드 옵션 (전달받은 이미지가 없거나, 사용자가 업로드를 선택한 경우)
+    if image_source == "upload":
+        uploaded_file = st.file_uploader(
+            "평가할 이미지를 업로드하세요 (PNG, JPG, JPEG)",
+            type=["png", "jpg", "jpeg"],
+            key="evaluate_image_uploader",
+        )
+
+        if uploaded_file is not None:
+            # 업로드된 파일 저장
+            upload_path = UPLOADS_DIR / uploaded_file.name
+            UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+
+            with open(upload_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
+
+            image_path = str(upload_path)
+
+            # 미리보기
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                st.image(
+                    uploaded_file, caption=uploaded_file.name, use_container_width=True
+                )
+            with col2:
+                st.success(f"✅ 업로드 완료: `{uploaded_file.name}`")
+                st.info(f"📍 저장 경로: `{upload_path}`")
 
     st_div_divider()
 
     # 프롬프트 입력 섹션
     st.markdown("### 2️⃣ 평가용 프롬프트 입력")
 
+    # 전달받은 작업이 있으면 LLM 생성 문자열을 기본값으로 제공
+    default_prompt = ""
+    if eval_job:
+        metadata = eval_job.get("metadata", {})
+        # LLM 채팅의 사용자 메시지를 기본 프롬프트로 사용
+        default_prompt = metadata.get("user_message", eval_job.get("prompt", ""))
+
     col1, col2 = st.columns([3, 1])
 
     with col1:
         prompt = st.text_area(
             "이미지와 비교할 텍스트 프롬프트를 입력하세요",
+            value=default_prompt,
             placeholder="예: 신선한 바나나 광고\n예: premium red apple on traditional Korean cloth\n예: 명절 선물 사과",
-            height=100,
+            height=120,
             help="한글 또는 영문으로 입력 가능합니다. 'auto' 모델은 자동으로 적절한 모델을 선택합니다.",
         )
 
