@@ -12,7 +12,7 @@ author: "이솔형"
 # 협업일지 이솔형
 
 <div style="margin-bottom: 20px;">
-  <a href="https://www.notion.so/3-10524d5698b68347ac4a01359da8f219?source=copy_link" target="_blank" style="
+  <a href="https://www.notion.so/3-10524d5698b68347ac4a01359da8f219" target="_blank" style="
     display: inline-flex;
     align-items: center;
     padding: 10px 15px;
@@ -27,7 +27,6 @@ author: "이솔형"
     이솔형 협업일지 (Notion) 바로가기 ↗
   </a>
 </div>
-
 <script>
 // 폴더 정보 가져오기 함수
 function getFolderInfo(folderName) {
@@ -73,47 +72,15 @@ function getFileInfo(extname) {
   }
 }
 
-window.addEventListener('load', function() {
-    const targetFilename = "templet_협업일지_Day_1_2026-00-00.md";
-    
-    const notionUrl = "https://www.notion.so/3-10524d5698b68347ac4a01359da8f219?source=copy_link";
-
-    setTimeout(() => {
-        const rows = document.querySelectorAll('tr');
-
-        rows.forEach(row => {
-            if (row.innerHTML.includes(targetFilename)) {
-                
-                const links = row.querySelectorAll('a');
-                links.forEach(link => {
-                    if (link.innerText.trim().length > 0) {
-                        link.href = notionUrl;
-                        link.target = "_blank"; 
-                        link.style.color = "#E16259"; 
-                        link.style.fontWeight = "bold";
-                    }
-                });
-
-                row.style.cursor = "pointer";
-                row.onclick = function(e) {
-                    if (e.target.tagName !== 'A' && e.target.parentNode.tagName !== 'A') {
-                        window.open(notionUrl, '_blank');
-                    }
-                };
-            }
-        });
-    }, 500); 
-});
-</script>
-
 {% assign cur_dir = "/협업일지/이솔형/" %}
 {% include cur_files.liquid %}
 {% include page_values.html %}
 {% include page_files_table.html %}
 
+</script>
 
 <div class="file-grid">
-</div>
+  </div>
 
 ---
 
