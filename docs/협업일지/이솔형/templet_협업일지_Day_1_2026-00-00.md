@@ -3,7 +3,7 @@ layout: default
 title: "협업일지 Day 1 (2026-00-00) - 코드잇 AI 4기 3팀 ooo"
 description: "협업일지 Day 1 (2026-00-00) - 코드잇 AI 3기 4팀 ooo"
 date: 2026-00-00
-author: "이슬형"
+author: "이솔형"
 cache-control: no-cache
 expires: 0
 pragma: no-cache
@@ -13,7 +13,7 @@ pragma: no-cache
 
 ## [1] 기본 정보
 **날짜**: 2026-00-00
-**이름**: 이슬형
+**이름**: 이솔형
 **팀명**: 코드잇 AI 4기 3팀
 
 ---

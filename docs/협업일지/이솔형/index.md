@@ -1,15 +1,15 @@
 ---
 layout: default
-title: "코드잇 AI 4기 3팀 고급 프로젝트 - 이슬형"
-description: "코드잇 AI 4기 3팀 고급 프로젝트 - 이슬형"
+title: "코드잇 AI 4기 3팀 고급 프로젝트 - 이솔형"
+description: "코드잇 AI 4기 3팀 고급 프로젝트 - 이솔형"
 date: 2025-12-28
 cache-control: no-cache
 expires: 0
 pragma: no-cache
-author: "이슬형"
+author: "이솔형"
 ---
 
-# 협업일지 이슬형
+# 협업일지 이솔형
 
 <script>
 
@@ -75,7 +75,7 @@ function getFileInfo(extname) {
   }
 }
 
-{% assign cur_dir = "/협업일지/이슬형/" %}
+{% assign cur_dir = "/협업일지/이솔형/" %}
 {% include cur_files.liquid %}
 {% include page_values.html %}
 {% include page_files_table.html %}
