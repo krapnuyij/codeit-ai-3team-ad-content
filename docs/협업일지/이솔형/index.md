@@ -11,12 +11,27 @@ author: "이솔형"
 
 # 협업일지 이솔형
 
+<div style="margin-bottom: 20px;">
+  <a href="https://www.notion.so/3-10524d5698b68347ac4a01359da8f219" target="_blank" style="
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 15px;
+    background-color: #f7f7f5;
+    color: #37352f;
+    text-decoration: none;
+    border: 1px solid #e1e1e1;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 16px;">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Notion_app_logo.png" alt="Notion" style="width: 20px; height: 20px; margin-right: 8px;">
+    이솔형 협업일지 (Notion) 바로가기 ↗
+  </a>
+</div>
 <script>
-
 // 폴더 정보 가져오기 함수
 function getFolderInfo(folderName) {
+    // ... (기존 코드와 동일) ...
     folderName = (folderName || '').toString().replace(/^\/+|\/+$/g, '');
-    // 폴더명에 따른 아이콘과 설명 (가나다순 정렬)
     const folderMappings = {
         '멘토': { icon: '', desc: '멘토 관련 자료' },
         '백업': { icon: '', desc: '백업 파일들' },
@@ -39,39 +54,23 @@ function getFolderInfo(folderName) {
 }
 
 function getFileInfo(extname) {
+  // ... (기존 코드와 동일) ...
   switch(extname.toLowerCase()) {
-    case '.ipynb':
-      return { icon: '', type: 'Colab' };
-    case '.py':
-      return { icon: '', type: 'Python' };
-    case '.md':
-      return { icon: '', type: 'Markdown' };
-    case '.json':
-      return { icon: '', type: 'JSON' };
-    case '.zip':
-      return { icon: '', type: '압축' };
-    case '.png':
-    case '.jpg':
-    case '.jpeg':
-      return { icon: '', type: '이미지' };
-    case '.csv':
-      return { icon: '', type: '데이터' };
-    case '.pdf':
-      return { icon: '', type: 'PDF' };
-    case '.docx':
-      return { icon: '', type: 'Word' };
-    case '.pptx':
-      return { icon: '', type: 'PowerPoint' };
-    case '.xlsx':
-      return { icon: '', type: 'Excel' };
-    case '.hwp':
-      return { icon: '', type: 'HWP' };
-    case '.txt':
-      return { icon: '', type: 'Text' };
-    case '.html':
-      return { icon: '', type: 'HTML' };
-    default:
-      return { icon: '', type: '파일' };
+    case '.ipynb': return { icon: '', type: 'Colab' };
+    case '.py': return { icon: '', type: 'Python' };
+    case '.md': return { icon: '', type: 'Markdown' };
+    case '.json': return { icon: '', type: 'JSON' };
+    case '.zip': return { icon: '', type: '압축' };
+    case '.png': case '.jpg': case '.jpeg': return { icon: '', type: '이미지' };
+    case '.csv': return { icon: '', type: '데이터' };
+    case '.pdf': return { icon: '', type: 'PDF' };
+    case '.docx': return { icon: '', type: 'Word' };
+    case '.pptx': return { icon: '', type: 'PowerPoint' };
+    case '.xlsx': return { icon: '', type: 'Excel' };
+    case '.hwp': return { icon: '', type: 'HWP' };
+    case '.txt': return { icon: '', type: 'Text' };
+    case '.html': return { icon: '', type: 'HTML' };
+    default: return { icon: '', type: '파일' };
   }
 }
 
@@ -83,8 +82,7 @@ function getFileInfo(extname) {
 </script>
 
 <div class="file-grid">
-  <!-- 파일 목록이 JavaScript로 동적 생성됩니다 -->
-</div>
+  </div>
 
 ---
 
