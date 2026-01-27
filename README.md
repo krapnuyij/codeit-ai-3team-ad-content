@@ -36,33 +36,6 @@
 
 이 프로젝트는 **Microservices Architecture**를 채택하여 각 기능이 독립적인 컨테이너로 동작하며, Docker Compose를 통해 통합 관리됩니다.
 
-![System Architecture](architecture_view.png)
-
-### 주요 서비스 구성
-
-1.  **SaaS Backend (`backend/`)**
-    -   **역할**: 사용자 인터페이스(Web) 제공 및 전체 서비스 조율 (Orchestrator).
-    -   **Tech**: FastAPI, Jinja2 Templates, SQLAlchemy.
-    -   **Port**: `8890`
-    -   사용자의 입력을 받아 DB에 저장하고, 각 AI 서버에 작업을 요청한 뒤 결과를 보여줍니다.
-
-2.  **Homepage Generator (`homepage_generator/`)**
-    -   **역할**: 맞춤형 랜딩 페이지 제작 에이전트.
-    -   **Tech**: FastAPI, LangGraph.
-    -   **Port**: `8891`
-    -   기획 -> 디자인 -> 코딩 순서로 진행되는 AI 에이전트 워크플로우를 통해 완전한 정적 웹사이트를 생성합니다.
-
-3.  **NanoCocoa AI Server (`nanoCocoa_aiserver/`)**
-    -   **역할**: 고품질 광고 배너 이미지 생성.
-    -   **Tech**: FastAPI, PyTorch (CUDA), Diffusers, OpenAI API.
-    -   **Port**: `8892`
-    -   텍스트 렌더링 및 상품 이미지 합성을 위한 전용 GPU 서버입니다.
-
-4.  **Infrastructure**
-    -   **Database**: PostgreSQL (고객 정보 및 생성 이력 관리).
-    -   **Web Server**: Nginx (생성된 홈페이지 호스팅).
-
-
 **구조도 (High-Level Architecture)**
 
 ```mermaid
