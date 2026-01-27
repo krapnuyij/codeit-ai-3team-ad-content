@@ -194,11 +194,8 @@ class MCPClient:
         """
         await self._ensure_client()
 
-        # MCP 서버가 포트 3000, REST API는 8000 사용
-        rest_base_url = self.base_url.replace(":3000", ":8000")
-
         try:
-            response = await self._client.post(f"{rest_base_url}/server-reset")
+            response = await self._client.post(f"{self.base_url}/server-reset")
             response.raise_for_status()
             return response.json()
 

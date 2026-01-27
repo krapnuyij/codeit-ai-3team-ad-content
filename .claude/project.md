@@ -422,6 +422,6 @@ python setup_mcp.py --install
 - **아키텍처**: 김명환
 - **백엔드/프론트엔드**: 이건희
 - **모델 연구 (이미지 특성 추출)**: 김민혁
-- **모델 연구 (이미지 생성)**: 이슬형
+- **모델 연구 (이미지 생성)**: 이솔형
 - **GitHub**: https://github.com/krapnuyij/codeit-ai-3team-ad-content
 - **이슈 트래커**: GitHub Issues
