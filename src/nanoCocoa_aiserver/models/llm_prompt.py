@@ -10,7 +10,7 @@ from helper_dev_utils import get_auto_logger
 from openai import OpenAI
 from PIL import Image
 from playwright.async_api import async_playwright
-from .qwen3_analyzer import QwenAnalyzer
+from .qwen3_analyzer import Qwen3Analyzer
 
 logger = get_auto_logger()
 load_dotenv()
@@ -18,13 +18,13 @@ load_dotenv()
 
 class LLMPrompt:
     """
-    QwenAnalyzer와 OpenAI LLM을 사용한 HTML 광고 생성기
+    Qwen3Analyzer와 OpenAI LLM을 사용한 HTML 광고 생성기
 
     이미지와 광고 문구를 입력받아 LLM이 HTML 광고 템플릿을 생성하고,
     Playwright로 실제 이미지로 렌더링합니다.
 
     특징:
-    - QwenAnalyzer로 이미지 상세 분석 (공간, 색감, 조명, 분위기)
+    - Qwen3Analyzer로 이미지 상세 분석 (공간, 색감, 조명, 분위기)
     - 텍스트 기반 프롬프트로 토큰 효율 최적화
     - gpt-5-mini 모델 지원 (128K 출력 토큰)
     - 비동기 Playwright로 HTML 렌더링
@@ -37,7 +37,7 @@ class LLMPrompt:
         model: str = "gpt-5-mini",
         temperature: float = 1.0,
         max_completion_tokens: int = 128000,
-        qwen: Optional[QwenAnalyzer] = None,
+        qwen: Optional[Qwen3Analyzer] = None,
     ):
         """
         LLMTexttoHTML 초기화
@@ -55,7 +55,7 @@ class LLMPrompt:
         self.model = model
         self.temperature = temperature
         self.max_completion_tokens = max_completion_tokens
-        self.mode_qwen = qwen or QwenAnalyzer()
+        self.mode_qwen = qwen or Qwen3Analyzer()
 
         logger.info(
             f"LLMTexttoHTML 초기화: model={model}, max_tokens={max_completion_tokens}"
@@ -80,8 +80,8 @@ class LLMPrompt:
         """
         logger.info(f"HTML 생성 시작: image={image_path}, text={ad_text}")
 
-        # QwenAnalyzer로 이미지 상세 분석
-        logger.info("QwenAnalyzer로 이미지 분석 중...")
+        # Qwen3Analyzer로 이미지 상세 분석
+        logger.info("Qwen3Analyzer로 이미지 분석 중...")
         qwen = self.mode_qwen
         image = Image.open(image_path)
         analysis = qwen.analyze_image_details(image, auto_unload=False)
@@ -215,8 +215,8 @@ class LLMPrompt:
         """
         logger.info(f"HTML 생성 시작: image={image_path}, text={ad_text}")
 
-        # QwenAnalyzer로 이미지 상세 분석
-        logger.info("QwenAnalyzer로 이미지 분석 중...")
+        # Qwen3Analyzer로 이미지 상세 분석
+        logger.info("Qwen3Analyzer로 이미지 분석 중...")
         qwen = self.mode_qwen
         image = Image.open(image_path)
         analysis = qwen.analyze_image_details(image, auto_unload=False)

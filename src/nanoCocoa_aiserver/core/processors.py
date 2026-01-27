@@ -96,42 +96,20 @@ def process_step1_background(
             negative_prompt=bg_negative_prompt,
             guidance_scale=guidance_scale,
             seed=seed,
-            auto_unload=True,
+            auto_unload=False,
         )
     else:
         # 이미지 합성 배경
         bg_img = engine.run_image2image(
-            draft_image=raw_img,
+            input_image=raw_img,
             prompt=bg_prompt,
             negative_prompt=bg_negative_prompt,
             guidance_scale=guidance_scale,
             seed=seed,
-            auto_unload=True,
+            auto_unload=False,
         )
 
     return bg_img
-
-
-def process_step2_text(
-    engine, input_data: dict, shared_state: dict, stop_event
-) -> Optional[Image.Image]:
-    """
-    Step 2: 텍스트 에셋 생성 (Text Asset Generation)
-
-    Args:
-        engine: AIModelEngine 인스턴스
-        input_data: 입력 데이터
-        shared_state: 공유 상태 딕셔너리
-        stop_event: 중단 이벤트
-
-    Returns:
-        Optional[Image.Image]: 생성된 3D 텍스트 이미지 또는 None (사용안함)
-    """
-    if stop_event.is_set():
-        return None
-
-    # 사용안함
-    return None
 
 
 def process_step2_llm_text(
@@ -196,22 +174,14 @@ def process_step2_llm_text(
         f"text_prompt: '{text_prompt}', composition_prompt: '{composition_prompt}'"
     )
 
-    result_image = engine.run_composite(
-        step1_image, ad_text, text_prompt, composition_prompt
+    result_image = asyncio.run(
+        engine.run_composite(
+            step1_image,
+            ad_text,
+            text_prompt,
+            composition_prompt,
+        )
     )
 
     logger.info("[Step2 LLM] LLM text composition completed successfully")
     return result_image
-
-
-def process_step3_composite(
-    engine,  # AIModelEngine 인스턴스 필요
-    step1_result: Image.Image,
-    step2_result: Image.Image,
-    input_data: dict,  # 합성 파라미터 필요
-    shared_state: dict,
-    stop_event,
-) -> Optional[Image.Image]:
-    """사용안함"""
-
-    return None

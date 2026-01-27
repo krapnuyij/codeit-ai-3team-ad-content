@@ -26,6 +26,7 @@ import torch
 from PIL import Image, ImageFilter
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
+from dotenv import load_dotenv
 
 # diffusers 사용 (FLUX.2 전용)
 from diffusers import Flux2KleinPipeline
@@ -161,8 +162,9 @@ class Flux2Generator:
                 "callback_on_step_end": callback_fn,
             }
 
-            if negative_prompt is not None:
-                pipe_kwargs["negative_prompt"] = negative_prompt
+            # negative_prompt 사용하지 않음
+            # if negative_prompt is not None:
+            #     pipe_kwargs["negative_prompt"] = negative_prompt
 
             if input_image is not None:
                 pipe_kwargs["image"] = [

@@ -186,7 +186,7 @@ class ClipService:
             return self._calculate_koclip_score(image, prompt, auto_unload)
 
     def _calculate_openai_clip_score(
-        self, image: Image.Image, prompt: str, auto_unload: bool = True
+        self, image: Image.Image, prompt: str, auto_unload: bool = False
     ) -> float:
         """OpenAI CLIP으로 점수 계산"""
         # 모델 로딩 (첫 호출 시에만)
@@ -231,7 +231,7 @@ class ClipService:
             raise RuntimeError(f"OpenAI CLIP Score calculation failed: {e}")
 
     def _calculate_koclip_score(
-        self, image: Image.Image, prompt: str, auto_unload: bool = True
+        self, image: Image.Image, prompt: str, auto_unload: bool = False
     ) -> float:
         """KoCLIP으로 점수 계산 (한글 프롬프트 지원)"""
         # 모델 로딩 (첫 호출 시에만)

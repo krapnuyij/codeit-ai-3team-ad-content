@@ -26,7 +26,10 @@ class AIModelEngine:
     """
 
     def __init__(
-        self, dummy_mode: bool = False, progress_callback=None, auto_unload: bool = True
+        self,
+        dummy_mode: bool = False,
+        progress_callback=None,
+        auto_unload: bool = False,
     ):
         """
         Args:

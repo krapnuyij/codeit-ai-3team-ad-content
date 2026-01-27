@@ -167,7 +167,7 @@ class DefaultParameters:
     COMPOSITION_STRENGTH: float = 0.3
     COMPOSITION_STEPS: int = 30
     COMPOSITION_GUIDANCE_SCALE: float = 3.5
-    AUTO_UNLOAD: bool = True
+    auto_unload: bool = False
     TEST_MODE: bool = False
 
 

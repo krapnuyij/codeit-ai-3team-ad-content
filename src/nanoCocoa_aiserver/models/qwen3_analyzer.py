@@ -112,7 +112,7 @@ class Qwen3Analyzer:
         self,
         image: Union[Image.Image, str],
         query: str = "Find the flat surface where I can place an object. Return the bounding box coordinates.",
-        auto_unload: bool = True,
+        auto_unload: bool = False,
     ) -> Dict[str, any]:
         """
         객체 배치를 위한 최적의 표면을 탐지합니다.
@@ -220,7 +220,7 @@ class Qwen3Analyzer:
         self,
         image: Image.Image,
         custom_query: Optional[str] = None,
-        auto_unload: bool = True,
+        auto_unload: bool = False,
     ) -> Dict[str, Union[str, Tuple[int, int]]]:
         """
         이미지를 상세 분석하여 텍스트 정보를 반환합니다.
@@ -313,7 +313,7 @@ class Qwen3Analyzer:
         self,
         image: Image.Image,
         query: Optional[str],
-        auto_unload: bool = True,
+        auto_unload: bool = False,
     ) -> str:
         """
         이미지를 상세 분석하여 텍스트 정보를 반환합니다.
@@ -360,7 +360,7 @@ class Qwen3Analyzer:
     def analyze_image_flux_product(
         self,
         image: Image.Image,
-        auto_unload: bool = True,
+        auto_unload: bool = False,
     ) -> str:
         """
         이미지를 상세 분석하여 텍스트 정보를 반환합니다.

@@ -62,7 +62,7 @@ async def generate_ad_image(
     composition_strength: float = 0.4,
     composition_steps: int = 28,
     composition_guidance_scale: float = 3.5,
-    auto_unload: bool = True,
+    auto_unload: bool = False,
     seed: Optional[int] = None,
     test_mode: bool = False,
     wait_for_completion: bool = False,

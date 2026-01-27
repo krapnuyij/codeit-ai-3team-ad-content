@@ -100,7 +100,7 @@ async def calculate_clip_score(req: ClipScoreRequest) -> ClipScoreResponse:
             f"[CLIP API] Received request | Model: {req.model_type} | Prompt: {req.prompt[:50]}..."
         )
 
-        # CLIP Score 계산 (auto_unload=True로 메모리 자동 해제)
+        # CLIP Score 계산 (auto_unload=False로 메모리 자동 해제)
         score = clip_service.calculate_clip_score(
             image_base64=req.image_base64,
             prompt=req.prompt,

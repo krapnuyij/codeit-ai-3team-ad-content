@@ -69,7 +69,7 @@ async def test_full_pipeline_test_mode(require_aiserver, integration_output_dir)
             text_content="TEST",
             text_model_prompt="Gold metallic text",
             test_mode=True,  # 테스트 모드
-            auto_unload=True,
+            auto_unload=False,
         )
 
         # 생성 시작

@@ -122,7 +122,7 @@ def unload(self) -> None:
 ```python
 def __init__(self, dummy_mode: bool = False, 
              progress_callback=None, 
-             auto_unload: bool = True):
+             auto_unload: bool = False):
     self.auto_unload = auto_unload
     logger.info(f"AIModelEngine initialized: auto_unload={auto_unload}")
 ```
@@ -241,7 +241,7 @@ Flux Inpainting pipeline unloaded
 
 ## 5. API 사용 예시
 
-### 5.1 기본 사용 (auto_unload=True)
+### 5.1 기본 사용 (auto_unload=False)
 
 ```json
 {
@@ -297,7 +297,7 @@ AUTO_UNLOAD_DEFAULT = False
 ## 7. 테스트 시나리오
 
 1. **OOM 재현 테스트**: `auto_unload=False` → Step 3에서 OOM 발생 확인
-2. **메모리 해제 검증**: `auto_unload=True` → 로그에서 메모리 감소 확인
+2. **메모리 해제 검증**: `auto_unload=False` → 로그에서 메모리 감소 확인
 3. **성능 비교**: 연속 10회 요청 시 `True` vs `False` 평균 응답 시간 측정
 4. **재현성 검증**: 동일 seed + 파라미터로 `auto_unload` 값 변경해도 동일 결과 확인
 

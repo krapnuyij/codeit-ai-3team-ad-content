@@ -31,8 +31,6 @@ from core.engine import AIModelEngine
 from core.processors import (
     process_step1_background,
     process_step2_llm_text,
-    process_step2_text,
-    process_step3_composite,
 )
 from utils import (
     base64_to_pil,
@@ -160,6 +158,7 @@ def worker_process(
         logger.debug(
             f"step_count={shared_state['step_count']} avg_time={avg_time} step_range={step_range}"
         )
+        logger.info(f"shared_state: {str(shared_state)}")
 
     # auto_unload 설정 (기본값: True)
     auto_unload = input_data.get("auto_unload", True)

@@ -478,11 +478,11 @@ Qwen2-VL은 Vision-Language 모델로, 배경 이미지를 상세히 분석하�
 
 **코드 구조** (`qwen_analyzer.py`):
 ```python
-class QwenAnalyzer:
+class Qwen3Analyzer:
     def analyze_image_details(
         self, 
         image: Image.Image, 
-        auto_unload: bool = True
+        auto_unload: bool = False
     ) -> Dict[str, str]:
         \"\"\"
         이미지를 4가지 관점으로 상세 분석
