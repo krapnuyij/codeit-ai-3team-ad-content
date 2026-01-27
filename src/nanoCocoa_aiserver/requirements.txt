@@ -4,7 +4,7 @@ accelerate==1.12.0
 torch==2.9.1
 torchvision==0.24.1
 transformers==4.57.3
-diffusers==0.36.0  # VAE slicing API: use pipe.vae.enable_slicing() instead of pipe.enable_vae_slicing()
+# diffusers==0.36.0  # 로컬 커스텀 diffusers 사용: pip install -e src/nanoCocoa_aiserver/models/diffusers
 timm==1.0.22
 peft==0.18.0
 safetensors==0.7.0

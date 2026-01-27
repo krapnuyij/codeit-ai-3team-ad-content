@@ -26,9 +26,9 @@ MCP_TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "product_image_path": {
+                "product_image_png_b64": {
                     "type": "string",
-                    "description": "제품 이미지 파일 경로 (선택사항). 제공하지 않으면 background_prompt에 제품 설명을 포함하여 배경과 함께 생성됩니다.",
+                    "description": "제품 이미지 (PNG base64 인코딩, 선택사항). 제공하지 않으면 background_prompt에 제품 설명을 포함하여 배경과 함께 생성됩니다.",
                 },
                 "background_prompt": {
                     "type": "string",
@@ -103,7 +103,7 @@ MCP_TOOLS = [
                         "2=배경+텍스트 생성(합성 전), "
                         "3=전체 실행(None과 동일). "
                         "활용: stop_step=1로 배경 A/B 테스트, stop_step=2로 텍스트 검토. "
-                        "업로드한 이미지에 텍스트만 추가하려면 product_image_path 대신 step1_image 제공."
+                        "업로드한 이미지에 텍스트만 추가하려면 product_image_png_b64 대신 step1_image 제공."
                     ),
                 },
             },

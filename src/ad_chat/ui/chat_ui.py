@@ -9,6 +9,7 @@ import re
 import json
 import asyncio
 import logging
+import base64
 from pathlib import Path
 from typing import Any, Dict, Optional
 from helper_streamlit_utils import *
@@ -214,6 +215,66 @@ def render_chat_ui() -> None:
     # 모니터링 중인 작업 확인 및 완료 알림
     check_and_display_completed_jobs()
 
+    # 이미지 업로더 (채팅 입력 전)
+    col_upload, col_preview = st.columns([2, 1])
+
+    with col_upload:
+        uploaded_image = st.file_uploader(
+            "📷 제품 이미지 업로드 (선택사항)",
+            type=["png", "jpg", "jpeg"],
+            key="product_image_uploader",
+            help="이미지를 업로드하면 광고 생성 시 자동으로 사용됩니다. 이미지 없이도 프롬프트만으로 생성 가능합니다.",
+        )
+
+    # 이미지가 업로드되면 세션 상태에 base64로 저장
+    if uploaded_image is not None:
+        from io import BytesIO
+        from PIL import Image as PILImage
+
+        # 이미지를 PIL로 로드
+        pil_image = PILImage.open(uploaded_image)
+
+        # RGBA 모드 처리 (투명도)
+        if pil_image.mode == "RGBA":
+            # 투명도를 유지하면서 PNG로 저장
+            pass
+        elif pil_image.mode != "RGB":
+            # 다른 모드는 RGB로 변환
+            pil_image = pil_image.convert("RGB")
+
+        # PNG 형식으로 변환하여 BytesIO에 저장
+        png_buffer = BytesIO()
+        pil_image.save(png_buffer, format="PNG")
+        png_bytes = png_buffer.getvalue()
+
+        # PNG 바이트를 base64로 인코딩
+        image_b64 = base64.b64encode(png_bytes).decode("utf-8")
+
+        # 세션 상태에 저장
+        st.session_state.product_image_b64 = image_b64
+        st.session_state.product_image_name = uploaded_image.name
+
+        # 썸네일 미리보기
+        with col_preview:
+            st.image(
+                pil_image,
+                caption=f"✅ {uploaded_image.name} (PNG 변환됨)",
+                width="stretch",
+            )
+    elif "product_image_b64" in st.session_state:
+        # 이전에 업로드된 이미지 표시
+        with col_preview:
+            image_data = base64.b64decode(st.session_state.product_image_b64)
+            st.image(
+                image_data,
+                caption=f"✅ {st.session_state.get('product_image_name', '업로드된 이미지')}",
+                width="stretch",
+            )
+            if st.button("🗑️ 이미지 제거", key="remove_image"):
+                del st.session_state.product_image_b64
+                del st.session_state.product_image_name
+                st.rerun()
+
     # 채팅 히스토리 표시
     chat_container = st.container()
     with chat_container:
@@ -287,6 +348,19 @@ async def generate_ai_response_async(user_message: str):
 **경고:** 폰트 목록을 불러올 수 없습니다. 기본 폰트를 사용합니다.
 """
 
+    # 업로드된 제품 이미지 정보 (텍스트로만 전달, base64는 도구 호출 시 사용)
+    product_image_info = ""
+    product_image_b64 = st.session_state.get("product_image_b64")
+    if product_image_b64:
+        image_name = st.session_state.get("product_image_name", "unknown")
+        product_image_info = f"""
+
+**업로드된 제품 이미지:**
+- 파일명: {image_name}
+- 상태: ✅ 업로드 완료 (광고 생성 시 자동으로 사용됩니다)
+- 참고: 이미지는 generate_ad_image 도구 호출 시 product_image_png_b64 파라미터로 자동 전달됩니다.
+"""
+
     # 현재 작업 컨텍스트 확인
     current_job_context = st.session_state.get("current_job_context")
     context_info = ""
@@ -308,7 +382,7 @@ async def generate_ai_response_async(user_message: str):
 **역할:**
 1. 사용자와 대화하며 효과적인 광고 컨셉 제안 (기획 단계)
 2. 최종 확인 후 광고 이미지 생성 (실행 단계)
-{context_info}
+{context_info}{product_image_info}
 
 **광고 생성 2단계 프로세스:**
 
@@ -345,6 +419,10 @@ async def generate_ai_response_async(user_message: str):
 
 **MCP 도구 호출 규칙:**
 - `generate_ad_image` 필수 파라미터:
+  - **product_image_png_b64**: 제품 이미지 (PNG base64 인코딩, 선택사항)
+    * 세션 상태에 업로드된 이미지가 있으면 자동으로 포함됩니다
+    * 사용자가 이미지를 업로드한 경우: `st.session_state.product_image_b64` 값 사용
+    * 업로드된 이미지가 없으면 파라미터 생략 (배경 프롬프트만으로 생성)
   - **bg_model**: 배경 생성 모델 선택 (중요!)
     * **"sdxl"**: 빠른 생성 (~30초-1분), 심플한 품질
       - 사용 시기: "빠르게", "신속하게", "급하게", "빨리", "테스트", "미리보기"
@@ -353,7 +431,7 @@ async def generate_ai_response_async(user_message: str):
       - 사용 시기: 품질 중요, 최종 결과물, 명시적 요청 없으면 기본값
       - guidance_scale 기본 3.5 권장
   - background_prompt: 영문 배경 설명 (15-30단어)
-    * **중요**: 제품 이미지(product_image_path)를 제공하지 않는 경우, 
+    * **중요**: 제품 이미지(product_image_png_b64)를 제공하지 않는 경우, 
       background_prompt에 제품 상세 설명을 반드시 포함해야 함
     * 제품 이미지 있음: "Elegant marble surface with soft lighting, luxury background"
     * 제품 이미지 없음: "Premium red apples on golden traditional Korean bojagi cloth, 
@@ -372,8 +450,8 @@ async def generate_ai_response_async(user_message: str):
     * **전체 생성**: stop_step=None (기본값) 또는 생략
 
 - **제품 이미지 제공 여부에 따른 처리**:
-  1. **제품 이미지 있음**: product_image_path 제공 + background_prompt는 배경만 설명
-  2. **제품 이미지 없음**: product_image_path 생략 + background_prompt에 제품+배경 모두 설명
+  1. **제품 이미지 있음**: product_image_png_b64 제공 (st.session_state.product_image_b64) + background_prompt는 배경만 설명
+  2. **제품 이미지 없음**: product_image_png_b64 생략 + background_prompt에 제품+배경 모두 설명
 
 - **stop_step 활용 시나리오**:
   1. **"배경만 만들어줘"**: 
@@ -463,10 +541,22 @@ async def generate_ai_response_async(user_message: str):
             # else:
             #     logger.warning("  ✗ bg_model 가이드 누락!")
             logger.info(f"[디버그] 사용자 메시지: {user_message}")
+
+            # 업로드된 이미지가 있으면 어댑터에 전달
+            product_image_b64 = st.session_state.get("product_image_b64")
+            if product_image_b64:
+                logger.info(
+                    f"[디버그] 제품 이미지 업로드됨: {st.session_state.get('product_image_name', 'unknown')}"
+                )
+            else:
+                logger.info("[디버그] 제품 이미지 없음")
+
             logger.info("=" * 60)
 
             # LLM 응답 생성 (필요 시 자동으로 MCP 도구 호출)
-            response, tool_params = await adapter.chat(user_message, max_tool_calls=3)
+            response, tool_params = await adapter.chat(
+                user_message, max_tool_calls=3, product_image_b64=product_image_b64
+            )
 
             # job_id 추출 (도구 호출 결과에서)
             job_id = None
@@ -567,6 +657,13 @@ def handle_job_creation(
 
         # 작업 모니터링 시작
         monitor_job_in_background(job_id)
+
+        # 광고 생성 작업이 시작되었으므로 업로드된 이미지 제거
+        if "product_image_b64" in st.session_state:
+            logger.info("업로드된 제품 이미지 세션 상태에서 제거")
+            del st.session_state.product_image_b64
+            if "product_image_name" in st.session_state:
+                del st.session_state.product_image_name
 
         st.success(
             f"""

@@ -65,9 +65,9 @@ TOOL_SCHEMAS = [
         "parameters": {
             "type": "object",
             "properties": {
-                "product_image_path": {
+                "product_image_png_b64": {
                     "type": "string",
-                    "description": "제품 이미지 파일의 절대 경로 (PNG, JPG, JPEG, WEBP 지원)",
+                    "description": "제품 이미지의 PNG base64 인코딩 문자열 (선택사항, 없으면 배경만 생성)",
                 },
                 "background_prompt": {
                     "type": "string",
@@ -363,7 +363,16 @@ async def call_tool(tool_name: str, request: Dict[str, Any]):
     try:
         tool_func = TOOL_FUNCTIONS[tool_name]
         logger.info(f"도구 호출: {tool_name}")
-        logger.info(f"받은 파라미터: {list(request.keys())}")
+
+        # product_image_png_b64는 너무 길어서 ... 으로 표시
+        log_request = request.copy()
+        if (
+            "product_image_png_b64" in log_request
+            and log_request["product_image_png_b64"]
+        ):
+            log_request["product_image_png_b64"] = "..."
+        logger.info(f"받은 파라미터: {log_request}")
+
         result = await tool_func(**request)
         return {"result": result}
     except TypeError as e:

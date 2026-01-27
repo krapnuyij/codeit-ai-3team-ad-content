@@ -87,9 +87,15 @@ RUN pip install --no-cache-dir \
     --index-url https://download.pytorch.org/whl/cu128 \
     torch==2.9.0+cu128 torchvision==0.24.0+cu128 torchaudio==2.9.0+cu128
 
-# 나머지 패키지 설치 (torch 관련 제외)
-RUN grep -v "^torch" /app/src/nanoCocoa_aiserver/requirements-docker.txt | grep -v "^--index-url" > /tmp/requirements-no-torch.txt && \
+# 나머지 패키지 설치 (torch, diffusers 제외)
+RUN grep -v "^torch" /app/src/nanoCocoa_aiserver/requirements-docker.txt | \
+    grep -v "^--index-url" | \
+    grep -v "^diffusers" > /tmp/requirements-no-torch.txt && \
     pip install --no-cache-dir -r /tmp/requirements-no-torch.txt
+
+# 로컬 커스텀 diffusers를 PYTHONPATH에 추가
+# FLUX.2 Klein 모델 지원을 위한 최신 diffusers (v0.37.0.dev0)
+ENV PYTHONPATH="/app/src/nanoCocoa_aiserver/models:${PYTHONPATH}"
 
 # nvidia-ml-py 설치
 RUN pip install --no-cache-dir nvidia-ml-py

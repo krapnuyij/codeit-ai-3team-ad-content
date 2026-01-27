@@ -13,7 +13,7 @@ triton==3.5.0
 # AI/ML Framework
 accelerate==1.12.0
 transformers==4.57.3
-diffusers==0.36.0
+# diffusers==0.36.0  # 로컬 커스텀 diffusers 사용 (Dockerfile에서 editable 설치)
 timm==1.0.22
 peft==0.18.0
 safetensors==0.7.0

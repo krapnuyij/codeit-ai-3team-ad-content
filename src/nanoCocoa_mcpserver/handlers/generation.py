@@ -43,7 +43,7 @@ async def get_api_client() -> AIServerClient:
 
 
 async def generate_ad_image(
-    product_image_path: Optional[str] = None,
+    product_image_png_b64: Optional[str] = None,
     text_content: str = "",
     font_name: Optional[str] = None,
     background_prompt: Optional[str] = None,
@@ -72,6 +72,9 @@ async def generate_ad_image(
     """
     제품 이미지를 기반으로 AI가 전문적인 광고 이미지를 생성합니다.
 
+    Args:
+        product_image_png_b64: 제품 이미지 (PNG base64 인코딩, 선택사항)
+
     stop_step 파라미터로 파이프라인 제어:
     - None/생략: 전체 실행 (배경→텍스트→합성)
     - 1: 배경만 생성
@@ -84,10 +87,10 @@ async def generate_ad_image(
 
         client = await get_api_client()
 
-        # 제품 이미지 처리
-        if product_image_path:
-            logger.info(f"제품 이미지 로드: {product_image_path}")
-            product_image_b64 = image_file_to_base64(product_image_path)
+        # 제품 이미지 처리 (base64 직접 사용)
+        if product_image_png_b64:
+            logger.info("제품 이미지 수신 (base64)")
+            product_image_b64 = product_image_png_b64
         else:
             logger.info("제품 이미지 없음 - 배경만 생성")
             product_image_b64 = None

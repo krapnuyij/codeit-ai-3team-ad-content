@@ -231,7 +231,7 @@ def render_evaluate_ui() -> None:
                         st.image(
                             f.read(),
                             caption="전달받은 광고 이미지",
-                            use_container_width=True,
+                            width="stretch",
                         )
                     with col2:
                         st.success(
@@ -264,9 +264,7 @@ def render_evaluate_ui() -> None:
             # 미리보기
             col1, col2 = st.columns([1, 2])
             with col1:
-                st.image(
-                    uploaded_file, caption=uploaded_file.name, use_container_width=True
-                )
+                st.image(uploaded_file, caption=uploaded_file.name, width="stretch")
             with col2:
                 st.success(f"✅ 업로드 완료: `{uploaded_file.name}`")
                 st.info(f"📍 저장 경로: `{upload_path}`")

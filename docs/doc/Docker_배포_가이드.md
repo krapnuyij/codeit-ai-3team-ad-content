@@ -33,8 +33,10 @@ pragma: no-cache
 
 1. **nanoCocoa_aiserver**: GPU 기반 AI 모델 서빙 서버
    - 포트: 8000
-   - 역할: 이미지 생성 AI 모델 추론 (FLUX, SDXL, BiRefNet)
+   - 이미지 버전: v2.0
+   - 역할: 이미지 생성 AI 모델 추론 (FLUX.2, SDXL, BiRefNet)
    - GPU: NVIDIA L4 24GB VRAM
+   - **중요**: FLUX.2 Klein 모델 지원을 위해 로컬 커스텀 diffusers 라이브러리 사용
 
 2. **nanoCocoa_mcpserver**: MCP 프로토콜 브릿지 서버
    - 포트: 3000
@@ -51,12 +53,16 @@ codeit-ai-3team-ad-content/
     ├── nanoCocoa_aiserver/
     │   ├── Dockerfile
     │   ├── requirements-docker.txt
+    │   ├── models/
+    │   │   └── diffusers/          # 로컬 커스텀 diffusers (v0.37.0.dev0)
     │   ├── static/
     │   └── logs/
     └── nanoCocoa_mcpserver/
         ├── Dockerfile
         └── requirements-mcpserver.txt
 ```
+
+**중요**: `nanoCocoa_aiserver/models/diffusers`는 FLUX.2 Klein 모델 지원을 위한 로컬 커스텀 diffusers 라이브러리입니다. PyPI 버전(v0.36.0)에는 FLUX.2 지원이 없으므로, Dockerfile에서 `PYTHONPATH`를 통해 로컬 버전을 우선 사용합니다.
 
 ---
 
@@ -189,27 +195,42 @@ HUGGINGFACE_TOKEN=your_token_here
 ### 4.3. 서비스 빌드 및 시작
 
 ```bash
-# 모든 서비스 빌드 및 시작
-sudo docker-compose up -d --build
+# 모든 서비스 빌드 및 시작 (v2.0 이미지 생성)
+sudo docker compose up -d --build
 
 # 또는 특정 서비스만 빌드
-sudo docker-compose build nanococoa-aiserver
-sudo docker-compose build nanococoa-mcpserver
+sudo docker compose build nanococoa_aiserver
+sudo docker compose build nanococoa_mcpserver
 
 # 빌드 없이 시작
-sudo docker-compose up -d
+sudo docker compose up -d
+
+# 이미지 버전 확인
+sudo docker images | grep nanococoa
+# 예상 출력: nanococoa_aiserver:v2.0
+```
+
+**빌드 검증**: FLUX.2 Klein 모델 지원을 위해 로컬 diffusers가 올바르게 설치되었는지 확인:
+
+```bash
+# diffusers 버전 및 Flux2KleinPipeline 확인
+sudo docker run --rm nanococoa_aiserver:v2.0 python -c "from diffusers import Flux2KleinPipeline; import diffusers; print(f'diffusers version: {diffusers.__version__}'); print(f'Flux2KleinPipeline module: {Flux2KleinPipeline.__module__}')"
+
+# 예상 출력:
+# diffusers version: 0.37.0.dev0
+# Flux2KleinPipeline module: diffusers.pipelines.flux2.pipeline_flux2_klein
 ```
 
 ### 4.4. 서비스 상태 확인
 
 ```bash
 # 컨테이너 상태 확인
-docker-compose ps
+docker compose ps
 
 # 예상 출력:
-# NAME                    IMAGE                         STATUS
-# nanococoa-aiserver      nanococoa-aiserver:latest     Up (healthy)
-# nanococoa-mcpserver     nanococoa-mcpserver:latest    Up (healthy)
+# NAME                    IMAGE                           STATUS
+# nanococoa_aiserver      nanococoa_aiserver:v2.0         Up (healthy)
+# nanococoa_mcpserver     nanococoa_mcpserver:latest      Up (healthy)
 
 # 로그 확인
 docker-compose logs -f

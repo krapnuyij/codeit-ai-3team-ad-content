@@ -52,6 +52,7 @@ services:
     build:
       context: ../
       dockerfile: ./src/nanoCocoa_aiserver/Dockerfile
+    image: nanococoa_aiserver:v2.0
     container_name: nanococoa_aiserver
     env_file:
       - .env

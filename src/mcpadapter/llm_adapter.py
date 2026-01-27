@@ -60,6 +60,9 @@ class LLMAdapter:
         # 마지막 도구 호출 파라미터 (재현성을 위해 저장)
         self.last_tool_call_params: Optional[Dict[str, Any]] = None
 
+        # 제품 이미지 base64 (도구 호출 시에만 사용, LLM에는 전달 안 함)
+        self._pending_product_image_b64: Optional[str] = None
+
     async def __aenter__(self):
         """비동기 컨텍스트 매니저 진입"""
         await self.mcp_client.__aenter__()
@@ -315,9 +318,9 @@ class LLMAdapter:
                 "  - 예: '바나나 광고', '배경 생성' → bg_model='flux'\n"
                 "  - guidance_scale 기본 3.5 권장\n\n"
                 "**[제품 이미지 제공 여부에 따른 처리]**\n"
-                "1. **제품 이미지 있음**: product_image_path 제공 + background_prompt는 배경만 설명\n"
+                "1. **제품 이미지 있음**: product_image_png_b64 제공 + background_prompt는 배경만 설명\n"
                 '   - 예: "Elegant marble surface with soft lighting, luxury background"\n'
-                "2. **제품 이미지 없음**: product_image_path 생략 + background_prompt에 제품+배경 모두 설명\n"
+                "2. **제품 이미지 없음**: product_image_png_b64 생략 + background_prompt에 제품+배경 모두 설명\n"
                 '   - 예: "Premium red apples on golden traditional Korean bojagi cloth, \n'
                 "           juicy and fresh, photorealistic, Korean ink painting style background \n"
                 '           with magpie and yut game elements"\n\n'
@@ -353,7 +356,7 @@ class LLMAdapter:
                 "**[MCP 도구 목록]**\n"
                 "1. **generate_ad_image**: 전체 파이프라인 또는 부분 실행 (stop_step 활용)\n"
                 "   - 필수: bg_model, background_prompt, text_content, text_prompt\n"
-                "   - 선택: product_image_path, composition_mode, wait_for_completion, stop_step\n"
+                "   - 선택: product_image_png_b64, composition_mode, wait_for_completion, stop_step\n"
                 "2. **generate_background_only**: 배경만 생성 (Step 1 전용)\n"
                 "3. **generate_text_asset_only**: 텍스트만 생성 (Step 2 전용, step1_image 필요)\n"
                 "4. **compose_final_image**: 합성만 실행 (Step 3 전용, step1_image + step2_image 필요)\n"
@@ -452,6 +455,7 @@ class LLMAdapter:
         self,
         user_message: str,
         max_tool_calls: int = 5,
+        product_image_b64: Optional[str] = None,
     ) -> tuple[str, Optional[Dict[str, Any]]]:
         """
         자연어 메시지를 처리하여 응답 생성
@@ -462,10 +466,15 @@ class LLMAdapter:
         Args:
             user_message: 사용자 메시지
             max_tool_calls: 최대 도구 호출 횟수
+            product_image_b64: 제품 이미지 (base64 인코딩, 선택사항)
+                - 주의: LLM에는 전달되지 않고, MCP 도구 호출 시에만 사용됨
 
         Returns:
             (LLM의 최종 응답 텍스트, 사용된 도구 파라미터 또는 None)
         """
+        # 제품 이미지를 인스턴스 변수에 저장 (도구 호출 시 사용, LLM에는 전달 안 함)
+        self._pending_product_image_b64 = product_image_b64
+
         # 사용자 메시지에서 명시적 파라미터 파싱 (예: "bg_model=sdxl, ...")
         explicit_params = self._parse_explicit_params(user_message)
 
@@ -548,11 +557,23 @@ class LLMAdapter:
 
                 # generate_ad_image 필수 optional 파라미터 자동 생성 (누락 시)
                 if tool_name == "generate_ad_image":
+                    # 업로드된 제품 이미지가 있으면 자동으로 추가 (LLM 대화에는 포함 안 됨)
+                    if (
+                        self._pending_product_image_b64
+                        and "product_image_png_b64" not in tool_args
+                    ):
+                        logger.info(
+                            "[제품 이미지 자동 추가] 업로드된 이미지를 product_image_png_b64로 전달 (토큰 절약: LLM에는 미전달)"
+                        )
+                        tool_args["product_image_png_b64"] = (
+                            self._pending_product_image_b64
+                        )
+
                     # 명시적 파라미터가 있으면 강제 적용 (유효한 파라미터만)
                     if explicit_params:
                         # generate_ad_image의 유효한 파라미터 목록
                         valid_params = {
-                            "product_image_path",
+                            "product_image_png_b64",
                             "background_prompt",
                             "text_content",
                             "text_prompt",
@@ -660,7 +681,15 @@ class LLMAdapter:
                     }
 
                 logger.info(f"MCP 도구 호출 tool_name={tool_name}")
-                logger.info(f"MCP 도구 호출 tool_args={tool_args}")
+
+                # product_image_png_b64는 너무 길어서 ... 으로 표시
+                log_args = tool_args.copy()
+                if (
+                    "product_image_png_b64" in log_args
+                    and log_args["product_image_png_b64"]
+                ):
+                    log_args["product_image_png_b64"] = "..."
+                logger.info(f"MCP 도구 호출 tool_args={log_args}")
 
                 try:
                     result = await self.mcp_client.call_tool(tool_name, tool_args)
