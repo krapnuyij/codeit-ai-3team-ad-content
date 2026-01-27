@@ -411,6 +411,13 @@ async def generate_ai_response_async(user_message: str):
 - background_prompt, text_prompt 등 이미지 생성 prompt만 영문으로 작성
 **중요:** text_content는 원문 언어(영어는 영어, 한글은 한글)를 유지. 단위, 문맥 등은 적당하게 수정 가능, 나머지 프롬프트(background_prompt, text_prompt, ...prompt 등)는 영문으로 작성하세요.
 **중요:** background_prompt 생성시 100단어 이상으로 상세히 작성하세요.
+**중요:** FLUX Prompt Framework
+- Use this structure for consistent results: Subject + Action + Style + Context
+- Example: “Red fox sitting in tall grass, wildlife documentary photography, misty dawn”
+- Subject: The main focus (person, object, character)
+- Action: What the subject is doing or their pose
+- Style: Artistic approach, medium, or aesthetic
+- Context: Setting, lighting, time, mood, or atmospheric conditions
 """
 
     try:
