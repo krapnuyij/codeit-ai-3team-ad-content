@@ -26,8 +26,9 @@ services:
       POSTGRES_USER: owner
       POSTGRES_PASSWORD: owner1234
       POSTGRES_DB: customer_db
-    ports:
-      - "5432:5432"
+    # 외부 포트 노출 제거 (Docker 네트워크 내부에서만 접근)
+    expose:
+      - "5432"
     volumes:
       - ./backend/postgres_data:/var/lib/postgresql/data
 

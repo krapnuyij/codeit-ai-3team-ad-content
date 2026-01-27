@@ -270,3 +270,6 @@ if __name__ == "__main__":
             if f.suffix.lower() in [".jpg", ".jpeg", ".png", ".webp"]:
                 result_path = engine.process(str(f), str(TEST_OUTPUT_DIR))
                 print(f"Processed: {result_path}")
+
+# Backward compatibility alias
+SegmentationModel = ProductSegmentationEngine

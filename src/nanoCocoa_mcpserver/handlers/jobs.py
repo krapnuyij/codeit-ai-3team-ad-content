@@ -106,3 +106,51 @@ async def delete_job(job_id: str) -> str:
     except Exception as e:
         logger.exception(f"작업 삭제 중 에러: {e}")
         return f"작업 삭제 중 에러 발생: {str(e)}"
+
+
+async def server_reset() -> dict:
+    """서버를 초기화합니다. 실행 중인 작업을 중지하고 완료된 작업을 삭제합니다."""
+    try:
+        client = await get_api_client()
+        jobs = await client.list_jobs()
+
+        stopped_jobs = 0
+        deleted_jobs = 0
+        errors = []
+
+        if jobs.jobs:
+            for job in jobs.jobs:
+                try:
+                    if job.status in ["pending", "running"]:
+                        await client.cancel_job(job.job_id)
+                        stopped_jobs += 1
+                        logger.info(f"작업 중지: {job.job_id}")
+
+                    await client.delete_job(job.job_id)
+                    deleted_jobs += 1
+                    logger.info(f"작업 삭제: {job.job_id}")
+
+                except Exception as e:
+                    errors.append(f"{job.job_id}: {str(e)}")
+                    logger.error(f"작업 처리 실패: {job.job_id}, 에러: {e}")
+
+        return {
+            "status": "success",
+            "message": "서버 초기화 완료",
+            "stopped_jobs": stopped_jobs,
+            "deleted_jobs": deleted_jobs,
+            "errors": errors if errors else None,
+        }
+
+    except AIServerError as e:
+        logger.error(f"서버 초기화 중 AI 서버 에러: {e}")
+        return {
+            "status": "error",
+            "message": f"AI 서버 에러: {str(e)}",
+        }
+    except Exception as e:
+        logger.exception(f"서버 초기화 중 에러: {e}")
+        return {
+            "status": "error",
+            "message": f"서버 초기화 중 에러 발생: {str(e)}",
+        }

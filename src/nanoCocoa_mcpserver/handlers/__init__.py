@@ -9,7 +9,7 @@ from .generation import (
     evaluate_image_clip,
 )
 from .fonts import list_available_fonts, get_fonts_metadata, recommend_font_for_ad
-from .jobs import get_all_jobs, delete_all_jobs, delete_job
+from .jobs import get_all_jobs, delete_all_jobs, delete_job, server_reset
 from .health import check_server_health
 
 __all__ = [
@@ -23,5 +23,6 @@ __all__ = [
     "get_all_jobs",
     "delete_all_jobs",
     "delete_job",
+    "server_reset",
     "check_server_health",
 ]
