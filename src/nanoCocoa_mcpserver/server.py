@@ -38,6 +38,7 @@ from handlers import (
     delete_all_jobs,
     delete_job,
     check_server_health,
+    server_reset,
 )
 
 # 로깅 설정
@@ -336,6 +337,15 @@ async def health_check():
         "version": MCP_SERVER_VERSION,
         "description": MCP_SERVER_DESCRIPTION,
     }
+
+
+@app.post("/server-reset")
+async def reset_server():
+    """서버 초기화 엔드포인트 - 실행 중인 작업을 중지하고 완료된 작업을 삭제"""
+    result = await server_reset()
+    if result["status"] == "error":
+        raise HTTPException(status_code=500, detail=result["message"])
+    return result
 
 
 @app.get("/tools")
