@@ -15,10 +15,13 @@ import uuid
 
 from fastapi import APIRouter, HTTPException, Response, status
 
-from config import TOTAL_ESTIMATED_TIME, logger
+from config import TOTAL_ESTIMATED_TIME
 from core.worker import worker_process
 from schemas import GenerateRequest, GPUMetric, StatusResponse, SystemMetrics
 from utils import get_system_metrics
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 router = APIRouter()
 
@@ -30,6 +33,7 @@ manager = None
 JOBS = None
 PROCESSES = None
 STOP_EVENTS = None
+WORKER_POOL = None
 
 
 def init_shared_state(mgr, jobs_dict, processes_dict, stop_events_dict):
@@ -39,6 +43,13 @@ def init_shared_state(mgr, jobs_dict, processes_dict, stop_events_dict):
     JOBS = jobs_dict
     PROCESSES = processes_dict
     STOP_EVENTS = stop_events_dict
+
+
+def set_worker_pool(worker_pool):
+    """워커 풀 설정 (lifespan에서 호출)"""
+    global WORKER_POOL
+    WORKER_POOL = worker_pool
+    logger.info(f"WORKER_POOL set: {WORKER_POOL}")
 
 
 @router.post(
@@ -124,7 +135,7 @@ async def generate_ad(req: GenerateRequest, response: Response):
         }
 
     job_id = str(uuid.uuid4())
-    stop_event = mp_context.Event()
+    stop_event = manager.Event()  # mp_context.Event() 대신 manager.Event() 사용
     input_data = req.model_dump()
 
     JOBS[job_id] = manager.dict(
@@ -141,11 +152,14 @@ async def generate_ad(req: GenerateRequest, response: Response):
         }
     )
 
-    p = mp_context.Process(
-        target=worker_process, args=(job_id, input_data, JOBS[job_id], stop_event)
+    # 워커 풀에 태스크 제출
+    WORKER_POOL.submit_task(
+        job_id=job_id,
+        task_func=worker_process,
+        input_data=input_data,
+        shared_state=JOBS[job_id],
+        stop_event=stop_event,
     )
-    p.start()
-    PROCESSES[job_id] = p
     STOP_EVENTS[job_id] = stop_event
 
     return {"job_id": job_id, "status": "started"}
@@ -202,6 +216,44 @@ async def get_status(job_id: str):
         ram_total_gb=current_metrics["ram_total_gb"],
         ram_percent=current_metrics["ram_percent"],
         gpu_info=[GPUMetric(**gpu) for gpu in current_metrics["gpu_info"]],
+    )
+
+    # GPU 메트릭 추출 (첫 번째 GPU 사용)
+    gpu_util = (
+        current_metrics["gpu_info"][0].get("utilization", 0.0)
+        if current_metrics["gpu_info"]
+        else 0.0
+    )
+    vram_used_mb = (
+        current_metrics["gpu_info"][0].get("memory_used_mb", 0.0)
+        if current_metrics["gpu_info"]
+        else 0.0
+    )
+    vram_total_mb = (
+        current_metrics["gpu_info"][0].get("memory_total_mb", 0.0)
+        if current_metrics["gpu_info"]
+        else 0.0
+    )
+    vram_percent = (
+        current_metrics["gpu_info"][0].get("memory_percent", 0.0)
+        if current_metrics["gpu_info"]
+        else 0.0
+    )
+
+    # 작업 수 계산
+    if JOBS is not None:
+        active_count = sum(
+            1 for j in JOBS.values() if j["status"] in ("running", "pending")
+        )
+        total_jobs = len(JOBS)
+    else:
+        active_count = 0
+        total_jobs = 0
+
+    logger.info(
+        f"[Health] Status={state['status']} Jobs={active_count}/{total_jobs} "
+        f"| CPU={current_metrics['cpu_percent']:.1f}% RAM={current_metrics['ram_used_gb']:.1f}/{current_metrics['ram_total_gb']:.1f}GB ({current_metrics['ram_percent']:.1f}%) "
+        f"| GPU={gpu_util:.1f}% VRAM={vram_used_mb:.0f}/{vram_total_mb:.0f}MB ({vram_percent:.1f}%)"
     )
 
     return StatusResponse(

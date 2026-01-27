@@ -39,5 +39,5 @@ TOTAL_ESTIMATED_TIME = sum(ESTIMATED_TIMES.values())
 # 메모리 관리 설정
 AUTO_UNLOAD_DEFAULT = True  # 기본값: 각 단계 완료 후 모델 언로드
 
-# 로깅 설정
-logger = get_auto_logger()
+# # 로깅 설정
+# logger = get_auto_logger()

@@ -20,8 +20,11 @@ from fastapi.staticfiles import StaticFiles
 
 from api.middleware import FontHeaderMiddleware
 from api.routers import clip, dev_dashboard, generation, resources
-from config import logger
+from core.model_pool import ModelWorkerPool
 from utils import get_system_metrics
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 # 전역 상태 관리
 manager = multiprocessing.Manager()
@@ -29,13 +32,35 @@ JOBS = manager.dict()
 PROCESSES = {}
 STOP_EVENTS = {}
 
+# 워커 풀 전역 변수
+worker_pool: ModelWorkerPool = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 라이프사이클 관리"""
+    global worker_pool
+
+    # 시작 시: 시스템 체크 및 워커 풀 초기화
     metrics = get_system_metrics()
     logger.info(f"System Check: {metrics}")
+
+    logger.info("ModelWorkerPool 초기화 중...")
+    worker_pool = ModelWorkerPool(num_workers=1, dummy_mode=False)
+    logger.info("ModelWorkerPool 초기화 완료")
+
+    # 워커 풀을 라우터에 전달
+    generation.set_worker_pool(worker_pool)
+    logger.info("WorkerPool injected to generation router")
+
     yield
+
+    # 종료 시: 워커 풀 종료 및 리소스 정리
+    logger.info("ModelWorkerPool 종료 중...")
+    if worker_pool:
+        worker_pool.shutdown()
+    logger.info("ModelWorkerPool 종료 완료")
+
     for pid, proc in PROCESSES.items():
         if proc.is_alive():
             proc.terminate()
@@ -95,7 +120,7 @@ def create_app() -> FastAPI:
     logger.info(f"static_dir: {static_dir}")
     logger.info(f"fonts_dir: {fonts_dir}")
 
-    # 라우터에 전역 상태 주입
+    # 라우터에 전역 상태 주입 (worker_pool은 lifespan에서 주입)
     generation.init_shared_state(manager, JOBS, PROCESSES, STOP_EVENTS)
     resources.init_shared_state(JOBS)
 

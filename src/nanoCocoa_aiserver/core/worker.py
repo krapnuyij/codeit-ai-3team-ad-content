@@ -12,6 +12,8 @@ sys.path.insert(0, str(project_root))
 import multiprocessing
 import time
 
+from typing import Optional
+
 from helper_dev_utils import print_dic_tree
 from PIL import Image
 
@@ -44,7 +46,11 @@ logger = get_auto_logger()
 
 
 def worker_process(
-    job_id: str, input_data: dict, shared_state: dict, stop_event: multiprocessing.Event
+    job_id: str,
+    input_data: dict,
+    shared_state: dict,
+    stop_event,
+    engine: Optional[AIModelEngine] = None,
 ):
     """
     Step 기반(1->2->3) 순차 실행 워커 프로세스.
@@ -54,15 +60,35 @@ def worker_process(
         input_data: 클라이언트 요청 데이터
         shared_state: 프로세스 간 공유 상태 딕셔너리
         stop_event: 작업 중단 이벤트
+        engine: AIModelEngine 인스턴스 (워커 풀에서 전달, None일 경우 새로 생성)
     """
 
     logger.info(f"[Worker] input_data")
     print_dic_tree(input_data)
 
-    # 워커 시작 시 GPU 메모리 초기화
-    logger.info(f"[Worker] Clearing GPU memory at start for job {job_id}")
-    flush_gpu()
-    logger.info(f"[Worker] GPU memory cleared")
+    # engine이 None일 경우에만 새로 생성 (하위 호환성)
+    if engine is None:
+        # 워커 시작 시 GPU 메모리 초기화
+        logger.info(f"[Worker] Clearing GPU memory at start for job {job_id}")
+        flush_gpu()
+        logger.info(f"[Worker] GPU memory cleared")
+
+        # 파라미터 추출
+        test_mode = input_data.get("test_mode", False)
+        auto_unload = input_data.get("auto_unload", False)
+
+        # 진행률 업데이트 콜백 함수는 아래에서 정의되므로 여기서는 None으로 초기화
+        engine = AIModelEngine(
+            dummy_mode=test_mode, progress_callback=None, auto_unload=auto_unload
+        )
+        logger.info(f"[Worker] AIModelEngine created (auto_unload={auto_unload})")
+    else:
+        logger.info(f"[Worker] Using provided AIModelEngine instance (from pool)")
+
+    # 워커 시작 시 GPU 메모리 초기화 (워커 풀 환경에서는 첫 태스크에만 필요하지만 안전하게 매번 수행)
+    # logger.info(f"[Worker] Clearing GPU memory at start for job {job_id}")
+    # flush_gpu()
+    # logger.info(f"[Worker] GPU memory cleared")
 
     # 파라미터 추출
     test_mode = input_data.get("test_mode", False)
@@ -154,17 +180,30 @@ def worker_process(
         shared_state["eta_seconds"] = int(total_remaining)
         shared_state["eta_update_time"] = time.time()
 
+        # 시스템 메트릭 로깅
+        metrics = shared_state.get("system_metrics", {})
+        gpu_info = metrics.get("gpu", {})
+        cpu_percent = metrics.get("cpu_percent", 0)
+        memory_percent = metrics.get("memory_percent", 0)
+        
         logger.debug(" ")
         logger.debug(
-            f"step_count={shared_state['step_count']} avg_time={avg_time} step_range={step_range}"
+            f"step_count={shared_state['step_count']} avg_time={avg_time:.2f}s step_range={step_range:.2f}% "
+            f"| CPU={cpu_percent:.1f}% RAM={memory_percent:.1f}% "
+            f"| GPU={gpu_info.get('utilization', 0):.1f}% VRAM={gpu_info.get('memory_used_mb', 0):.0f}/{gpu_info.get('memory_total_mb', 0):.0f}MB"
         )
-        logger.info(f"shared_state: {str(shared_state)}")
+        #logger.info(f"shared_state: {str(shared_state)}")
 
-    # auto_unload 설정 (기본값: True)
-    auto_unload = input_data.get("auto_unload", True)
-    engine = AIModelEngine(
-        dummy_mode=test_mode, progress_callback=update_progress, auto_unload=auto_unload
-    )
+    # 진행률 콜백 연결 (engine이 이미 생성된 경우에도 업데이트)
+    if engine is not None:
+        engine.progress_callback = update_progress
+
+    # auto_unload 설정 (기본값: False, 워커 풀 환경에서는 모델을 유지)
+    # 워커 풀 환경에서 engine이 전달된 경우, auto_unload는 무시됨 (이미 설정되어 있음)
+    # auto_unload = input_data.get("auto_unload", False)
+    # engine = AIModelEngine(
+    #     dummy_mode=test_mode, progress_callback=update_progress, auto_unload=auto_unload
+    # )
 
     try:
         shared_state["status"] = "running"

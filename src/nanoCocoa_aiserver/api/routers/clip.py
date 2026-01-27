@@ -11,9 +11,11 @@ sys.path.insert(0, str(project_root))
 
 from fastapi import APIRouter, HTTPException, status
 
-from config import logger
 from core.clip_service import ClipService
 from schemas.clip import ClipScoreRequest, ClipScoreResponse
+from helper_dev_utils import get_auto_logger
+
+logger = get_auto_logger()
 
 router = APIRouter()
 

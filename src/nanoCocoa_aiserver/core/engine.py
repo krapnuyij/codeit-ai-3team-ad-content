@@ -35,7 +35,7 @@ class AIModelEngine:
         Args:
             dummy_mode (bool): True일 경우 실제 모델을 로드하지 않고 더미 데이터를 반환합니다.
             progress_callback (callable, optional): 진행률 업데이트 콜백 함수 callback(step, total_steps, sub_step_name)
-            auto_unload (bool): 각 단계 완료 후 모델을 자동으로 언로드할지 여부 (기본 True)
+            auto_unload (bool): 각 단계 완료 후 모델을 자동으로 언로드할지 여부 (기본 False, 워커 풀 환경에서는 메모리 유지)
         """
         self.dummy_mode = dummy_mode
         self.progress_callback = progress_callback
@@ -65,16 +65,17 @@ class AIModelEngine:
         negative_prompt: Optional[str] = None,
         guidance_scale: Optional[float] = 3.5,
         seed: Optional[int] = None,
-        auto_unload: Optional[bool] = True,
+        auto_unload: Optional[bool] = False,
     ) -> Image.Image:
         """
-        Flux 모델을 로드하여 배경 이미지를 생성하고 즉시 언로드합니다.
+        Flux 모델을 로드하여 배경 이미지를 생성합니다.
 
         Args:
             prompt (str): 배경 생성을 위한 텍스트 프롬프트
             negative_prompt (str, optional): 배제할 요소들에 대한 부정 프롬프트
             guidance_scale (float): 프롬프트 준수 강도 (기본 3.5)
             seed (int, optional): 난수 시드
+            auto_unload (bool): 생성 후 모델 언로드 여부 (기본 False, 워커 풀 환경에서는 유지)
 
         Returns:
             Image.Image: 생성된 배경 이미지
@@ -112,10 +113,10 @@ class AIModelEngine:
         strength: Optional[float] = 0.6,
         guidance_scale: Optional[float] = 3.5,
         seed: Optional[int] = None,
-        auto_unload: Optional[bool] = True,
+        auto_unload: Optional[bool] = False,
     ) -> Image.Image:
         """
-        Flux Img2Img 모델을 로드하여 초안 이미지를 리터칭(배경 합성)하고 언로드합니다.
+        Flux Img2Img 모델을 로드하여 초안 이미지를 리터칭(배경 합성)합니다.
 
         Args:
             input_image (Image.Image): 재품 이미지
@@ -124,6 +125,7 @@ class AIModelEngine:
             strength (Optional[float]): 변환 강도 (0.0 ~ 1.0). 기본 0.6.
             guidance_scale (Optional[float]): 프롬프트 준수 강도. 기본 3.5.
             seed (Optional[int], optional): 난수 시드.
+            auto_unload (bool): 생성 후 모델 언로드 여부 (기본 False, 워커 풀 환경에서는 유지)
         Returns:
             Image.Image: 리터칭된 최종 배경 합성 이미지
         """

@@ -19,8 +19,11 @@ from fastapi import Response
 from services.fonts import get_fonts_dir
 from services.fonts import get_available_fonts, get_font_metadata
 from utils import get_system_metrics
+from helper_dev_utils import get_auto_logger
 
 router = APIRouter()
+
+logger = get_auto_logger()
 
 # 전역 상태 (generation.py에서 주입됨)
 JOBS = None
@@ -159,6 +162,30 @@ async def health_check():
                 active_count += 1
 
     server_status = "busy" if active_count > 0 else "healthy"
+
+    # 시스템 메트릭 로깅
+    cpu_percent = metrics.get("cpu_percent", 0)
+    memory_percent = metrics.get("memory_percent", 0)
+    memory_used_gb = metrics.get("memory_used_gb", 0)
+    memory_total_gb = metrics.get("memory_total_gb", 0)
+
+    gpu_metrics = metrics.get("gpu", {})
+    if isinstance(gpu_metrics, dict):
+        gpu_util = gpu_metrics.get("utilization", 0)
+        vram_used_mb = gpu_metrics.get("memory_used_mb", 0)
+        vram_total_mb = gpu_metrics.get("memory_total_mb", 0)
+        vram_percent = gpu_metrics.get("memory_percent", 0)
+
+        logger.info(
+            f"[Health] Status={server_status} Jobs={active_count}/{total_jobs} "
+            f"| CPU={cpu_percent:.1f}% RAM={memory_used_gb:.1f}/{memory_total_gb:.1f}GB ({memory_percent:.1f}%) "
+            f"| GPU={gpu_util:.1f}% VRAM={vram_used_mb:.0f}/{vram_total_mb:.0f}MB ({vram_percent:.1f}%)"
+        )
+    else:
+        logger.info(
+            f"[Health] Status={server_status} Jobs={active_count}/{total_jobs} "
+            f"| CPU={cpu_percent:.1f}% RAM={memory_used_gb:.1f}/{memory_total_gb:.1f}GB ({memory_percent:.1f}%)"
+        )
 
     return {
         "status": server_status,
