@@ -8,7 +8,7 @@
 **생성형 AI 기술을 활용하여 소상공인이 광고 콘텐츠(배너, 홈페이지)를 손쉽게 제작할 수 있도록 돕는 자동화 플랫폼입니다.**
 오프라인 중심의 소상공인이 복잡한 과정 없이 온라인 마케팅을 시작할 수 있도록, 광고 문구, 이미지, 그리고 랜딩 페이지까지 All-in-One으로 생성합니다.
 
-**시연 영상**: [시연영상](https://krapnuyij.github.io/codeit-ai-3team-ad-content/발표자료/코드잇AI엔지니어4기_3팀_테스트동영상_260123_141208-c.mp4)<br/>
+**시연 영상**: [발표자료/코드잇AI엔지니어4기_3팀_테스트동영상_260123_141208-c.mp4](https://krapnuyij.github.io/codeit-ai-3team-ad-content/발표자료/코드잇AI엔지니어4기_3팀_테스트동영상_260123_141208-c.mp4)<br/>
 <video src="https://krapnuyij.github.io/codeit-ai-3team-ad-content/발표자료/코드잇AI엔지니어4기_3팀_테스트동영상_260123_141208-c.mp4" controls width="320"></video>
 
 ---
